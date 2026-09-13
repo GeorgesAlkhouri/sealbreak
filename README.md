@@ -8,10 +8,16 @@ Minimal iOS prototype for manually unsealing an OpenBao Shamir seal with a devic
 
 1. Open `Sealbreak.xcodeproj` with Xcode 16 or newer.
 2. Select the **Sealbreak** target and open **Signing & Capabilities**.
-3. Keep automatic signing enabled, choose your Apple development team, and replace `com.example.sealbreak.prototype` with a unique bundle identifier.
+3. Keep automatic signing enabled and choose your Apple development team. The current identifier is `com.georgesalkhouri.sealbreak.prototype`; keep your chosen bundle identifier stable after importing shares.
 4. Connect an iPhone with Face ID and a device passcode, select it as the run destination, and press **Run**.
 
-Deployment target is iOS 17. The project has no external dependencies and no test target.
+Deployment target is iOS 17. The application has no external dependencies. A separate Swift package runs host model tests without changing the iOS target.
+
+## Continuous integration
+
+[CI setup and release policy](docs/CI.md) describes GitHub Actions, CodeQL, SonarQube Cloud, Renovate and the main-branch ruleset template. The workflow compiles the complete app in Simulator Debug and device Release configurations and runs model tests including the C01 regression. Sonar credentials, Renovate installation and ruleset activation are separate repository/account setup steps; no missing gate is silently marked successful.
+
+Run the model tests locally with `swift test`. They do not replace Face ID/Keychain tests on a physical iPhone.
 
 ## MVP behavior
 

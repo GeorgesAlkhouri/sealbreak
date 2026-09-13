@@ -5,3 +5,9 @@ xcuserdata/
 *.xcuserstate
 *.ipa
 *.xcarchive
+.build/
+.swiftpm/
+reports/
+.scannerwork/
+__pycache__/
+*.pyc
