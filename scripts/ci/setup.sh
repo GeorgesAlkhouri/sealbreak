@@ -9,15 +9,25 @@ if [[ ! -d "$DEVELOPER_DIR" ]]; then
 fi
 xcodebuild -version
 xcrun swift --version
-# Select an installed Xcode only; never download an Apple toolchain in a PR.
 printf 'DEVELOPER_DIR=%s\n' "$DEVELOPER_DIR" >> "${GITHUB_ENV:?GitHub Actions environment is required}"
 
-# Exact Mint version; no unversioned Homebrew install. This runner has no user secrets.
-tools="${RUNNER_TEMP:?}/sealbreak-tools"
-mkdir -p "$tools"
-git clone --depth 1 --branch "$MINT_VERSION" https://github.com/yonaskolb/Mint.git "$tools/Mint"
-xcrun swift build --package-path "$tools/Mint" --configuration release --product mint
-bin=$(xcrun swift build --package-path "$tools/Mint" --configuration release --show-bin-path)
-printf '%s\n' "$bin" >> "$GITHUB_PATH"
-# Isolate tool builds from app source, coverage and any future release signing job.
-printf 'MINT_PATH=%s\n' "$tools/mint" >> "$GITHUB_ENV"
+# The security job only needs Xcode; avoid installing lint/format tools there.
+if [[ "${1:-}" == "xcode-only" ]]; then
+  exit 0
+fi
+
+# Cacheable, version-pinned quality tools. No user or production secrets are stored here.
+tools="$HOME/.cache/sealbreak-tools"
+mint_path="$HOME/.cache/sealbreak-mint"
+mkdir -p "$tools" "$mint_path"
+
+mint_repo="$tools/Mint"
+mint_bin="$mint_repo/.build/release/mint"
+if [[ ! -x "$mint_bin" ]]; then
+  rm -rf "$mint_repo"
+  git clone --depth 1 --branch "$MINT_VERSION" https://github.com/yonaskolb/Mint.git "$mint_repo"
+  xcrun swift build --package-path "$mint_repo" --configuration release --product mint
+fi
+
+printf '%s\n' "$(dirname "$mint_bin")" >> "$GITHUB_PATH"
+printf 'MINT_PATH=%s\n' "$mint_path" >> "$GITHUB_ENV"
