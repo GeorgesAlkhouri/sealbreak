@@ -206,7 +206,7 @@ final class AppModel: ObservableObject {
                 self.operation = nil
             }
             do {
-                try self.requireForeground()
+                try await self.waitForForeground()
                 try await work()
             } catch is CancellationError {
                 self.status = nil
@@ -221,11 +221,27 @@ final class AppModel: ObservableObject {
 
     private func requireForeground() throws {
         try Task.checkCancellation()
-        guard UIApplication.shared.applicationState == .active,
-              UIApplication.shared.isProtectedDataAvailable,
-              !UIScreen.main.isCaptured else {
-            throw AppFailure("Return to the unlocked app and stop screen recording or mirroring before continuing.")
+        guard UIApplication.shared.applicationState == .active else {
+            throw AppFailure("Sealbreak is not the active app. Return to it after the system dialog closes, then retry.")
         }
+        guard UIApplication.shared.isProtectedDataAvailable else {
+            throw AppFailure("Protected iPhone data is unavailable. Unlock the device and retry in Sealbreak.")
+        }
+        guard !UIScreen.main.isCaptured else {
+            throw AppFailure("iPhone screen capture or mirroring is active. Stop it and retry directly on the unlocked device.")
+        }
+    }
+
+    private func waitForForeground() async throws {
+        for _ in 0..<50 {
+            try Task.checkCancellation()
+            if UIApplication.shared.applicationState == .active {
+                try requireForeground()
+                return
+            }
+            try await Task.sleep(for: .milliseconds(100))
+        }
+        try requireForeground()
     }
 
     private func authorize(
@@ -261,11 +277,7 @@ final class AppModel: ObservableObject {
             throw AppFailure("Face ID was cancelled or denied. No new share submission was started.")
         }
 
-        try Task.checkCancellation()
-        for _ in 0..<30 where UIApplication.shared.applicationState != .active {
-            try await Task.sleep(for: .milliseconds(50))
-        }
-        try requireForeground()
+        try await waitForForeground()
         context.interactionNotAllowed = true
         try await action(context)
     }
