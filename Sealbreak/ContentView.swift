@@ -131,8 +131,6 @@ struct ContentView: View {
                     Text("Requires fresh Face ID. This cannot be undone and does not revoke copies elsewhere. After Face ID changes, removal deletes any remaining old record; it cannot recover that record.")
                 }
             }
-            .privacySensitive()
-
             if concealed {
                 Color(.systemBackground)
                     .ignoresSafeArea()
