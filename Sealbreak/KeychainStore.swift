@@ -23,11 +23,11 @@ struct KeychainStore {
         guard status == errSecSuccess, var data = result as? Data else {
             throw failure(status)
         }
-        guard data.count <= 4096 else {
-            throw AppFailure("The protected record is larger than expected. Use independent recovery.")
-        }
         defer {
             data.resetBytes(in: data.startIndex..<data.endIndex)
+        }
+        guard data.count <= StorageLimits.maxRecordBytes else {
+            throw AppFailure("The protected record is larger than expected. Use independent recovery.")
         }
 
         do {
@@ -48,10 +48,11 @@ struct KeychainStore {
             throw AppFailure("Could not create biometric Keychain protection. A device passcode and Face ID are required.")
         }
 
-        var data = try JSONEncoder().encode(record)
+        var data = try JSONEncoder().encode(record.validated())
         defer {
             data.resetBytes(in: data.startIndex..<data.endIndex)
         }
+        try StorageLimits.validateEncodedSize(data)
         var request = query
         request[kSecAttrAccessControl as String] = access
         request[kSecValueData as String] = data
@@ -64,10 +65,11 @@ struct KeychainStore {
     }
 
     func replace(_ record: ShareRecord, context: LAContext) throws {
-        var data = try JSONEncoder().encode(record)
+        var data = try JSONEncoder().encode(record.validated())
         defer {
             data.resetBytes(in: data.startIndex..<data.endIndex)
         }
+        try StorageLimits.validateEncodedSize(data)
         var request = query
         request[kSecUseAuthenticationContext as String] = context
 
@@ -121,14 +123,17 @@ struct ProfileStore {
         defer {
             try? handle.close()
         }
-        let data = try handle.read(upToCount: 4097) ?? Data()
-        guard data.count <= 4096 else {
+        let data = try handle.read(upToCount: StorageLimits.maxRecordBytes + 1) ?? Data()
+        guard data.count <= StorageLimits.maxRecordBytes else {
             throw AppFailure("Invalid display profile. Restore it from Keychain.")
         }
         return try JSONDecoder().decode(ServerProfile.self, from: data).validated()
     }
 
     func save(_ profile: ServerProfile) throws {
+        let data = try JSONEncoder().encode(profile.validated())
+        try StorageLimits.validateEncodedSize(data)
+
         var folder = directory
         try FileManager.default.createDirectory(
             at: folder,
@@ -138,7 +143,7 @@ struct ProfileStore {
         var values = URLResourceValues()
         values.isExcludedFromBackup = true
         try folder.setResourceValues(values)
-        try JSONEncoder().encode(profile).write(
+        try data.write(
             to: file,
             options: [.atomic, .completeFileProtection]
         )

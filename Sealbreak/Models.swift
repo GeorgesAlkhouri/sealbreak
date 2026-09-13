@@ -10,6 +10,17 @@ struct AppFailure: LocalizedError, Sendable {
     var errorDescription: String? { message }
 }
 
+// Readers and writers must agree on the size of the complete encoded payload.
+enum StorageLimits {
+    static let maxRecordBytes = 4_096
+
+    static func validateEncodedSize(_ data: Data) throws {
+        guard data.count <= maxRecordBytes else {
+            throw AppFailure("The record exceeds the \(maxRecordBytes)-byte storage limit. Shorten the server name; nothing was saved.")
+        }
+    }
+}
+
 struct ServerProfile: Codable, Equatable, Sendable {
     let name: String
     let origin: String
@@ -17,9 +28,10 @@ struct ServerProfile: Codable, Equatable, Sendable {
     init(name: String, address: String) throws {
         let name = name.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !name.isEmpty,
+              name.utf8.count <= StorageLimits.maxRecordBytes,
               name.count <= 40,
               !name.unicodeScalars.contains(where: { CharacterSet.controlCharacters.contains($0) }) else {
-            throw AppFailure("Use a server name of 1–40 characters without control characters.")
+            throw AppFailure("Use a server name of 1–40 characters without control characters, within \(StorageLimits.maxRecordBytes) UTF-8 bytes.")
         }
         self.name = name
         self.origin = try Self.canonicalOrigin(address)
