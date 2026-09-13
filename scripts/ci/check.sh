@@ -3,7 +3,8 @@ set -euo pipefail
 cd "$(dirname "$0")/../.."
 mkdir -p reports
 # No code changes are made by CI.
-mint run --silent nicklockwood/SwiftFormat swiftformat --lint Sealbreak Tests Package.swift
+# SwiftFormat 0.62.x parses --lint as a flag for the preceding input set.
+mint run --silent nicklockwood/SwiftFormat swiftformat Sealbreak Tests Package.swift --lint
 mint run --silent realm/SwiftLint swiftlint lint --strict --reporter json > reports/swiftlint.json
 python3 - <<'PY'
 import json
