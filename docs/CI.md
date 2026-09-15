@@ -37,15 +37,20 @@ Coverage is generated once from these tests. `llvm-cov show` line counts are con
 
 Import this public GitHub repository into your Sonar organization, then disable **Automatic Analysis** and use this CI-based workflow. For a pre-merge branch/PR quality gate, confirm that your organization has the **OSS plan** or another plan providing those features. Public visibility alone is not proof of the plan or its prerequisites. No license has been selected on your behalf.
 
-Create the following GitHub repository settings, using the actual identifiers from Sonar rather than guessed values:
+The SonarQube Cloud project identifiers are versioned in `sonar-project.properties`:
+
+```properties
+sonar.projectKey=GeorgesAlkhouri_sealbreak
+sonar.organization=georgesalkhouri
+```
+
+Create only the following GitHub repository secret:
 
 | Setting | Type | Value |
 | --- | --- | --- |
-| `SONAR_ORGANIZATION` | Actions variable | Sonar organization key |
-| `SONAR_PROJECT_KEY` | Actions variable | Sonar project key |
 | `SONAR_TOKEN` | Actions secret | A least-privileged token able to analyze this project |
 
-The workflow targets the European/default service at `https://sonarcloud.io`. Organizations on a different Sonar region must change the configured service endpoint appropriately. Start with the current **Sonar way** quality gate and New Code definition; adjust requirements deliberately in Sonar, not with source exclusions. The scanner waits for the gate, so a failed quality gate fails `CI / sonar`.
+Start with the current **Sonar way** quality gate and New Code definition; adjust requirements deliberately in Sonar, not with source exclusions. The scanner waits for the gate, so a failed quality gate fails `CI / sonar`.
 
 Missing configuration fails visibly. There is no `continue-on-error`, placeholder token or successful skip. Establish a main-branch Sonar analysis before relying on PR comparisons. For a repository whose initial application exists only on the prototype branch, bootstrap the project/initial main analysis first and enable mandatory gates only once baseline results exist. Do not invent a green status to get through first-time setup.
 
