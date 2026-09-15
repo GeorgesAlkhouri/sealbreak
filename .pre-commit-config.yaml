@@ -11,22 +11,20 @@ repos:
       - id: end-of-file-fixer
       - id: trailing-whitespace
 
-  - repo: https://github.com/nicklockwood/SwiftFormat
-    rev: 0.62.1
-    hooks:
-      - id: swiftformat
-        args: [--lint]
-
-  - repo: https://github.com/realm/SwiftLint
-    rev: 0.65.1
-    hooks:
-      - id: swiftlint
-        args: [--strict]
-
   - repo: local
     hooks:
+      - id: swiftformat
+        name: SwiftFormat
+        entry: bash -c 'swiftformat "$@" --lint' --
+        language: unsupported
+        types: [swift]
+      - id: swiftlint
+        name: SwiftLint
+        entry: swiftlint --quiet --strict
+        language: unsupported
+        types: [swift]
       - id: plutil
         name: Validate Apple property files
         entry: plutil -lint
-        language: system
+        language: unsupported
         files: '\.(plist|xcprivacy|pbxproj)$'
