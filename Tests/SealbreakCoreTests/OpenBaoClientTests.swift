@@ -87,7 +87,7 @@ struct OpenBaoClientTests {
         ]
 
         for (statusCode, headers, responseOrigin, prefix) in cases {
-            let client = makeClient { request in
+            let client = makeClient { _ in
                 let url = URL(string: "\(responseOrigin)/v1/sys/seal-status")!
                 let response = HTTPURLResponse(
                     url: url,
@@ -201,7 +201,11 @@ private final class MockURLProtocol: URLProtocol {
             return
         }
         do {
-            let (response, data) = try handler(request)
+            var interceptedRequest = request
+            if interceptedRequest.httpBody == nil, let stream = interceptedRequest.httpBodyStream {
+                interceptedRequest.httpBody = try Self.readBody(from: stream)
+            }
+            let (response, data) = try handler(interceptedRequest)
             client?.urlProtocol(self, didReceive: response, cacheStoragePolicy: .notAllowed)
             client?.urlProtocol(self, didLoad: data)
             client?.urlProtocolDidFinishLoading(self)
@@ -211,6 +215,24 @@ private final class MockURLProtocol: URLProtocol {
     }
 
     override func stopLoading() {}
+
+    private static func readBody(from stream: InputStream) throws -> Data {
+        stream.open()
+        defer { stream.close() }
+
+        var data = Data()
+        var buffer = [UInt8](repeating: 0, count: 4_096)
+        while true {
+            let count = stream.read(&buffer, maxLength: buffer.count)
+            if count < 0 {
+                throw stream.streamError ?? URLError(.cannotDecodeRawData)
+            }
+            if count == 0 {
+                return data
+            }
+            data.append(contentsOf: buffer.prefix(count))
+        }
+    }
 }
 
 private final class HandlerStorage: @unchecked Sendable {
