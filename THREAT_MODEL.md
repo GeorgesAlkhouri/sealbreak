@@ -154,7 +154,8 @@ An attacker attempts to make Sealbreak submit a valid share to an unintended end
 
 Current controls include HTTPS-only canonical origins, normal certificate and hostname validation, rejection of redirects, and validation that the response URL matches the request URL. These controls do not protect against a compromised legitimate endpoint or a wrongly enrolled but otherwise valid endpoint.
 
-Affected assets: **A01, A05**  
+Affected assets: **A01, A05**
+
 Controls: **M03, M04**
 
 #### T02 — Manipulated target binding
@@ -163,7 +164,8 @@ An attacker or corrupted local metadata attempts to associate a stored share wit
 
 The authoritative server profile is stored together with the share in the protected Keychain record. Before submission, Sealbreak compares that protected profile with the selected profile and aborts on mismatch. The separate display profile is therefore not sufficient to retarget a share.
 
-Affected assets: **A01, A02, A05**  
+Affected assets: **A01, A02, A05**
+
 Controls: **M04**
 
 #### T03 — Biometric access-control bypass
@@ -172,7 +174,8 @@ An attacker attempts to retrieve or use the stored share without a current biome
 
 The Keychain item uses `kSecAttrAccessibleWhenPasscodeSetThisDeviceOnly` with `biometryCurrentSet`. Sealbreak creates a fresh `LAContext` for every sensitive operation, requires Face ID, disables application fallback, and invalidates the context when the operation ends. Actual device behavior after Face ID changes, lockout, cancellation, and migration remains dependent on iOS enforcement and should be validated on physical hardware.
 
-Affected assets: **A01, A03**  
+Affected assets: **A01, A03**
+
 Controls: **M01, M02**
 
 ### 3.2 Tampering
@@ -183,7 +186,8 @@ Malformed, stale, or attacker-controlled status data could cause the application
 
 Sealbreak accepts only HTTP 200 JSON responses from the expected URL, bounds response size, decodes into a typed model, and validates basic state consistency. It re-checks status after submission. These controls cannot make a compromised legitimate OpenBao server truthful.
 
-Affected assets: **A03, A05**  
+Affected assets: **A03, A05**
+
 Controls: **M05**
 
 #### T05 — Broken share lifecycle
@@ -192,7 +196,8 @@ A failed replacement or deletion path could corrupt or destroy the local share.
 
 Replacement updates the existing Keychain item rather than deleting it first. All readers and writers use a common encoded-record size limit, and an oversized replacement is rejected before the Keychain update. Replacement still cannot prove that the new share is cryptographically valid for the server; independent recovery remains required.
 
-Affected assets: **A01, A04**  
+Affected assets: **A01, A04**
+
 Controls: **M08, M09**
 
 #### T06 — Reuse of a stolen share
@@ -201,7 +206,8 @@ A Shamir share is not a one-time credential. An attacker who obtains a copy can 
 
 Sealbreak limits its own behavior to one controlled submission per explicit action and performs no automatic retry, but it cannot make a copied Shamir share expire or bind it cryptographically to the app, device, operator, or time of use.
 
-Affected assets: **A01, A03**  
+Affected assets: **A01, A03**
+
 Controls: **M02, M05, M06, M09**
 
 ### 3.3 Repudiation
@@ -212,7 +218,8 @@ OpenBao receives the submitted share but does not receive cryptographic proof th
 
 Sealbreak therefore does not claim individual server-verifiable attribution. A successful unseal also does not prove which operator completed the quorum.
 
-Affected assets: **A03**  
+Affected assets: **A03**
+
 Controls: **M12**
 
 ### 3.4 Information Disclosure
@@ -223,7 +230,8 @@ A share may already exist in a password manager, clipboard history, note, screen
 
 Sealbreak performs no automatic clipboard read and provides no share-export feature, but it cannot revoke or control copies that already exist elsewhere.
 
-Affected assets: **A01**  
+Affected assets: **A01**
+
 Controls: **M07, M09**
 
 #### T09 — Share appears in diagnostics
@@ -232,7 +240,8 @@ Sensitive data could leak through logs, analytics, crash reports, request dumps,
 
 Sealbreak contains no application analytics or share logging, uses an ephemeral URL session, disables caches, cookies, and credential storage, does not display response bodies on error, and deliberately keeps diagnostic messages coarse. Infrastructure such as TLS proxies and external crash tooling remains outside the app's direct control.
 
-Affected assets: **A01**  
+Affected assets: **A01**
+
 Controls: **M06, M12**
 
 #### T10 — Share read from process memory
@@ -241,7 +250,8 @@ After successful Face ID authorization, the share must briefly exist in Sealbrea
 
 Sealbreak performs best-effort cleanup of mutable buffers and uses short-lived request data, but Swift strings, serialization internals, networking, a debugger, or a sufficiently privileged process attacker may retain or inspect copies. Guaranteed memory erasure is not claimed.
 
-Affected assets: **A01, A06**  
+Affected assets: **A01, A06**
+
 Controls: **M01, M02, M06, M11**
 
 #### T11 — Unexpected synchronization, backup, or migration
@@ -250,7 +260,8 @@ Incorrect storage configuration could copy the protected share to another device
 
 The Keychain query explicitly disables synchronization and uses `WhenPasscodeSetThisDeviceOnly`. The non-secret display profile is stored with complete file protection and excluded from backup. Real backup, restore, and device-migration behavior still depends on platform enforcement and should be tested on physical devices.
 
-Affected assets: **A01, A02**  
+Affected assets: **A01, A02**
+
 Controls: **M01, M06, M08**
 
 ### 3.5 Denial of Service
@@ -261,7 +272,8 @@ Device loss, hardware failure, Face ID re-enrollment, Keychain invalidation, app
 
 This is partly an intentional consequence of device-bound storage. Sealbreak requires an independent recovery copy before import and replacement, but that requirement does not prove the external recovery procedure has been tested successfully.
 
-Affected assets: **A04**  
+Affected assets: **A04**
+
 Controls: **M08, M09**
 
 #### T13 — Bootstrap dependency failure
@@ -270,7 +282,8 @@ Unseal may depend on DNS, a VPN, certificates, or a TLS proxy that is itself una
 
 Sealbreak has bounded request timeouts and fails closed, but it cannot repair an unavailable dependency. The deployment must ensure that the network path required for unseal does not depend on secrets that are themselves unavailable while OpenBao is sealed.
 
-Affected assets: **A04, A05**  
+Affected assets: **A04, A05**
+
 Controls: **M05, M10**
 
 #### T14 — Wrong cluster node
@@ -279,7 +292,8 @@ In a clustered deployment, Shamir unseal progress is node-specific. Requests rou
 
 Sealbreak is configured with one explicit origin but does not cryptographically bind requests to a node identity or an unseal attempt. Deployment routing must therefore keep the status and share submissions directed to the intended node.
 
-Affected assets: **A04, A05**  
+Affected assets: **A04, A05**
+
 Controls: **M05, M10**
 
 ### 3.6 Elevation of Privilege
@@ -290,7 +304,8 @@ A compromised developer workstation, signing account, build process, or distribu
 
 The project has a small dependency surface, but local biometric controls cannot defend against code that is itself authorized to access the Keychain item after successful authentication.
 
-Affected assets: **A01, A06**  
+Affected assets: **A01, A06**
+
 Controls: **M11**
 
 #### T16 — Compromised legitimate OpenBao infrastructure
@@ -299,7 +314,8 @@ Sealbreak may connect to the intended hostname with valid TLS while the OpenBao 
 
 This is an architectural trust dependency. Correct TLS validation confirms endpoint identity, not endpoint integrity.
 
-Affected assets: **A01, A05**  
+Affected assets: **A01, A05**
+
 Controls: **M10**
 
 #### T17 — Single share represents the full quorum
@@ -308,7 +324,8 @@ With a 1-of-1 Shamir configuration, disclosure of the one stored share is equiva
 
 A higher threshold can reduce the impact only when additional shares are held independently. Storing all required shares on the same device would not provide meaningful custody separation.
 
-Affected assets: **A01, A04**  
+Affected assets: **A01, A04**
+
 Controls: **M09, M10**
 
 ## 4. Risk Assessment and Controls
