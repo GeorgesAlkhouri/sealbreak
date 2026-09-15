@@ -3,17 +3,17 @@ import Security
 
 private final class TransportPolicy: NSObject, URLSessionTaskDelegate, @unchecked Sendable {
     func urlSession(
-        _ session: URLSession,
-        task: URLSessionTask,
-        willPerformHTTPRedirection response: HTTPURLResponse,
-        newRequest request: URLRequest,
+        _: URLSession,
+        task _: URLSessionTask,
+        willPerformHTTPRedirection _: HTTPURLResponse,
+        newRequest _: URLRequest,
         completionHandler: @escaping (URLRequest?) -> Void
     ) {
         completionHandler(nil)
     }
 
     func urlSession(
-        _ session: URLSession,
+        _: URLSession,
         didReceive challenge: URLAuthenticationChallenge,
         completionHandler: @escaping (URLSession.AuthChallengeDisposition, URLCredential?) -> Void
     ) {
@@ -26,7 +26,7 @@ private final class TransportPolicy: NSObject, URLSessionTaskDelegate, @unchecke
 
     func urlSession(
         _ session: URLSession,
-        task: URLSessionTask,
+        task _: URLSessionTask,
         didReceive challenge: URLAuthenticationChallenge,
         completionHandler: @escaping (URLSession.AuthChallengeDisposition, URLCredential?) -> Void
     ) {
