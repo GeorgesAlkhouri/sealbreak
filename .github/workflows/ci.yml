@@ -47,20 +47,25 @@ jobs:
     timeout-minutes: 20
     permissions:
       contents: read
+      id-token: write
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
           persist-credentials: false
-      - name: Run behavior tests and enforce coverage
-        run: bash scripts/ci/coverage.sh
-      - name: Upload Sonar coverage report
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+      - name: Run tests with coverage
+        run: |
+          swift test --enable-code-coverage -Xswiftc -warnings-as-errors
+          profile="$(find .build -name default.profdata -type f -print -quit)"
+          binary="$(find .build -type f -name 'SealbreakCorePackageTests' -perm -111 -print -quit)"
+          test -n "$profile" && test -n "$binary"
+          xcrun llvm-cov export "$binary" -instr-profile "$profile" -format=lcov > coverage.lcov
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@0b35c9ecc4f0529d0eb674914510c22f85b196b4 # v7.0.0
         with:
-          name: sonar-coverage
-          path: build/coverage/sonar.xml
-          if-no-files-found: error
-          retention-days: 1
+          files: coverage.lcov
+          fail_ci_if_error: true
+          use_oidc: true
 
   build:
     name: CI / build
@@ -78,7 +83,6 @@ jobs:
 
   sonar:
     name: CI / sonar
-    needs: [tests]
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
@@ -92,11 +96,6 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
           fetch-depth: 0
           persist-credentials: false
-      - name: Download Sonar coverage report
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
-        with:
-          name: sonar-coverage
-          path: build/coverage
       - name: SonarQube Cloud and quality gate
         uses: SonarSource/sonarqube-scan-action@22918119ff8e1ca75a623e15c8296b6ea4fbe28f # v8.2.1
         env:
