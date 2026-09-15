@@ -1,4 +1,125 @@
+import Foundation
 import SwiftUI
+
+@MainActor
+protocol AppServicing: AnyObject {
+    func loadProfile() throws -> ServerProfile?
+    func saveProfile(_ profile: ServerProfile) throws
+    func deleteProfile() throws
+    func status(_ profile: ServerProfile) async throws -> SealStatus
+    func submit(_ record: ShareRecord) async throws
+    func authorize(_ reason: String, action: @MainActor () async throws -> Void) async throws
+    func readShare() throws -> ShareRecord
+    func insertShare(_ record: ShareRecord) throws
+    func replaceShare(_ record: ShareRecord) throws
+    func deleteShare() throws
+    func requireForeground() throws
+    func waitForForeground() async throws
+    func cancelSensitiveOperation()
+}
+
+#if canImport(UIKit)
+import LocalAuthentication
+import UIKit
+
+@MainActor
+final class LiveAppServices: AppServicing {
+    private let keychain = KeychainStore()
+    private let profiles = ProfileStore()
+    private let client = OpenBaoClient()
+    private var activeContext: LAContext?
+
+    func loadProfile() throws -> ServerProfile? { try profiles.load() }
+    func saveProfile(_ profile: ServerProfile) throws { try profiles.save(profile) }
+    func deleteProfile() throws { try profiles.delete() }
+    func status(_ profile: ServerProfile) async throws -> SealStatus { try await client.status(profile) }
+    func submit(_ record: ShareRecord) async throws { try await client.submit(record) }
+
+    func authorize(_ reason: String, action: @MainActor () async throws -> Void) async throws {
+        let context = LAContext()
+        context.localizedFallbackTitle = ""
+        context.touchIDAuthenticationAllowableReuseDuration = 0
+        activeContext = context
+        defer {
+            context.invalidate()
+            activeContext = nil
+        }
+
+        var error: NSError?
+        guard context.canEvaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, error: &error),
+              context.biometryType == .faceID else {
+            throw AppFailure("Face ID is unavailable, not enrolled, or locked out. Enable Face ID and a device passcode, or unlock the device in iOS before retrying. No app passcode fallback is offered.")
+        }
+
+        do {
+            guard try await context.evaluatePolicy(
+                .deviceOwnerAuthenticationWithBiometrics,
+                localizedReason: reason
+            ) else {
+                throw AppFailure("Face ID did not authorize this action.")
+            }
+        } catch is CancellationError {
+            throw CancellationError()
+        } catch {
+            throw AppFailure("Face ID was cancelled or denied. No new share submission was started.")
+        }
+
+        try await waitForForeground()
+        context.interactionNotAllowed = true
+        try await action()
+    }
+
+    func readShare() throws -> ShareRecord {
+        guard let context = activeContext else { throw AppFailure("Face ID authorization context is unavailable.") }
+        return try keychain.read(context: context)
+    }
+
+    func insertShare(_ record: ShareRecord) throws {
+        guard let context = activeContext else { throw AppFailure("Face ID authorization context is unavailable.") }
+        try keychain.insert(record, context: context)
+    }
+
+    func replaceShare(_ record: ShareRecord) throws {
+        guard let context = activeContext else { throw AppFailure("Face ID authorization context is unavailable.") }
+        try keychain.replace(record, context: context)
+    }
+
+    func deleteShare() throws {
+        guard let context = activeContext else { throw AppFailure("Face ID authorization context is unavailable.") }
+        try keychain.delete(context: context)
+    }
+
+    func requireForeground() throws {
+        try Task.checkCancellation()
+        guard UIApplication.shared.applicationState == .active else {
+            throw AppFailure("Sealbreak is not the active app. Return to it after the system dialog closes, then retry.")
+        }
+        guard UIApplication.shared.isProtectedDataAvailable else {
+            throw AppFailure("Protected iPhone data is unavailable. Unlock the device and retry in Sealbreak.")
+        }
+        guard !UIScreen.main.isCaptured else {
+            throw AppFailure("iPhone screen capture or mirroring is active. Stop it and retry directly on the unlocked device.")
+        }
+    }
+
+    func waitForForeground() async throws {
+        for _ in 0..<50 {
+            try Task.checkCancellation()
+            if UIApplication.shared.applicationState == .active {
+                try requireForeground()
+                return
+            }
+            try await Task.sleep(for: .milliseconds(100))
+        }
+        try requireForeground()
+    }
+
+    func cancelSensitiveOperation() {
+        activeContext?.invalidate()
+        activeContext = nil
+    }
+}
+#endif
 
 @MainActor
 final class AppModel: ObservableObject {
@@ -52,9 +173,7 @@ final class AppModel: ObservableObject {
             self.activity = "Waiting for Face ID…"
             try await self.services.authorize("Send one Shamir share to \(target.origin)") {
                 var record = try self.services.readShare()
-                defer {
-                    record.share.removeAll(keepingCapacity: false)
-                }
+                defer { record.share.removeAll(keepingCapacity: false) }
                 guard record.profile == target else {
                     throw AppFailure("Target binding mismatch. Nothing was sent. Restore the protected profile; changing the display file cannot retarget a share.")
                 }
@@ -76,9 +195,7 @@ final class AppModel: ObservableObject {
                         : "Verified: this endpoint now reports unsealed. This does not prove which operator completed the quorum."
                 } catch {
                     self.status = nil
-                    if error is CancellationError {
-                        throw error
-                    }
+                    if error is CancellationError { throw error }
                     let detail = (error as? AppFailure)?.message ?? "Request failed."
                     throw AppFailure("\(detail) The final outcome is unknown. Check status before another attempt; a request already received cannot be undone.")
                 }
@@ -92,22 +209,14 @@ final class AppModel: ObservableObject {
             guard recoveryConfirmed else {
                 throw AppFailure("Confirm an independent recovery copy before importing.")
             }
-            var record = try ShareRecord(
-                profile: ServerProfile(name: name, address: address),
-                input: input
-            )
-            defer {
-                record.share.removeAll(keepingCapacity: false)
-            }
+            var record = try ShareRecord(profile: ServerProfile(name: name, address: address), input: input)
+            defer { record.share.removeAll(keepingCapacity: false) }
 
             self.activity = "Waiting for Face ID…"
             try await self.services.authorize("Protect this share for \(record.profile.origin)") {
                 try self.services.requireForeground()
                 try self.services.insertShare(record)
-                self.useProfile(
-                    record.profile,
-                    message: "Share saved with device-bound biometric protection. Check status to begin."
-                )
+                self.useProfile(record.profile, message: "Share saved with device-bound biometric protection. Check status to begin.")
             }
         }
     }
@@ -119,16 +228,12 @@ final class AppModel: ObservableObject {
                 throw AppFailure("Confirm recovery for the replacement share before saving.")
             }
             var replacement = try ShareRecord(profile: target, input: input)
-            defer {
-                replacement.share.removeAll(keepingCapacity: false)
-            }
+            defer { replacement.share.removeAll(keepingCapacity: false) }
 
             self.activity = "Waiting for Face ID…"
             try await self.services.authorize("Replace the local share for \(target.origin)") {
                 var existing = try self.services.readShare()
-                defer {
-                    existing.share.removeAll(keepingCapacity: false)
-                }
+                defer { existing.share.removeAll(keepingCapacity: false) }
                 guard existing.profile == target else {
                     throw AppFailure("Target binding mismatch. Restore the protected profile first.")
                 }
@@ -145,13 +250,8 @@ final class AppModel: ObservableObject {
             self.activity = "Waiting for Face ID…"
             try await self.services.authorize("Restore the server profile from the protected Keychain record") {
                 var record = try self.services.readShare()
-                defer {
-                    record.share.removeAll(keepingCapacity: false)
-                }
-                self.useProfile(
-                    record.profile,
-                    message: "Protected target restored. No share was transmitted or exported."
-                )
+                defer { record.share.removeAll(keepingCapacity: false) }
+                self.useProfile(record.profile, message: "Protected target restored. No share was transmitted or exported.")
             }
         }
     }
