@@ -6,6 +6,9 @@
   "prConcurrentLimit": 3,
   "automerge": false,
   "dependencyDashboard": true,
+  "pre-commit": {
+    "enabled": true
+  },
   "packageRules": [
     {
       "matchManagers": ["github-actions"],
