@@ -1,9 +1,7 @@
 // swift-tools-version: 6.0
 import PackageDescription
 
-// Compile the same non-UI behavior sources as the iOS app.
-// Additional platform-backed production sources are intentionally not part of
-// the host test target yet, but are not treated as coverage exclusions.
+// Compile all non-UI production sources into the host-testable package.
 let package = Package(
     name: "SealbreakCore",
     platforms: [.macOS(.v13)],
@@ -14,8 +12,7 @@ let package = Package(
             exclude: [
                 "ContentView.swift", "SealbreakApp.swift",
                 "Info.plist", "PrivacyInfo.xcprivacy"
-            ],
-            sources: ["Models.swift", "AppModel.swift"]
+            ]
         ),
         .testTarget(name: "SealbreakCoreTests", dependencies: ["SealbreakCore"])
     ],
