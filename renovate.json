@@ -6,6 +6,9 @@
   "prConcurrentLimit": 3,
   "automerge": false,
   "dependencyDashboard": true,
+  "pre-commit": {
+    "enabled": true
+  },
   "packageRules": [
     {
       "matchManagers": ["github-actions"],
@@ -13,32 +16,13 @@
       "groupName": "GitHub Actions updates"
     },
     {
-      "matchManagers": ["mint"],
+      "matchManagers": ["pre-commit"],
       "matchUpdateTypes": ["minor", "patch"],
-      "groupName": "Swift quality tools"
+      "groupName": "pre-commit hook updates"
     },
     {
       "matchUpdateTypes": ["major"],
       "dependencyDashboardApproval": true
-    },
-    {
-      "matchPackageNames": ["xcode"],
-      "dependencyDashboardApproval": true
     }
-  ],
-  "customManagers": [
-    {
-      "customType": "regex",
-      "managerFilePatterns": ["/^scripts/ci/versions\\.env$/"],
-      "matchStrings": ["# renovate: datasource=(?<datasource>\\S+) depName=(?<depName>\\S+)\\n[A-Z_]+=(?<currentValue>\\S+)"],
-      "versioningTemplate": "loose"
-    }
-  ],
-  "customDatasources": {
-    "xcode": {
-      "defaultRegistryUrlTemplate": "https://xcodereleases.com/data.json",
-      "format": "json",
-      "transformTemplates": ["{\"releases\": [$[version.release.release = true].{\"version\": version.number}]}"]
-    }
-  }
+  ]
 }
