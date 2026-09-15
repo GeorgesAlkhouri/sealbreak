@@ -23,10 +23,6 @@ jobs:
       contents: read
     env:
       DEVELOPER_DIR: /Applications/Xcode_26.3.app/Contents/Developer
-      SWIFTFORMAT_VERSION: 0.62.1
-      SWIFTFORMAT_SHA256: 7cb1cb1fae04932047c7015441c543848e8e60e1572d808d080e0a1f1661114a
-      SWIFTLINT_VERSION: 0.65.1
-      SWIFTLINT_SHA256: c1e429b0599cf1b516f369a2d9ec04eaf0e436f3c12b637df8851fa52ff694d0
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
@@ -42,29 +38,8 @@ jobs:
           key: pre-commit-${{ runner.os }}-${{ runner.arch }}-py3.13-${{ hashFiles('.pre-commit-config.yaml') }}
       - name: Install pre-commit
         run: python -m pip install pre-commit==4.6.2
-      - name: Install pinned Swift quality binaries
-        shell: bash
-        run: |
-          set -euo pipefail
-          tools="$RUNNER_TEMP/swift-quality-tools"
-          mkdir -p "$tools"
-
-          curl --fail --silent --show-error --location \
-            "https://github.com/nicklockwood/SwiftFormat/releases/download/${SWIFTFORMAT_VERSION}/swiftformat.zip" \
-            --output "$RUNNER_TEMP/swiftformat.zip"
-          printf '%s  %s\n' "$SWIFTFORMAT_SHA256" "$RUNNER_TEMP/swiftformat.zip" | shasum -a 256 -c -
-          unzip -q "$RUNNER_TEMP/swiftformat.zip" -d "$tools"
-
-          curl --fail --silent --show-error --location \
-            "https://github.com/realm/SwiftLint/releases/download/${SWIFTLINT_VERSION}/portable_swiftlint.zip" \
-            --output "$RUNNER_TEMP/swiftlint.zip"
-          printf '%s  %s\n' "$SWIFTLINT_SHA256" "$RUNNER_TEMP/swiftlint.zip" | shasum -a 256 -c -
-          unzip -q "$RUNNER_TEMP/swiftlint.zip" -d "$tools"
-
-          chmod +x "$tools/swiftformat" "$tools/swiftlint"
-          echo "$tools" >> "$GITHUB_PATH"
-          "$tools/swiftformat" --version
-          "$tools/swiftlint" version
+      - name: Install Swift quality tools
+        run: brew install swiftlint swiftformat
       - name: Static checks
         run: pre-commit run --all-files --show-diff-on-failure
       - name: Model tests
