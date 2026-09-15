@@ -7,7 +7,4 @@ xcuserdata/
 *.xcarchive
 .build/
 .swiftpm/
-reports/
 .scannerwork/
-__pycache__/
-*.pyc
