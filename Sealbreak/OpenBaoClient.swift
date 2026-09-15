@@ -1,7 +1,7 @@
 import Foundation
 import Security
 
-private final class TransportPolicy: NSObject, URLSessionTaskDelegate, @unchecked Sendable {
+final class TransportPolicy: NSObject, URLSessionTaskDelegate, @unchecked Sendable {
     func urlSession(
         _: URLSession,
         task _: URLSessionTask,
@@ -35,6 +35,44 @@ private final class TransportPolicy: NSObject, URLSessionTaskDelegate, @unchecke
 }
 
 struct OpenBaoClient: Sendable {
+    private let configuration: URLSessionConfiguration
+
+    init(configuration: URLSessionConfiguration = OpenBaoClient.makeConfiguration()) {
+        self.configuration = configuration
+    }
+
+    static func makeConfiguration() -> URLSessionConfiguration {
+        let config = URLSessionConfiguration.ephemeral
+        config.urlCache = nil
+        config.urlCredentialStorage = nil
+        config.httpCookieStorage = nil
+        config.httpShouldSetCookies = false
+        config.httpCookieAcceptPolicy = .never
+        config.requestCachePolicy = .reloadIgnoringLocalCacheData
+        config.timeoutIntervalForRequest = 15
+        config.timeoutIntervalForResource = 25
+        config.waitsForConnectivity = false
+        config.tlsMinimumSupportedProtocolVersion = .TLSv12
+        return config
+    }
+
+    static func encodeUnsealBody(_ share: String) throws -> Data {
+        try JSONEncoder().encode(UnsealBody(key: share))
+    }
+
+    static func makeRequest(_ profile: ServerProfile, path: String, body: Data?) throws -> URLRequest {
+        var request = URLRequest(url: try profile.endpoint(path))
+        request.httpMethod = body == nil ? "GET" : "POST"
+        request.httpBody = body
+        request.httpShouldHandleCookies = false
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
+        request.setValue("no-store", forHTTPHeaderField: "Cache-Control")
+        if body != nil {
+            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        }
+        return request
+    }
+
     func status(_ profile: ServerProfile) async throws -> SealStatus {
         let data = try await request(profile, path: "seal-status", body: nil)
         do {
@@ -45,7 +83,7 @@ struct OpenBaoClient: Sendable {
     }
 
     func submit(_ record: ShareRecord) async throws {
-        var body = try JSONEncoder().encode(UnsealBody(key: record.share))
+        var body = try Self.encodeUnsealBody(record.share)
         defer {
             body.resetBytes(in: body.startIndex..<body.endIndex)
         }
@@ -61,20 +99,8 @@ struct OpenBaoClient: Sendable {
         path: String,
         body: Data?
     ) async throws -> Data {
-        let config = URLSessionConfiguration.ephemeral
-        config.urlCache = nil
-        config.urlCredentialStorage = nil
-        config.httpCookieStorage = nil
-        config.httpShouldSetCookies = false
-        config.httpCookieAcceptPolicy = .never
-        config.requestCachePolicy = .reloadIgnoringLocalCacheData
-        config.timeoutIntervalForRequest = 15
-        config.timeoutIntervalForResource = 25
-        config.waitsForConnectivity = false
-        config.tlsMinimumSupportedProtocolVersion = .TLSv12
-
         let session = URLSession(
-            configuration: config,
+            configuration: configuration,
             delegate: TransportPolicy(),
             delegateQueue: nil
         )
@@ -82,15 +108,7 @@ struct OpenBaoClient: Sendable {
             session.invalidateAndCancel()
         }
 
-        var request = URLRequest(url: try profile.endpoint(path))
-        request.httpMethod = body == nil ? "GET" : "POST"
-        request.httpBody = body
-        request.httpShouldHandleCookies = false
-        request.setValue("application/json", forHTTPHeaderField: "Accept")
-        request.setValue("no-store", forHTTPHeaderField: "Cache-Control")
-        if body != nil {
-            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        }
+        let request = try Self.makeRequest(profile, path: path, body: body)
 
         try Task.checkCancellation()
 
