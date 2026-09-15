@@ -14,7 +14,7 @@ let package = Package(
                 "ContentView.swift", "KeychainStore.swift", "OpenBaoClient.swift",
                 "SealbreakApp.swift", "Info.plist", "PrivacyInfo.xcprivacy"
             ],
-            sources: ["Models.swift", "AppServices.swift", "AppModel.swift"]
+            sources: ["Models.swift", "AppModel.swift"]
         ),
         .testTarget(name: "SealbreakCoreTests", dependencies: ["SealbreakCore"])
     ],
