@@ -11,11 +11,12 @@ case "${1:-}" in
       -destination 'generic/platform=iOS Simulator' -sdk iphonesimulator \
       -derivedDataPath build/Simulator build
     ;;
-  archive)
-    # Separate derived data ensures CodeQL sees an actual device Release compilation.
+  codeql)
     xcodebuild "${common[@]}" -configuration Release \
       -destination 'generic/platform=iOS' -sdk iphoneos \
-      -derivedDataPath build/Device -archivePath build/Sealbreak.xcarchive archive
+      -derivedDataPath build/CodeQL \
+      ARCHS=arm64 ONLY_ACTIVE_ARCH=YES \
+      build
     ;;
-  *) echo 'Usage: build.sh simulator|archive' >&2; exit 2 ;;
+  *) echo 'Usage: build.sh simulator|codeql' >&2; exit 2 ;;
 esac
