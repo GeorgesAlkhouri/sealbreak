@@ -21,32 +21,27 @@ jobs:
     timeout-minutes: 20
     permissions:
       contents: read
-      actions: read
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_26.3.app/Contents/Developer
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
-          fetch-depth: 0
           persist-credentials: false
-      - name: Restore Swift quality tools
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.13'
+      - name: Restore pre-commit environments
         uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25 # v5
         with:
-          path: |
-            ~/.cache/sealbreak-tools
-            ~/.cache/sealbreak-mint
-          key: swift-tools-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('scripts/ci/versions.env', 'Mintfile') }}
-      - name: Select pinned Xcode and prepare quality tools
-        run: bash scripts/ci/setup.sh
-      - name: Lint, model tests and coverage
-        run: bash scripts/ci/check.sh
-      - name: Upload reports
-        if: ${{ always() }}
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
-        with:
-          name: reports
-          path: reports/
-          retention-days: 7
-          if-no-files-found: warn
+          path: ~/.cache/pre-commit
+          key: pre-commit-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('.pre-commit-config.yaml') }}
+      - name: Install pre-commit
+        run: python -m pip install pre-commit==4.6.2
+      - name: Static checks
+        run: pre-commit run --all-files --show-diff-on-failure
+      - name: Model tests
+        run: swift test -Xswiftc -warnings-as-errors
 
   build:
     name: CI / build
@@ -54,14 +49,13 @@ jobs:
     timeout-minutes: 20
     permissions:
       contents: read
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_26.3.app/Contents/Developer
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
-          fetch-depth: 0
           persist-credentials: false
-      - name: Select pinned Xcode
-        run: bash scripts/ci/setup.sh xcode-only
       - name: Compile complete iOS app for Simulator
         run: bash scripts/ci/build.sh simulator
 
@@ -74,14 +68,13 @@ jobs:
       actions: read
       security-events: write
       packages: read
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_26.3.app/Contents/Developer
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
-          fetch-depth: 0
           persist-credentials: false
-      - name: Select pinned Xcode
-        run: bash scripts/ci/setup.sh xcode-only
       - name: Initialize Swift security analysis
         uses: github/codeql-action/init@b96794f015dfd88f77b49b1c93e0fa7110f94c63 # v4
         with:
@@ -110,7 +103,6 @@ jobs:
 
   sonar:
     name: CI / sonar
-    needs: quality
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
@@ -124,12 +116,6 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
           fetch-depth: 0
           persist-credentials: false
-      - uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5
-        with:
-          name: reports
-          path: reports
-      - name: Check required reports
-        run: test -s reports/coverage.xml && test -s reports/swiftlint.json
       - name: SonarQube Cloud and quality gate
         uses: SonarSource/sonarqube-scan-action@22918119ff8e1ca75a623e15c8296b6ea4fbe28f # v8.2.1
         env:
