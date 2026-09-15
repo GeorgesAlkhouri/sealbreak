@@ -120,6 +120,24 @@ struct KeychainStoreTests {
     }
 
     @Test
+    func systemKeychainAdapterRejectsInvalidQueriesWithoutPersistingData() {
+        let access = SystemKeychainAccess()
+        let invalidQuery: [String: Any] = [kSecClass as String: "invalid-class"]
+
+        _ = access.makeBiometricAccessControl()
+        let (copyStatus, data) = access.copyMatching(invalidQuery)
+        let addStatus = access.add(invalidQuery)
+        let updateStatus = access.update(invalidQuery, attributes: [:])
+        let deleteStatus = access.delete(invalidQuery)
+
+        #expect(copyStatus != errSecSuccess)
+        #expect(data == nil)
+        #expect(addStatus != errSecSuccess)
+        #expect(updateStatus != errSecSuccess)
+        #expect(deleteStatus != errSecSuccess)
+    }
+
+    @Test
     func profileStoreRoundTripsAndDeletesProfile() throws {
         let root = temporaryRoot()
         defer { try? FileManager.default.removeItem(at: root) }
