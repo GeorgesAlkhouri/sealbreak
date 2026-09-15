@@ -11,12 +11,5 @@ case "${1:-}" in
       -destination 'generic/platform=iOS Simulator' -sdk iphonesimulator \
       -derivedDataPath build/Simulator build
     ;;
-  codeql)
-    xcodebuild "${common[@]}" -configuration Debug \
-      -destination 'generic/platform=iOS' -sdk iphoneos \
-      -derivedDataPath build/CodeQL \
-      ARCHS=arm64 ONLY_ACTIVE_ARCH=YES \
-      build
-    ;;
-  *) echo 'Usage: build.sh simulator|codeql' >&2; exit 2 ;;
+  *) echo 'Usage: build.sh simulator' >&2; exit 2 ;;
 esac
