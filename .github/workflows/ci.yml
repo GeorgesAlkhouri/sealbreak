@@ -40,8 +40,32 @@ jobs:
         run: brew install swiftlint swiftformat
       - name: Static checks
         run: pre-commit run --all-files --show-diff-on-failure
-      - name: Model tests
-        run: swift test -Xswiftc -warnings-as-errors
+
+  tests:
+    name: CI / tests
+    runs-on: macos-26
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - name: Run tests with coverage
+        run: |
+          swift test --enable-code-coverage -Xswiftc -warnings-as-errors
+          profile="$(find .build -name default.profdata -type f -print -quit)"
+          binary="$(find .build -type f -name 'SealbreakCorePackageTests' -perm -111 -print -quit)"
+          test -n "$profile" && test -n "$binary"
+          xcrun llvm-cov export "$binary" -instr-profile "$profile" -format=lcov > coverage.lcov
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@0b35c9ecc4f0529d0eb674914510c22f85b196b4 # v7.0.0
+        with:
+          files: coverage.lcov
+          fail_ci_if_error: true
+          use_oidc: true
 
   build:
     name: CI / build
@@ -80,16 +104,18 @@ jobs:
   ready:
     name: CI / ready
     if: ${{ always() }}
-    needs: [quality, build, sonar]
+    needs: [quality, tests, build, sonar]
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:
       - name: Require actual success from every gate
         env:
           QUALITY_RESULT: ${{ needs.quality.result }}
+          TESTS_RESULT: ${{ needs.tests.result }}
           BUILD_RESULT: ${{ needs.build.result }}
           SONAR_RESULT: ${{ needs.sonar.result }}
         run: |
           test "$QUALITY_RESULT" = success && \
+          test "$TESTS_RESULT" = success && \
           test "$BUILD_RESULT" = success && \
           test "$SONAR_RESULT" = success

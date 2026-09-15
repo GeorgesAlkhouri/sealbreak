@@ -1,8 +1,7 @@
 // swift-tools-version: 6.0
 import PackageDescription
 
-// Compile the SAME model source as the iOS app; no copy, dependency or app refactor.
-// Host-only tests do not exercise Face ID, Keychain, UIKit or the network client.
+// Compile all non-UI production sources into the host-testable package.
 let package = Package(
     name: "SealbreakCore",
     platforms: [.macOS(.v13)],
@@ -11,10 +10,9 @@ let package = Package(
             name: "SealbreakCore",
             path: "Sealbreak",
             exclude: [
-                "AppModel.swift", "ContentView.swift", "KeychainStore.swift",
-                "OpenBaoClient.swift", "SealbreakApp.swift", "Info.plist", "PrivacyInfo.xcprivacy"
-            ],
-            sources: ["Models.swift"]
+                "ContentView.swift", "SealbreakApp.swift",
+                "Info.plist", "PrivacyInfo.xcprivacy"
+            ]
         ),
         .testTarget(name: "SealbreakCoreTests", dependencies: ["SealbreakCore"])
     ],

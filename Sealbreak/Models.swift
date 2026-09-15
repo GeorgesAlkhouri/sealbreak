@@ -46,10 +46,7 @@ struct ServerProfile: Codable, Equatable, Sendable {
 
     func endpoint(_ path: String) throws -> URL {
         _ = try validated()
-        guard let base = URL(string: origin) else {
-            throw AppFailure("Invalid server address.")
-        }
-        return base.appendingPathComponent("v1/sys/\(path)")
+        return URL(string: origin)!.appendingPathComponent("v1/sys/\(path)")
     }
 
     private static func canonicalOrigin(_ input: String) throws -> String {
@@ -77,10 +74,7 @@ struct ServerProfile: Codable, Equatable, Sendable {
         if parts.port == 443 {
             parts.port = nil
         }
-        guard let result = parts.url?.absoluteString else {
-            throw AppFailure("Invalid HTTPS origin.")
-        }
-        return result
+        return parts.url!.absoluteString
     }
 }
 
