@@ -368,7 +368,9 @@ Risk = Likelihood × Impact
 
 ### 4.3 Risk Register
 
-The current assessment reflects the implemented controls visible in the application code. Residual ratings include known architectural and operational limitations.
+The current assessment reflects application, project, and deployment controls relevant to each threat. Residual risk is the risk that remains after these controls are considered.
+
+A residual risk rating does not imply risk acceptance. This threat model does not accept risks on behalf of users or operators. Risks may require further mitigation, deployment controls, avoidance, transfer, or an explicit acceptance decision.
 
 | Threat | Likelihood | Impact | Residual risk | Controls | Basis |
 | --- | ---: | ---: | ---: | --- | --- |
@@ -392,17 +394,17 @@ The current assessment reflects the implemented controls visible in the applicat
 
 ### 4.4 Controls
 
-| Control | Requirement / implementation intent |
-| --- | --- |
-| **M01 — Keychain protection** | Store the share with `kSecAttrAccessibleWhenPasscodeSetThisDeviceOnly`, `biometryCurrentSet`, and synchronization disabled |
-| **M02 — Fresh authorization** | Require a new Face ID authorization context for every sensitive share operation and invalidate it afterwards |
-| **M03 — Transport** | HTTPS only, normal certificate and hostname validation, TLS 1.2 or newer, and blocked redirects |
-| **M04 — Target binding** | Store the authoritative server profile with the share and compare it before submission |
-| **M05 — State machine and request discipline** | Validate seal state, permit only supported Shamir states, perform one explicit submission per action, never automatically retry, and verify state afterwards |
-| **M06 — Data minimization** | Do not log, analyze, cache, export, or persist the share outside the protected record; minimize diagnostic detail and clear mutable buffers where practical |
-| **M07 — Secure import** | Do not read the clipboard automatically and do not provide share export functionality |
-| **M08 — Safe share lifecycle** | Require fresh authorization for replace/delete operations, use safe in-place updates, and enforce one encoded storage-size invariant across readers and writers |
-| **M09 — Recovery and incident response** | Require independent recovery before import or replacement and treat OpenBao rekeying as the mechanism for replacing compromised server-side shares |
-| **M10 — Secure infrastructure** | Protect OpenBao, TLS proxies, VPN, DNS, certificates, node routing, and bootstrap dependencies outside the application |
-| **M11 — Software supply chain** | Protect signing rights and developer systems, keep dependencies minimal, and review distributed builds and updates |
-| **M12 — Minimal diagnostics and attribution claims** | Never record secret material and do not claim server-verifiable proof of which human completed an unseal quorum |
+| Control | Scope | Requirement / implementation intent |
+| --- | --- | --- |
+| **M01 — Keychain protection** | Application | Store the share with `kSecAttrAccessibleWhenPasscodeSetThisDeviceOnly`, `biometryCurrentSet`, and synchronization disabled |
+| **M02 — Fresh authorization** | Application | Require a new Face ID authorization context for every sensitive share operation and invalidate it afterwards |
+| **M03 — Transport** | Application | HTTPS only, normal certificate and hostname validation, TLS 1.2 or newer, and blocked redirects |
+| **M04 — Target binding** | Application | Store the authoritative server profile with the share and compare it before submission |
+| **M05 — State machine and request discipline** | Application | Validate seal state, permit only supported Shamir states, perform one explicit submission per action, never automatically retry, and verify state afterwards |
+| **M06 — Data minimization** | Application | Do not log, analyze, cache, export, or persist the share outside the protected record; minimize diagnostic detail and clear mutable buffers where practical |
+| **M07 — Secure import** | Application | Do not read the clipboard automatically and do not provide share export functionality |
+| **M08 — Safe share lifecycle** | Application | Require fresh authorization for replace/delete operations, use safe in-place updates, and enforce one encoded storage-size invariant across readers and writers |
+| **M09 — Recovery and incident response** | Operator / deployment | Maintain independent recovery and use OpenBao rekeying to replace compromised server-side shares |
+| **M10 — Secure infrastructure** | Operator / deployment | Protect OpenBao, TLS proxies, VPN, DNS, certificates, node routing, and bootstrap dependencies outside the application |
+| **M11 — Software supply chain** | Project / release | Protect signing rights and developer systems, keep dependencies minimal, and review distributed builds and updates |
+| **M12 — Minimal diagnostics and attribution claims** | Application / project | Never record secret material and do not claim server-verifiable proof of which human completed an unseal quorum |
