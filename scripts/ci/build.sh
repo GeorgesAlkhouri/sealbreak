@@ -12,7 +12,7 @@ case "${1:-}" in
       -derivedDataPath build/Simulator build
     ;;
   codeql)
-    xcodebuild "${common[@]}" -configuration Release \
+    xcodebuild "${common[@]}" -configuration Debug \
       -destination 'generic/platform=iOS' -sdk iphoneos \
       -derivedDataPath build/CodeQL \
       ARCHS=arm64 ONLY_ACTIVE_ARCH=YES \
