@@ -1,7 +1,7 @@
 import Foundation
 import Security
 
-private final class TransportPolicy: NSObject, URLSessionTaskDelegate, @unchecked Sendable {
+final class TransportPolicy: NSObject, URLSessionTaskDelegate, @unchecked Sendable {
     func urlSession(
         _: URLSession,
         task _: URLSessionTask,
@@ -35,6 +35,27 @@ private final class TransportPolicy: NSObject, URLSessionTaskDelegate, @unchecke
 }
 
 struct OpenBaoClient: Sendable {
+    private let configuration: URLSessionConfiguration
+
+    init(configuration: URLSessionConfiguration = OpenBaoClient.makeConfiguration()) {
+        self.configuration = configuration
+    }
+
+    static func makeConfiguration() -> URLSessionConfiguration {
+        let config = URLSessionConfiguration.ephemeral
+        config.urlCache = nil
+        config.urlCredentialStorage = nil
+        config.httpCookieStorage = nil
+        config.httpShouldSetCookies = false
+        config.httpCookieAcceptPolicy = .never
+        config.requestCachePolicy = .reloadIgnoringLocalCacheData
+        config.timeoutIntervalForRequest = 15
+        config.timeoutIntervalForResource = 25
+        config.waitsForConnectivity = false
+        config.tlsMinimumSupportedProtocolVersion = .TLSv12
+        return config
+    }
+
     func status(_ profile: ServerProfile) async throws -> SealStatus {
         let data = try await request(profile, path: "seal-status", body: nil)
         do {
@@ -61,20 +82,8 @@ struct OpenBaoClient: Sendable {
         path: String,
         body: Data?
     ) async throws -> Data {
-        let config = URLSessionConfiguration.ephemeral
-        config.urlCache = nil
-        config.urlCredentialStorage = nil
-        config.httpCookieStorage = nil
-        config.httpShouldSetCookies = false
-        config.httpCookieAcceptPolicy = .never
-        config.requestCachePolicy = .reloadIgnoringLocalCacheData
-        config.timeoutIntervalForRequest = 15
-        config.timeoutIntervalForResource = 25
-        config.waitsForConnectivity = false
-        config.tlsMinimumSupportedProtocolVersion = .TLSv12
-
         let session = URLSession(
-            configuration: config,
+            configuration: configuration,
             delegate: TransportPolicy(),
             delegateQueue: nil
         )

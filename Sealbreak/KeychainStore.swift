@@ -2,7 +2,50 @@ import Foundation
 import LocalAuthentication
 import Security
 
+protocol KeychainAccessing {
+    func makeBiometricAccessControl() -> SecAccessControl?
+    func copyMatching(_ request: [String: Any]) -> (OSStatus, Data?)
+    func add(_ request: [String: Any]) -> OSStatus
+    func update(_ request: [String: Any], attributes: [String: Any]) -> OSStatus
+    func delete(_ request: [String: Any]) -> OSStatus
+}
+
+struct SystemKeychainAccess: KeychainAccessing {
+    func makeBiometricAccessControl() -> SecAccessControl? {
+        SecAccessControlCreateWithFlags(
+            nil,
+            kSecAttrAccessibleWhenPasscodeSetThisDeviceOnly,
+            .biometryCurrentSet,
+            nil
+        )
+    }
+
+    func copyMatching(_ request: [String: Any]) -> (OSStatus, Data?) {
+        var result: CFTypeRef?
+        let status = SecItemCopyMatching(request as CFDictionary, &result)
+        return (status, result as? Data)
+    }
+
+    func add(_ request: [String: Any]) -> OSStatus {
+        SecItemAdd(request as CFDictionary, nil)
+    }
+
+    func update(_ request: [String: Any], attributes: [String: Any]) -> OSStatus {
+        SecItemUpdate(request as CFDictionary, attributes as CFDictionary)
+    }
+
+    func delete(_ request: [String: Any]) -> OSStatus {
+        SecItemDelete(request as CFDictionary)
+    }
+}
+
 struct KeychainStore {
+    private let access: any KeychainAccessing
+
+    init(access: any KeychainAccessing = SystemKeychainAccess()) {
+        self.access = access
+    }
+
     private var query: [String: Any] {
         [
             kSecClass as String: kSecClassGenericPassword,
@@ -18,9 +61,8 @@ struct KeychainStore {
         request[kSecMatchLimit as String] = kSecMatchLimitOne
         request[kSecUseAuthenticationContext as String] = context
 
-        var result: CFTypeRef?
-        let status = SecItemCopyMatching(request as CFDictionary, &result)
-        guard status == errSecSuccess, var data = result as? Data else {
+        let (status, storedData) = access.copyMatching(request)
+        guard status == errSecSuccess, var data = storedData else {
             throw failure(status)
         }
         defer {
@@ -38,13 +80,7 @@ struct KeychainStore {
     }
 
     func insert(_ record: ShareRecord, context: LAContext) throws {
-        var error: Unmanaged<CFError>?
-        guard let access = SecAccessControlCreateWithFlags(
-            nil,
-            kSecAttrAccessibleWhenPasscodeSetThisDeviceOnly,
-            .biometryCurrentSet,
-            &error
-        ) else {
+        guard let accessControl = access.makeBiometricAccessControl() else {
             throw AppFailure("Could not create biometric Keychain protection. A device passcode and Face ID are required.")
         }
 
@@ -54,11 +90,11 @@ struct KeychainStore {
         }
         try StorageLimits.validateEncodedSize(data)
         var request = query
-        request[kSecAttrAccessControl as String] = access
+        request[kSecAttrAccessControl as String] = accessControl
         request[kSecValueData as String] = data
         request[kSecUseAuthenticationContext as String] = context
 
-        let status = SecItemAdd(request as CFDictionary, nil)
+        let status = access.add(request)
         guard status == errSecSuccess else {
             throw failure(status)
         }
@@ -73,9 +109,9 @@ struct KeychainStore {
         var request = query
         request[kSecUseAuthenticationContext as String] = context
 
-        let status = SecItemUpdate(
-            request as CFDictionary,
-            [kSecValueData as String: data] as CFDictionary
+        let status = access.update(
+            request,
+            attributes: [kSecValueData as String: data]
         )
         guard status == errSecSuccess else {
             throw failure(status)
@@ -85,7 +121,7 @@ struct KeychainStore {
     func delete(context: LAContext) throws {
         var request = query
         request[kSecUseAuthenticationContext as String] = context
-        let status = SecItemDelete(request as CFDictionary)
+        let status = access.delete(request)
         guard status == errSecSuccess || status == errSecItemNotFound else {
             throw failure(status)
         }
@@ -106,9 +142,17 @@ struct KeychainStore {
 }
 
 struct ProfileStore {
+    private let baseDirectory: URL
+
+    init(baseDirectory: URL? = nil) {
+        self.baseDirectory = baseDirectory ?? FileManager.default.urls(
+            for: .applicationSupportDirectory,
+            in: .userDomainMask
+        )[0]
+    }
+
     private var directory: URL {
-        FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
-            .appendingPathComponent("Sealbreak", isDirectory: true)
+        baseDirectory.appendingPathComponent("Sealbreak", isDirectory: true)
     }
 
     private var file: URL {
