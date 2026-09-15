@@ -11,7 +11,7 @@ final class AppModel: ObservableObject {
     private let services: AppServicing
     private var operation: Task<Void, Never>?
 
-    init(services: AppServicing = LiveAppServices()) {
+    init(services: AppServicing) {
         self.services = services
         do {
             profile = try services.loadProfile()
@@ -219,3 +219,11 @@ final class AppModel: ObservableObject {
         }
     }
 }
+
+#if canImport(UIKit)
+extension AppModel {
+    convenience init() {
+        self.init(services: LiveAppServices())
+    }
+}
+#endif
