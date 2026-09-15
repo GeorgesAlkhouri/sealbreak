@@ -426,13 +426,17 @@ struct AppModelTests {
         model.unseal()
         await settle(model)
         #expect(model.notice.contains("submit failed"))
+
         services.submitError = StubError.failure
+        services.statusResults = [.success(status())]
+        model.refresh()
+        await settle(model)
         services.statusResults = [.success(status())]
         model.unseal()
         await settle(model)
         #expect(model.notice.contains("Request failed"))
-        services.submitError = nil
 
+        services.submitError = nil
         services.statusResults = [.success(status())]
         model.refresh()
         await settle(model)
