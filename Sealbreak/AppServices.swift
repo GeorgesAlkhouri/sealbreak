@@ -1,7 +1,4 @@
 import Foundation
-import LocalAuthentication
-import SwiftUI
-import UIKit
 
 @MainActor
 protocol AppServicing: AnyObject {
@@ -19,6 +16,10 @@ protocol AppServicing: AnyObject {
     func waitForForeground() async throws
     func cancelSensitiveOperation()
 }
+
+#if canImport(UIKit)
+import LocalAuthentication
+import UIKit
 
 @MainActor
 final class LiveAppServices: AppServicing {
@@ -117,3 +118,4 @@ final class LiveAppServices: AppServicing {
         activeContext = nil
     }
 }
+#endif
