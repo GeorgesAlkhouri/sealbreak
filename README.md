@@ -15,7 +15,7 @@ Deployment target is iOS 17. The application has no external dependencies. A sep
 
 ## Continuous integration
 
-[CI setup and release policy](docs/CI.md) describes GitHub Actions, CodeQL, SonarQube Cloud, Renovate and the main-branch ruleset template. The workflow compiles the complete app in Simulator Debug and device Release configurations and runs model tests including the C01 regression. Sonar credentials, Renovate installation and ruleset activation are separate repository/account setup steps; no missing gate is silently marked successful.
+GitHub Actions runs SwiftFormat, SwiftLint, model tests with coverage, a complete Simulator Debug build, an unsigned device Release archive for CodeQL, and a SonarQube Cloud quality gate. Renovate handles dependency updates. Repository and account configuration such as the Sonar token and branch rules stays outside the codebase; missing required gates fail closed.
 
 Run the model tests locally with `swift test`. They do not replace Face ID/Keychain tests on a physical iPhone.
 
