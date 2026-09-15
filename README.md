@@ -15,9 +15,9 @@ Deployment target is iOS 17. The application has no external dependencies. A sep
 
 ## Continuous integration
 
-[CI setup and release policy](docs/CI.md) describes GitHub Actions, CodeQL, SonarQube Cloud, Renovate and the main-branch ruleset template. Fast static checks are defined once in `.pre-commit-config.yaml` and run both locally and in CI. The workflow separately runs model tests, compiles the complete app in Simulator Debug and device Release configurations, and runs CodeQL and the SonarQube Cloud quality gate.
+[CI setup and release policy](docs/CI.md) describes GitHub Actions, CodeQL, SonarQube Cloud, Renovate and the main-branch ruleset template. The workflow compiles the complete app in Simulator Debug and device Release configurations and runs model tests including the C01 regression. Sonar credentials, Renovate installation and ruleset activation are separate repository/account setup steps; no missing gate is silently marked successful.
 
-Run `pre-commit install` once to enable the local hooks, `pre-commit run --all-files` to run all static checks manually, and `swift test` for the model tests. These checks do not replace Face ID/Keychain tests on a physical iPhone.
+Run the model tests locally with `swift test`. They do not replace Face ID/Keychain tests on a physical iPhone.
 
 ## MVP behavior
 
