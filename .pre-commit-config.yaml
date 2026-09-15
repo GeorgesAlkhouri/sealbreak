@@ -1,0 +1,32 @@
+minimum_pre_commit_version: "4.6.2"
+
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: check-case-conflict
+      - id: check-merge-conflict
+      - id: check-symlinks
+      - id: check-yaml
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
+
+  - repo: https://github.com/nicklockwood/SwiftFormat
+    rev: 0.62.1
+    hooks:
+      - id: swiftformat
+        args: [--lint]
+
+  - repo: https://github.com/realm/SwiftLint
+    rev: 0.65.1
+    hooks:
+      - id: swiftlint
+        args: [--strict]
+
+  - repo: local
+    hooks:
+      - id: plutil
+        name: Validate Apple property files
+        entry: plutil -lint
+        language: system
+        files: '\.(plist|xcprivacy|pbxproj)$'
