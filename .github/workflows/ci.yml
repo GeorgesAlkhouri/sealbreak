@@ -40,7 +40,7 @@ jobs:
         run: brew install swiftlint swiftformat
       - name: Static checks
         run: pre-commit run --all-files --show-diff-on-failure
-      - name: Model tests
+      - name: Behavior tests
         run: swift test -Xswiftc -warnings-as-errors
 
   build:
@@ -59,7 +59,7 @@ jobs:
 
   sonar:
     name: CI / sonar
-    runs-on: ubuntu-24.04
+    runs-on: macos-26
     timeout-minutes: 20
     steps:
       - name: Reject Sonar analysis for fork PRs
@@ -72,6 +72,8 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
           fetch-depth: 0
           persist-credentials: false
+      - name: Generate and enforce behavior coverage
+        run: bash scripts/ci/coverage.sh
       - name: SonarQube Cloud and quality gate
         uses: SonarSource/sonarqube-scan-action@22918119ff8e1ca75a623e15c8296b6ea4fbe28f # v8.2.1
         env:
