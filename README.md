@@ -2,7 +2,7 @@
 
 Minimal iOS prototype for manually unsealing an OpenBao Shamir seal with a device-bound share protected by Face ID.
 
-> Prototype only. Start with disposable test shares. The security baseline is [Issue #1](https://github.com/GeorgesAlkhouri/sealbreak/issues/1).
+> Prototype only. Start with disposable test shares. The security baseline is documented in [THREAT_MODEL.md](THREAT_MODEL.md).
 
 ## Build on an iPhone
 
@@ -36,4 +36,4 @@ Before sending a share the app performs a fresh status check, requires Face ID, 
 
 Keep an independent recovery copy outside this iPhone. Face ID re-enrollment, passcode removal, device loss, or Keychain inaccessibility can make the stored share unusable. Replacing the local share does **not** perform OpenBao rekeying. Removing local data does **not** invalidate a copy that has already leaked elsewhere.
 
-See [SECURITY.md](SECURITY.md) for the implementation mapping to the controls in Issue #1 and the risks that deliberately remain outside this prototype.
+See [THREAT_MODEL.md](THREAT_MODEL.md) for the threat analysis, risk assessment, trust boundaries, and controls.
