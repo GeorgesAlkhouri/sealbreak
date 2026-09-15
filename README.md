@@ -15,9 +15,9 @@ Deployment target is iOS 17. The application has no external dependencies. A sep
 
 ## Continuous integration
 
-GitHub Actions runs independent quality, test, build, and SonarQube Cloud gates. `CI / tests` executes the non-UI behavior tests, enforces 100% coverage for the configured behavior-code scope, and publishes the generated Sonar coverage report for the downstream Sonar job. `CI / ready` requires every gate to succeed.
+GitHub Actions runs SwiftFormat, SwiftLint, model tests with coverage, a complete Simulator Debug build, an unsigned device Release archive for CodeQL, and a SonarQube Cloud quality gate. Renovate handles dependency updates. Repository and account configuration such as the Sonar token and branch rules stays outside the codebase; missing required gates fail closed.
 
-Run the behavior tests locally with `swift test`. They do not replace Face ID/Keychain tests on a physical iPhone.
+Run the model tests locally with `swift test`. They do not replace Face ID/Keychain tests on a physical iPhone.
 
 ## MVP behavior
 
