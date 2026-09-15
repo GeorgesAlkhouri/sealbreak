@@ -83,25 +83,14 @@ jobs:
           languages: swift
           build-mode: manual
           queries: security-extended
-      - name: Build unsigned device Release archive
-        run: bash scripts/ci/build.sh archive
+      - name: Build Release app for CodeQL
+        run: bash scripts/ci/build.sh codeql
       - name: Analyze Swift security
         uses: github/codeql-action/analyze@b96794f015dfd88f77b49b1c93e0fa7110f94c63 # v4
         with:
           category: /language:swift
           ref: ${{ github.event_name == 'pull_request' && format('refs/pull/{0}/head', github.event.pull_request.number) || github.ref }}
           sha: ${{ github.event.pull_request.head.sha || github.sha }}
-      - name: Package verified main archive
-        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
-        run: ditto -c -k --keepParent build/Sealbreak.xcarchive build/Sealbreak-unsigned.zip
-      - name: Retain unsigned main archive
-        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
-        with:
-          name: unsigned-ios-${{ github.sha }}
-          path: build/Sealbreak-unsigned.zip
-          retention-days: 14
-          if-no-files-found: error
 
   sonar:
     name: CI / sonar
