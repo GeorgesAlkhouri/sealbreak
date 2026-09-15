@@ -9,7 +9,9 @@ case "${1:-}" in
   simulator)
     xcodebuild "${common[@]}" -configuration Debug \
       -destination 'generic/platform=iOS Simulator' -sdk iphonesimulator \
-      -derivedDataPath build/Simulator build
+      -derivedDataPath build/Simulator \
+      ARCHS=arm64 ONLY_ACTIVE_ARCH=YES \
+      build
     ;;
   *) echo 'Usage: build.sh simulator' >&2; exit 2 ;;
 esac
