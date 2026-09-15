@@ -71,7 +71,7 @@ struct ContentView: View {
                     } else {
                         Section {
                             TextField("Server name", text: $name)
-                            TextField("https://bao.example.com:8200", text: $address)
+                            TextField("OpenBao HTTPS origin", text: $address)
                                 .keyboardType(.URL)
                                 .textInputAutocapitalization(.never)
                                 .autocorrectionDisabled()
