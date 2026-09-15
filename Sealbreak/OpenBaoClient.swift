@@ -56,6 +56,23 @@ struct OpenBaoClient: Sendable {
         return config
     }
 
+    static func encodeUnsealBody(_ share: String) throws -> Data {
+        try JSONEncoder().encode(UnsealBody(key: share))
+    }
+
+    static func makeRequest(_ profile: ServerProfile, path: String, body: Data?) throws -> URLRequest {
+        var request = URLRequest(url: try profile.endpoint(path))
+        request.httpMethod = body == nil ? "GET" : "POST"
+        request.httpBody = body
+        request.httpShouldHandleCookies = false
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
+        request.setValue("no-store", forHTTPHeaderField: "Cache-Control")
+        if body != nil {
+            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        }
+        return request
+    }
+
     func status(_ profile: ServerProfile) async throws -> SealStatus {
         let data = try await request(profile, path: "seal-status", body: nil)
         do {
@@ -66,7 +83,7 @@ struct OpenBaoClient: Sendable {
     }
 
     func submit(_ record: ShareRecord) async throws {
-        var body = try JSONEncoder().encode(UnsealBody(key: record.share))
+        var body = try Self.encodeUnsealBody(record.share)
         defer {
             body.resetBytes(in: body.startIndex..<body.endIndex)
         }
@@ -91,15 +108,7 @@ struct OpenBaoClient: Sendable {
             session.invalidateAndCancel()
         }
 
-        var request = URLRequest(url: try profile.endpoint(path))
-        request.httpMethod = body == nil ? "GET" : "POST"
-        request.httpBody = body
-        request.httpShouldHandleCookies = false
-        request.setValue("application/json", forHTTPHeaderField: "Accept")
-        request.setValue("no-store", forHTTPHeaderField: "Cache-Control")
-        if body != nil {
-            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        }
+        let request = try Self.makeRequest(profile, path: path, body: body)
 
         try Task.checkCancellation()
 
