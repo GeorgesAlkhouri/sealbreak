@@ -7,6 +7,12 @@ struct ModelsTests {
     // Synthetic format-only input. Never use a real OpenBao share in a test.
     private let syntheticShare = String(repeating: "a", count: 64)
 
+    @Test
+    func appFailureExposesLocalizedMessage() {
+        let error = AppFailure("test failure")
+        #expect(error.errorDescription == "test failure")
+    }
+
     @Test(arguments: ["OpenBao", "Freiburg – Süd", "東京", String(repeating: "🔒", count: 40)])
     func ordinaryNamesRoundTrip(name: String) throws {
         let profile = try ServerProfile(name: name, address: origin)
@@ -78,9 +84,13 @@ struct ModelsTests {
 
     @Test
     func decodedProfileStillNeedsValidation() throws {
-        let json = #"{"name":"Test","origin":"http://bao.example.com"}"#
-        let profile = try JSONDecoder().decode(ServerProfile.self, from: Data(json.utf8))
-        #expect(throws: AppFailure.self) { try profile.validated() }
+        let unsafeJSON = #"{"name":"Test","origin":"http://bao.example.com"}"#
+        let unsafe = try JSONDecoder().decode(ServerProfile.self, from: Data(unsafeJSON.utf8))
+        #expect(throws: AppFailure.self) { try unsafe.validated() }
+
+        let nonCanonicalJSON = #"{"name":"Test","origin":"https://BAO.example.com:443/"}"#
+        let nonCanonical = try JSONDecoder().decode(ServerProfile.self, from: Data(nonCanonicalJSON.utf8))
+        #expect(throws: AppFailure.self) { try nonCanonical.validated() }
     }
 
     @Test(arguments: ["", "short", String(repeating: "?", count: 64), String(repeating: "a", count: 1_025)])
