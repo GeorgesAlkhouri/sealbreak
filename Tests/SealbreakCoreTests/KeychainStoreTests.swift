@@ -138,6 +138,11 @@ struct KeychainStoreTests {
     }
 
     @Test
+    func profileStoreDefaultDirectoryCanBeResolved() {
+        _ = ProfileStore()
+    }
+
+    @Test
     func profileStoreRoundTripsAndDeletesProfile() throws {
         let root = temporaryRoot()
         defer { try? FileManager.default.removeItem(at: root) }
