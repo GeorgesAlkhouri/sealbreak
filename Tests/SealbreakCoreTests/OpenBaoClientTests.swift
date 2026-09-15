@@ -24,6 +24,29 @@ struct OpenBaoClientTests {
     }
 
     @Test
+    func requestBuilderSetsTransportPolicyAndUnsealBody() throws {
+        let profile = try profile()
+        let get = try OpenBaoClient.makeRequest(profile, path: "seal-status", body: nil)
+        let body = try OpenBaoClient.encodeUnsealBody(syntheticShare)
+        let post = try OpenBaoClient.makeRequest(profile, path: "unseal", body: body)
+        let json = try #require(JSONSerialization.jsonObject(with: body) as? [String: String])
+
+        #expect(get.httpMethod == "GET")
+        #expect(get.url?.absoluteString == "\(origin)/v1/sys/seal-status")
+        #expect(get.httpBody == nil)
+        #expect(get.value(forHTTPHeaderField: "Accept") == "application/json")
+        #expect(get.value(forHTTPHeaderField: "Cache-Control") == "no-store")
+        #expect(get.value(forHTTPHeaderField: "Content-Type") == nil)
+        #expect(get.httpShouldHandleCookies == false)
+
+        #expect(post.httpMethod == "POST")
+        #expect(post.url?.absoluteString == "\(origin)/v1/sys/unseal")
+        #expect(post.httpBody == body)
+        #expect(post.value(forHTTPHeaderField: "Content-Type") == "application/json")
+        #expect(json == ["key": syntheticShare])
+    }
+
+    @Test
     func statusBuildsGetRequestAndDecodesResponse() async throws {
         let recorder = RequestRecorder()
         let client = makeClient { request in
@@ -38,14 +61,10 @@ struct OpenBaoClientTests {
         #expect(status.progress == 1)
         #expect(request?.httpMethod == "GET")
         #expect(request?.url?.absoluteString == "\(origin)/v1/sys/seal-status")
-        #expect(request?.value(forHTTPHeaderField: "Accept") == "application/json")
-        #expect(request?.value(forHTTPHeaderField: "Cache-Control") == "no-store")
-        #expect(request?.value(forHTTPHeaderField: "Content-Type") == nil)
-        #expect(request?.httpShouldHandleCookies == false)
     }
 
     @Test
-    func submitBuildsPostRequestWithOnlyTheShare() async throws {
+    func submitSendsPostToUnsealEndpoint() async throws {
         let recorder = RequestRecorder()
         let client = makeClient { request in
             recorder.record(request)
@@ -55,13 +74,10 @@ struct OpenBaoClientTests {
 
         try await client.submit(record)
         let request = try #require(recorder.request)
-        let body = try #require(request.httpBody)
-        let json = try #require(JSONSerialization.jsonObject(with: body) as? [String: String])
 
         #expect(request.httpMethod == "POST")
         #expect(request.url?.absoluteString == "\(origin)/v1/sys/unseal")
         #expect(request.value(forHTTPHeaderField: "Content-Type") == "application/json")
-        #expect(json == ["key": syntheticShare])
     }
 
     @Test
@@ -201,11 +217,7 @@ private final class MockURLProtocol: URLProtocol {
             return
         }
         do {
-            var interceptedRequest = request
-            if interceptedRequest.httpBody == nil, let stream = interceptedRequest.httpBodyStream {
-                interceptedRequest.httpBody = try Self.readBody(from: stream)
-            }
-            let (response, data) = try handler(interceptedRequest)
+            let (response, data) = try handler(request)
             client?.urlProtocol(self, didReceive: response, cacheStoragePolicy: .notAllowed)
             client?.urlProtocol(self, didLoad: data)
             client?.urlProtocolDidFinishLoading(self)
@@ -215,24 +227,6 @@ private final class MockURLProtocol: URLProtocol {
     }
 
     override func stopLoading() {}
-
-    private static func readBody(from stream: InputStream) throws -> Data {
-        stream.open()
-        defer { stream.close() }
-
-        var data = Data()
-        var buffer = [UInt8](repeating: 0, count: 4_096)
-        while true {
-            let count = stream.read(&buffer, maxLength: buffer.count)
-            if count < 0 {
-                throw stream.streamError ?? URLError(.cannotDecodeRawData)
-            }
-            if count == 0 {
-                return data
-            }
-            data.append(contentsOf: buffer.prefix(count))
-        }
-    }
 }
 
 private final class HandlerStorage: @unchecked Sendable {
