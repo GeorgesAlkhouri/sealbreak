@@ -40,8 +40,27 @@ jobs:
         run: brew install swiftlint swiftformat
       - name: Static checks
         run: pre-commit run --all-files --show-diff-on-failure
-      - name: Behavior tests
-        run: swift test -Xswiftc -warnings-as-errors
+
+  tests:
+    name: CI / tests
+    runs-on: macos-26
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - name: Run behavior tests and enforce coverage
+        run: bash scripts/ci/coverage.sh
+      - name: Upload Sonar coverage report
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: sonar-coverage
+          path: build/coverage/sonar.xml
+          if-no-files-found: error
+          retention-days: 1
 
   build:
     name: CI / build
@@ -59,7 +78,8 @@ jobs:
 
   sonar:
     name: CI / sonar
-    runs-on: macos-26
+    needs: [tests]
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
       - name: Reject Sonar analysis for fork PRs
@@ -72,8 +92,11 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
           fetch-depth: 0
           persist-credentials: false
-      - name: Generate and enforce behavior coverage
-        run: bash scripts/ci/coverage.sh
+      - name: Download Sonar coverage report
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+        with:
+          name: sonar-coverage
+          path: build/coverage
       - name: SonarQube Cloud and quality gate
         uses: SonarSource/sonarqube-scan-action@22918119ff8e1ca75a623e15c8296b6ea4fbe28f # v8.2.1
         env:
@@ -82,16 +105,18 @@ jobs:
   ready:
     name: CI / ready
     if: ${{ always() }}
-    needs: [quality, build, sonar]
+    needs: [quality, tests, build, sonar]
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:
       - name: Require actual success from every gate
         env:
           QUALITY_RESULT: ${{ needs.quality.result }}
+          TESTS_RESULT: ${{ needs.tests.result }}
           BUILD_RESULT: ${{ needs.build.result }}
           SONAR_RESULT: ${{ needs.sonar.result }}
         run: |
           test "$QUALITY_RESULT" = success && \
+          test "$TESTS_RESULT" = success && \
           test "$BUILD_RESULT" = success && \
           test "$SONAR_RESULT" = success
