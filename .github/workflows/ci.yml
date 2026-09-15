@@ -11,12 +11,12 @@ permissions:
   contents: read
 
 concurrency:
-  group: ci-${{ github.event.pull_request.number || github.ref }}
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
-  verify:
-    name: CI / verify
+  quality:
+    name: CI / quality
     runs-on: macos-26
     timeout-minutes: 20
     permissions:
@@ -39,8 +39,6 @@ jobs:
         run: bash scripts/ci/setup.sh
       - name: Lint, model tests and coverage
         run: bash scripts/ci/check.sh
-      - name: Compile complete iOS app for Simulator
-        run: bash scripts/ci/build.sh simulator
       - name: Upload reports
         if: ${{ always() }}
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
@@ -49,6 +47,23 @@ jobs:
           path: reports/
           retention-days: 7
           if-no-files-found: warn
+
+  build:
+    name: CI / build
+    runs-on: macos-26
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Select pinned Xcode
+        run: bash scripts/ci/setup.sh xcode-only
+      - name: Compile complete iOS app for Simulator
+        run: bash scripts/ci/build.sh simulator
 
   security:
     name: CI / security
@@ -95,7 +110,7 @@ jobs:
 
   sonar:
     name: CI / sonar
-    needs: verify
+    needs: quality
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
@@ -123,16 +138,18 @@ jobs:
   ready:
     name: CI / ready
     if: ${{ always() }}
-    needs: [verify, security, sonar]
+    needs: [quality, build, security, sonar]
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:
       - name: Require actual success from every gate
         env:
-          VERIFY_RESULT: ${{ needs.verify.result }}
+          QUALITY_RESULT: ${{ needs.quality.result }}
+          BUILD_RESULT: ${{ needs.build.result }}
           SECURITY_RESULT: ${{ needs.security.result }}
           SONAR_RESULT: ${{ needs.sonar.result }}
         run: |
-          test "$VERIFY_RESULT" = success && \
+          test "$QUALITY_RESULT" = success && \
+          test "$BUILD_RESULT" = success && \
           test "$SECURITY_RESULT" = success && \
           test "$SONAR_RESULT" = success
