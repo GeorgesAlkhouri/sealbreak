@@ -1,6 +1,4 @@
 import SwiftUI
-import LocalAuthentication
-import UIKit
 
 @MainActor
 final class AppModel: ObservableObject {
@@ -10,15 +8,13 @@ final class AppModel: ObservableObject {
     @Published private(set) var activity = ""
     @Published private(set) var notice = "Prototype: use disposable test shares until the security checks in issue #1 have been completed."
 
-    private let keychain = KeychainStore()
-    private let profiles = ProfileStore()
-    private let client = OpenBaoClient()
+    private let services: AppServicing
     private var operation: Task<Void, Never>?
-    private var activeContext: LAContext?
 
-    init() {
+    init(services: AppServicing = LiveAppServices()) {
+        self.services = services
         do {
-            profile = try profiles.load()
+            profile = try services.loadProfile()
         } catch {
             notice = "The display profile could not be read. Restore its protected copy from Keychain."
         }
@@ -32,7 +28,7 @@ final class AppModel: ObservableObject {
         guard let target = profile else { return }
         run("Checking seal status…") {
             self.status = nil
-            self.status = try await self.client.status(target)
+            self.status = try await self.services.status(target)
             self.notice = self.status?.supportsUnseal == true
                 ? "Status checked. Nothing is sent automatically."
                 : "Only initialized Shamir seals are supported. Initialization, auto-unseal, and seal migration are not supported."
@@ -43,7 +39,7 @@ final class AppModel: ObservableObject {
         guard canUnseal, let target = profile else { return }
         run("Checking target…") {
             self.status = nil
-            let before = try await self.client.status(target)
+            let before = try await self.services.status(target)
             self.status = before
             guard before.supportsUnseal else {
                 throw AppFailure("This target does not support manual Shamir unseal.")
@@ -53,23 +49,24 @@ final class AppModel: ObservableObject {
                 return
             }
 
-            try await self.authorize("Send one Shamir share to \(target.origin)") { context in
-                var record = try self.keychain.read(context: context)
+            self.activity = "Waiting for Face ID…"
+            try await self.services.authorize("Send one Shamir share to \(target.origin)") {
+                var record = try self.services.readShare()
                 defer {
                     record.share.removeAll(keepingCapacity: false)
                 }
                 guard record.profile == target else {
                     throw AppFailure("Target binding mismatch. Nothing was sent. Restore the protected profile; changing the display file cannot retarget a share.")
                 }
-                try self.requireForeground()
+                try self.services.requireForeground()
                 self.activity = "Submitting one share…"
                 self.status = nil
 
                 do {
-                    try await self.client.submit(record)
+                    try await self.services.submit(record)
                     record.share.removeAll(keepingCapacity: false)
                     self.activity = "Verifying seal status…"
-                    let after = try await self.client.status(target)
+                    let after = try await self.services.status(target)
                     self.status = after
                     guard after.supportsUnseal else {
                         throw AppFailure("Unexpected seal configuration after submission.")
@@ -103,9 +100,10 @@ final class AppModel: ObservableObject {
                 record.share.removeAll(keepingCapacity: false)
             }
 
-            try await self.authorize("Protect this share for \(record.profile.origin)") { context in
-                try self.requireForeground()
-                try self.keychain.insert(record, context: context)
+            self.activity = "Waiting for Face ID…"
+            try await self.services.authorize("Protect this share for \(record.profile.origin)") {
+                try self.services.requireForeground()
+                try self.services.insertShare(record)
                 self.useProfile(
                     record.profile,
                     message: "Share saved with device-bound biometric protection. Check status to begin."
@@ -125,16 +123,17 @@ final class AppModel: ObservableObject {
                 replacement.share.removeAll(keepingCapacity: false)
             }
 
-            try await self.authorize("Replace the local share for \(target.origin)") { context in
-                var existing = try self.keychain.read(context: context)
+            self.activity = "Waiting for Face ID…"
+            try await self.services.authorize("Replace the local share for \(target.origin)") {
+                var existing = try self.services.readShare()
                 defer {
                     existing.share.removeAll(keepingCapacity: false)
                 }
                 guard existing.profile == target else {
                     throw AppFailure("Target binding mismatch. Restore the protected profile first.")
                 }
-                try self.requireForeground()
-                try self.keychain.replace(replacement, context: context)
+                try self.services.requireForeground()
+                try self.services.replaceShare(replacement)
                 self.status = nil
                 self.notice = "Local share replaced. This does not rotate OpenBao keys; server-side rekeying is a separate operation."
             }
@@ -143,8 +142,9 @@ final class AppModel: ObservableObject {
 
     func restoreProfile() {
         run("Restoring local profile…") {
-            try await self.authorize("Restore the server profile from the protected Keychain record") { context in
-                var record = try self.keychain.read(context: context)
+            self.activity = "Waiting for Face ID…"
+            try await self.services.authorize("Restore the server profile from the protected Keychain record") {
+                var record = try self.services.readShare()
                 defer {
                     record.share.removeAll(keepingCapacity: false)
                 }
@@ -158,13 +158,14 @@ final class AppModel: ObservableObject {
 
     func removeLocalData() {
         run("Removing local data…") {
-            try await self.authorize("Permanently remove Sealbreak’s local share; independent recovery will be required") { context in
-                try self.requireForeground()
-                try self.keychain.delete(context: context)
+            self.activity = "Waiting for Face ID…"
+            try await self.services.authorize("Permanently remove Sealbreak’s local share; independent recovery will be required") {
+                try self.services.requireForeground()
+                try self.services.deleteShare()
                 self.profile = nil
                 self.status = nil
                 do {
-                    try self.profiles.delete()
+                    try self.services.deleteProfile()
                     self.notice = "Local share removed. Copies elsewhere remain valid; only OpenBao rekeying replaces the server’s Shamir shares."
                 } catch {
                     self.notice = "The Keychain share was removed, but its non-secret display file could not be removed. Restart may show stale metadata."
@@ -175,7 +176,7 @@ final class AppModel: ObservableObject {
 
     func cancelForPrivacy() {
         operation?.cancel()
-        activeContext?.invalidate()
+        services.cancelSensitiveOperation()
         status = nil
         if busy {
             notice = "Operation interrupted. Check status on return; an already submitted request cannot be recalled."
@@ -186,7 +187,7 @@ final class AppModel: ObservableObject {
         self.profile = profile
         self.status = nil
         do {
-            try profiles.save(profile)
+            try services.saveProfile(profile)
             notice = message
         } catch {
             notice = "Protected share exists, but display metadata could not be saved. Use Restore profile from Keychain on the next launch."
@@ -199,14 +200,13 @@ final class AppModel: ObservableObject {
         self.activity = activity
         operation = Task { @MainActor in
             defer {
-                self.activeContext?.invalidate()
-                self.activeContext = nil
+                self.services.cancelSensitiveOperation()
                 self.busy = false
                 self.activity = ""
                 self.operation = nil
             }
             do {
-                try await self.waitForForeground()
+                try await self.services.waitForForeground()
                 try await work()
             } catch is CancellationError {
                 self.status = nil
@@ -217,68 +217,5 @@ final class AppModel: ObservableObject {
                 self.notice = "Operation failed. No sensitive diagnostic data was recorded."
             }
         }
-    }
-
-    private func requireForeground() throws {
-        try Task.checkCancellation()
-        guard UIApplication.shared.applicationState == .active else {
-            throw AppFailure("Sealbreak is not the active app. Return to it after the system dialog closes, then retry.")
-        }
-        guard UIApplication.shared.isProtectedDataAvailable else {
-            throw AppFailure("Protected iPhone data is unavailable. Unlock the device and retry in Sealbreak.")
-        }
-        guard !UIScreen.main.isCaptured else {
-            throw AppFailure("iPhone screen capture or mirroring is active. Stop it and retry directly on the unlocked device.")
-        }
-    }
-
-    private func waitForForeground() async throws {
-        for _ in 0..<50 {
-            try Task.checkCancellation()
-            if UIApplication.shared.applicationState == .active {
-                try requireForeground()
-                return
-            }
-            try await Task.sleep(for: .milliseconds(100))
-        }
-        try requireForeground()
-    }
-
-    private func authorize(
-        _ reason: String,
-        action: @MainActor (LAContext) async throws -> Void
-    ) async throws {
-        let context = LAContext()
-        context.localizedFallbackTitle = ""
-        context.touchIDAuthenticationAllowableReuseDuration = 0
-        activeContext = context
-        defer {
-            context.invalidate()
-            activeContext = nil
-        }
-
-        var error: NSError?
-        guard context.canEvaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, error: &error),
-              context.biometryType == .faceID else {
-            throw AppFailure("Face ID is unavailable, not enrolled, or locked out. Enable Face ID and a device passcode, or unlock the device in iOS before retrying. No app passcode fallback is offered.")
-        }
-
-        activity = "Waiting for Face ID…"
-        do {
-            guard try await context.evaluatePolicy(
-                .deviceOwnerAuthenticationWithBiometrics,
-                localizedReason: reason
-            ) else {
-                throw AppFailure("Face ID did not authorize this action.")
-            }
-        } catch is CancellationError {
-            throw CancellationError()
-        } catch {
-            throw AppFailure("Face ID was cancelled or denied. No new share submission was started.")
-        }
-
-        try await waitForForeground()
-        context.interactionNotAllowed = true
-        try await action(context)
     }
 }
