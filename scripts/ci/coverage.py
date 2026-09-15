@@ -40,6 +40,7 @@ def main() -> int:
     root = Element("coverage", {"version": "1"})
     total = 0
     covered = 0
+    uncovered: list[str] = []
 
     for source in requested:
         lines = coverage.get(source)
@@ -51,6 +52,8 @@ def main() -> int:
             hit = lines[line_number] > 0
             total += 1
             covered += int(hit)
+            if not hit:
+                uncovered.append(f"{source}:{line_number}")
             SubElement(
                 file_node,
                 "lineToCover",
@@ -62,9 +65,10 @@ def main() -> int:
 
     percentage = 100.0 * covered / total
     print(f"behavior coverage: {covered}/{total} lines = {percentage:.2f}%")
-    if covered != total:
-        missing = total - covered
-        print(f"coverage error: {missing} behavior line(s) are not covered", file=sys.stderr)
+    if uncovered:
+        for location in uncovered:
+            print(f"coverage uncovered: {location}", file=sys.stderr)
+        print(f"coverage error: {len(uncovered)} behavior line(s) are not covered", file=sys.stderr)
         return 1
     return 0
 
