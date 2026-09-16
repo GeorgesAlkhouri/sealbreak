@@ -10,8 +10,11 @@ let package = Package(
             name: "SealbreakCore",
             path: "Sealbreak",
             exclude: [
-                "ContentView.swift", "SealbreakApp.swift",
-                "Info.plist", "PrivacyInfo.xcprivacy"
+                "App",
+                "Features",
+                "DesignSystem",
+                "Info.plist",
+                "PrivacyInfo.xcprivacy"
             ]
         ),
         .testTarget(name: "SealbreakCoreTests", dependencies: ["SealbreakCore"])
