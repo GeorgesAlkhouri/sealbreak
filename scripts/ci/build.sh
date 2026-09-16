@@ -4,7 +4,8 @@ cd "$(dirname "$0")/../.."
 common=(-project Sealbreak.xcodeproj -scheme Sealbreak
   CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO DEVELOPMENT_TEAM=
   SWIFT_TREAT_WARNINGS_AS_ERRORS=YES GCC_TREAT_WARNINGS_AS_ERRORS=YES
-  COMPILER_INDEX_STORE_ENABLE=NO)
+  COMPILER_INDEX_STORE_ENABLE=NO
+  -skipMacroValidation)
 case "${1:-}" in
   simulator)
     xcodebuild "${common[@]}" -configuration Debug \
