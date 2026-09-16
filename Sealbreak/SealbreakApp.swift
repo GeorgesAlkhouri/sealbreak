@@ -14,7 +14,7 @@ struct SealbreakApp: App {
 
 // SwiftUI has no title + content + footer convenience initializer for Section.
 // Keep the call sites readable while delegating to the canonical header/footer form.
-extension Section where Parent == Text {
+extension Section where Parent == Text, Content: View, Footer: View {
     init(
         _ title: String,
         @ViewBuilder content: () -> Content,
