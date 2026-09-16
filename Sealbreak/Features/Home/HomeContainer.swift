@@ -44,22 +44,22 @@ struct HomeContainer: View {
     private var confirmationTitle: String {
         switch confirmation {
         case .unseal:
-            "Send a share to this target?"
+            return "Send a share to this target?"
         case .removeLocalData:
-            "Remove the local share?"
+            return "Remove the local share?"
         case nil:
-            "Confirm action"
+            return "Confirm action"
         }
     }
 
     private var confirmationMessage: String {
         switch confirmation {
         case .unseal:
-            "\(model.profile?.origin ?? "")\nA trusted certificate does not prove the server is uncompromised. Only proceed when you trust this node and any TLS proxy."
+            return "\(model.profile?.origin ?? "")\nA trusted certificate does not prove the server is uncompromised. Only proceed when you trust this node and any TLS proxy."
         case .removeLocalData:
-            "Requires fresh Face ID. This cannot be undone and does not revoke copies elsewhere. After Face ID changes, removal deletes any remaining old record; it cannot recover that record."
+            return "Requires fresh Face ID. This cannot be undone and does not revoke copies elsewhere. After Face ID changes, removal deletes any remaining old record; it cannot recover that record."
         case nil:
-            ""
+            return ""
         }
     }
 

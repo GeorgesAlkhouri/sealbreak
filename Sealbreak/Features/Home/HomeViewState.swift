@@ -10,51 +10,56 @@ struct HomeViewState: Equatable {
 
         var title: String {
             switch self {
-            case .unknown: "UNKNOWN"
-            case .checking: "CHECKING"
-            case .sealed: "SEALED"
-            case .unsealing: "UNSEALING"
-            case .unsealed: "UNSEALED"
+            case .unknown:
+                return "UNKNOWN"
+            case .checking:
+                return "CHECKING"
+            case .sealed:
+                return "SEALED"
+            case .unsealing:
+                return "UNSEALING"
+            case .unsealed:
+                return "UNSEALED"
             }
         }
 
         var primaryDetail: String {
             switch self {
             case .unknown:
-                "Status unknown"
+                return "Status unknown"
             case .checking(let activity), .unsealing(let activity):
-                activity.isEmpty ? "Working…" : activity
+                return activity.isEmpty ? "Working…" : activity
             case .sealed(let progress, let threshold, _):
-                "\(progress) of \(threshold) shares submitted"
+                return "\(progress) of \(threshold) shares submitted"
             case .unsealed:
-                "OpenBao is available"
+                return "OpenBao is available"
             }
         }
 
         var secondaryDetail: String {
             switch self {
             case .unknown:
-                "Check status before sending"
+                return "Check status before sending"
             case .checking, .unsealing:
-                "Please keep the app open"
+                return "Please keep the app open"
             case .sealed(_, _, let supportsUnseal):
-                supportsUnseal ? "Shamir seal" : "Manual unseal unavailable"
+                return supportsUnseal ? "Shamir seal" : "Manual unseal unavailable"
             case .unsealed:
-                "Status checked"
+                return "Status checked"
             }
         }
 
         var progressFraction: Double {
             switch self {
             case .unknown:
-                0.20
+                return 0.20
             case .checking, .unsealing:
-                0.66
+                return 0.66
             case .sealed(let progress, let threshold, _):
                 guard threshold > 0 else { return 0 }
                 return min(1, max(0, Double(progress) / Double(threshold)))
             case .unsealed:
-                1
+                return 1
             }
         }
     }
@@ -66,24 +71,32 @@ struct HomeViewState: Equatable {
 
         var title: String {
             switch self {
-            case .checkStatus: "Check status"
-            case .unseal: "Unseal with Face ID"
-            case .working(let title): title.isEmpty ? "Working…" : title
+            case .checkStatus:
+                return "Check status"
+            case .unseal:
+                return "Unseal with Face ID"
+            case .working(let title):
+                return title.isEmpty ? "Working…" : title
             }
         }
 
         var systemImage: String {
             switch self {
-            case .checkStatus: "arrow.clockwise"
-            case .unseal: "faceid"
-            case .working: "hourglass"
+            case .checkStatus:
+                return "arrow.clockwise"
+            case .unseal:
+                return "faceid"
+            case .working:
+                return "hourglass"
             }
         }
 
         var enabled: Bool {
             switch self {
-            case .checkStatus(let enabled), .unseal(let enabled): enabled
-            case .working: false
+            case .checkStatus(let enabled), .unseal(let enabled):
+                return enabled
+            case .working:
+                return false
             }
         }
     }

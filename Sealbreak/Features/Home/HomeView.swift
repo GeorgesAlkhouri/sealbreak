@@ -49,9 +49,9 @@ struct HomeView: View {
     private var primaryAction: HomeAction {
         switch state.primaryAction {
         case .unseal:
-            .unsealTapped
+            return .unsealTapped
         case .checkStatus, .working:
-            .refreshTapped
+            return .refreshTapped
         }
     }
 }

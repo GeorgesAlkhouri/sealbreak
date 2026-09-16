@@ -29,26 +29,26 @@ struct SealStatusIndicator: View {
     var accent: Color {
         switch status {
         case .unknown:
-            PapercutPalette.secondaryText
+            return PapercutPalette.secondaryText
         case .checking, .unsealing:
-            PapercutPalette.button
+            return PapercutPalette.button
         case .sealed:
-            PapercutPalette.sealed
+            return PapercutPalette.sealed
         case .unsealed:
-            PapercutPalette.unsealed
+            return PapercutPalette.unsealed
         }
     }
 
     private var icon: String {
         switch status {
         case .unknown:
-            "questionmark.circle"
+            return "questionmark.circle"
         case .checking, .unsealing:
-            "lock"
+            return "lock"
         case .sealed:
-            "lock.fill"
+            return "lock.fill"
         case .unsealed:
-            "lock.open.fill"
+            return "lock.open.fill"
         }
     }
 }
