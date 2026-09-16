@@ -1,59 +1,58 @@
+import ComposableArchitecture
 import SwiftUI
 import UIKit
 
-@MainActor
 struct PrivacyGate<Content: View>: View {
-    @ObservedObject private var model: AppModel
     @Environment(\.scenePhase) private var scenePhase
-    @State private var captured = UIScreen.main.isCaptured
 
-    private let content: Content
-
-    init(model: AppModel, @ViewBuilder content: () -> Content) {
-        self.model = model
-        self.content = content()
-    }
-
-    private var concealed: Bool {
-        scenePhase != .active || captured
-    }
+    let store: StoreOf<PrivacyFeature>
+    @ViewBuilder let content: () -> Content
 
     var body: some View {
         ZStack {
-            content
-                .disabled(captured)
+            content()
+                .opacity(store.isConcealed ? 0 : 1)
+                .blur(radius: store.isConcealed ? 22 : 0)
+                .allowsHitTesting(!store.isConcealed)
+                .accessibilityHidden(store.isConcealed)
 
-            if concealed {
+            if store.isConcealed {
                 Color(.systemBackground)
                     .ignoresSafeArea()
-
-                VStack(spacing: 12) {
-                    Image(systemName: "lock.shield")
-                        .font(.largeTitle)
-                    Text(captured ? "Stop screen capture to continue" : "Sealbreak locked")
-                }
-                .accessibilityElement(children: .combine)
+                    .overlay {
+                        VStack(spacing: 12) {
+                            Image(systemName: "lock.shield.fill")
+                                .font(.system(size: 42))
+                            Text(store.isCaptured ? "Screen capture blocked" : "Sealbreak locked")
+                                .font(.headline)
+                        }
+                    }
+                    .transition(.opacity)
+                    .zIndex(10)
             }
         }
-        .onAppear(perform: refreshIfNeeded)
+        .onAppear {
+            store.send(.phaseChanged(Self.phase(scenePhase)))
+            store.send(.captureChanged(UIScreen.main.isCaptured))
+        }
         .onChange(of: scenePhase) { _, phase in
-            if phase == .background {
-                model.cancelForPrivacy()
-            }
-            if phase == .active {
-                refreshIfNeeded()
-            }
+            store.send(.phaseChanged(Self.phase(phase)))
         }
         .onReceive(NotificationCenter.default.publisher(for: UIScreen.capturedDidChangeNotification)) { _ in
-            captured = UIScreen.main.isCaptured
-            if captured {
-                model.cancelForPrivacy()
-            }
+            store.send(.captureChanged(UIScreen.main.isCaptured))
         }
     }
 
-    private func refreshIfNeeded() {
-        guard scenePhase == .active, model.profile != nil, !model.busy else { return }
-        model.refresh()
+    private static func phase(_ phase: ScenePhase) -> PrivacyFeature.State.Phase {
+        switch phase {
+        case .active:
+            return .active
+        case .inactive:
+            return .inactive
+        case .background:
+            return .background
+        @unknown default:
+            return .inactive
+        }
     }
 }

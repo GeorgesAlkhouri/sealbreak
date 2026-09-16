@@ -2,33 +2,33 @@ import SwiftUI
 
 struct HomeMenu: View {
     let isBusy: Bool
-    let onAction: (HomeAction) -> Void
+    let onAction: (HomeMenuAction) -> Void
 
     var body: some View {
         Menu {
             Button("Check status", systemImage: "arrow.clockwise") {
-                onAction(.refreshTapped)
+                onAction(.refresh)
             }
             .disabled(isBusy)
 
             Button("Server details", systemImage: "info.circle") {
-                onAction(.serverDetailsTapped)
+                onAction(.serverDetails)
             }
 
             Button("Replace local share", systemImage: "key.horizontal") {
-                onAction(.replaceShareTapped)
+                onAction(.replaceShare)
             }
             .disabled(isBusy)
 
             Button("Restore profile from Keychain", systemImage: "arrow.uturn.backward") {
-                onAction(.restoreProfileTapped)
+                onAction(.restoreProfile)
             }
             .disabled(isBusy)
 
             Divider()
 
             Button("Remove local data", systemImage: "trash", role: .destructive) {
-                onAction(.removeLocalDataTapped)
+                onAction(.removeLocalData)
             }
             .disabled(isBusy)
         } label: {

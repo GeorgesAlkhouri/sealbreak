@@ -1,8 +1,8 @@
+import ComposableArchitecture
 import SwiftUI
 
 struct HomeView: View {
-    let state: HomeViewState
-    let onAction: (HomeAction) -> Void
+    @Bindable var store: StoreOf<HomeFeature>
 
     var body: some View {
         GeometryReader { proxy in
@@ -10,24 +10,42 @@ struct HomeView: View {
                 PapercutBackground()
 
                 VStack(spacing: 0) {
-                    HomeHeader(isBusy: state.isBusy, onAction: onAction)
-                        .padding(.horizontal, 24)
+                    HomeHeader(isBusy: viewState.isBusy) { action in
+                        switch action {
+                        case .refresh:
+                            store.send(.refreshTapped)
+                        case .serverDetails:
+                            store.send(.serverDetailsTapped)
+                        case .replaceShare:
+                            store.send(.replaceShareTapped)
+                        case .restoreProfile:
+                            store.send(.restoreProfileTapped)
+                        case .removeLocalData:
+                            store.send(.removeLocalDataTapped)
+                        }
+                    }
+                    .padding(.horizontal, 24)
 
                     Spacer(minLength: 28)
 
-                    ServerStatusCard(state: state)
+                    ServerStatusCard(state: viewState)
                         .frame(maxWidth: 335)
                         .padding(.horizontal, 29)
 
                     Spacer(minLength: 26)
 
-                    UnsealButton(state: state.primaryAction) {
-                        onAction(primaryAction)
+                    UnsealButton(state: viewState.primaryAction) {
+                        switch viewState.primaryAction {
+                        case .unseal:
+                            store.send(.unsealTapped)
+                        case .checkStatus, .working:
+                            store.send(.refreshTapped)
+                        }
                     }
                     .frame(maxWidth: 335)
                     .padding(.horizontal, 29)
 
-                    if let notice = state.notice {
+                    if let notice = viewState.notice {
                         Text(notice)
                             .font(.caption)
                             .foregroundStyle(PapercutPalette.cream.opacity(0.86))
@@ -44,14 +62,73 @@ struct HomeView: View {
         }
         .toolbar(.hidden, for: .navigationBar)
         .background(PapercutPalette.sky)
+        .sheet(
+            item: $store.scope(state: \.$serverDetails, action: \.serverDetails)
+        ) { detailsStore in
+            ServerDetailsView(store: detailsStore)
+        }
+        .sheet(
+            item: $store.scope(state: \.$replaceShare, action: \.replaceShare)
+        ) { replacementStore in
+            ReplaceShareView(store: replacementStore)
+        }
+        .confirmationDialog(
+            confirmationTitle,
+            isPresented: confirmationBinding,
+            titleVisibility: .visible
+        ) {
+            switch store.confirmation {
+            case .unseal:
+                Button("Send one share", role: .destructive) {
+                    store.send(.confirmUnsealTapped)
+                }
+            case .removeLocalData:
+                Button("Remove local data", role: .destructive) {
+                    store.send(.confirmRemoveLocalDataTapped)
+                }
+            case nil:
+                EmptyView()
+            }
+        } message: {
+            switch store.confirmation {
+            case .unseal:
+                Text("Face ID will be required. Sealbreak will re-check the target before sending anything.")
+            case .removeLocalData:
+                Text("This removes the local Keychain share and display profile. Independent recovery will be required to restore access.")
+            case nil:
+                EmptyView()
+            }
+        }
     }
 
-    private var primaryAction: HomeAction {
-        switch state.primaryAction {
+    private var viewState: HomeViewState {
+        HomeViewState(
+            profile: store.profile,
+            sealStatus: store.status,
+            operation: store.operation,
+            notice: store.notice
+        )
+    }
+
+    private var confirmationBinding: Binding<Bool> {
+        Binding(
+            get: { store.confirmation != nil },
+            set: { presented in
+                if !presented {
+                    store.send(.confirmationDismissed)
+                }
+            }
+        )
+    }
+
+    private var confirmationTitle: String {
+        switch store.confirmation {
         case .unseal:
-            return .unsealTapped
-        case .checkStatus, .working:
-            return .refreshTapped
+            return "Send one Shamir share?"
+        case .removeLocalData:
+            return "Remove local data?"
+        case nil:
+            return "Confirm"
         }
     }
 }

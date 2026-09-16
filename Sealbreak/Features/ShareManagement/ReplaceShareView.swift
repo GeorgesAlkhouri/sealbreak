@@ -1,9 +1,8 @@
+import ComposableArchitecture
 import SwiftUI
 
-@MainActor
 struct ReplaceShareView: View {
-    @ObservedObject var model: AppModel
-    @Environment(\.dismiss) private var dismiss
+    let store: StoreOf<ReplaceShareFeature>
 
     @State private var share = ""
     @State private var recoveryConfirmed = false
@@ -16,7 +15,7 @@ struct ReplaceShareView: View {
                         share: $share,
                         recoveryConfirmed: $recoveryConfirmed,
                         saveTitle: "Save replacement with Face ID",
-                        busy: model.busy,
+                        busy: store.isBusy,
                         onSave: save
                     )
 
@@ -24,31 +23,38 @@ struct ReplaceShareView: View {
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                 }
+
+                if store.isBusy || !store.notice.isEmpty {
+                    Section("Result") {
+                        if store.isBusy {
+                            ProgressView(store.activity)
+                        }
+                        if !store.notice.isEmpty {
+                            Text(store.notice)
+                                .font(.callout)
+                        }
+                    }
+                }
             }
             .navigationTitle("Local share")
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") {
                         clearDraft()
-                        dismiss()
+                        store.send(.cancelTapped)
                     }
+                    .disabled(store.isBusy)
                 }
             }
         }
         .clearSensitiveDraftOnPrivacyChange(clearDraft)
-        .onChange(of: model.busy) { wasBusy, busy in
-            if wasBusy && !busy {
-                clearDraft()
-                dismiss()
-            }
-        }
     }
 
     private func save() {
         let value = share
         let recovery = recoveryConfirmed
         clearDraft()
-        model.replaceShare(input: value, recoveryConfirmed: recovery)
+        store.send(.saveTapped(share: value, recoveryConfirmed: recovery))
     }
 
     private func clearDraft() {

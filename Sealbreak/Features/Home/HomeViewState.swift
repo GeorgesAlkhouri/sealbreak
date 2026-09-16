@@ -108,30 +108,33 @@ struct HomeViewState: Equatable {
     let notice: String?
     let isBusy: Bool
 
-    @MainActor
-    init(model: AppModel) {
-        let profile = model.profile
-        serverName = profile?.name ?? "OpenBao"
-        origin = Self.displayOrigin(profile?.origin ?? "")
-        isBusy = model.busy
+    init(
+        profile: ServerProfile,
+        sealStatus: SealStatus?,
+        operation: HomeFeature.State.Operation?,
+        notice: String
+    ) {
+        serverName = profile.name
+        origin = Self.displayOrigin(profile.origin)
+        isBusy = operation != nil
 
-        if model.busy {
-            let activity = model.activity
-            let lower = activity.lowercased()
-            let unsealing = lower.contains("submitting")
-                || lower.contains("verifying")
-                || lower.contains("face id")
-                || lower.contains("target")
-            status = unsealing ? .unsealing(activity: activity) : .checking(activity: activity)
+        if let operation {
+            let activity = operation.activity
+            switch operation {
+            case .checkingTarget, .waitingForFaceID, .submittingShare, .verifyingStatus:
+                status = .unsealing(activity: activity)
+            case .checkingStatus, .restoringProfile, .removingLocalData:
+                status = .checking(activity: activity)
+            }
             primaryAction = .working(title: activity)
-            notice = nil
+            self.notice = nil
             return
         }
 
-        guard let sealStatus = model.status else {
+        guard let sealStatus else {
             status = .unknown
-            primaryAction = .checkStatus(enabled: profile != nil)
-            notice = model.notice
+            primaryAction = .checkStatus(enabled: true)
+            self.notice = notice
             return
         }
 
@@ -141,12 +144,12 @@ struct HomeViewState: Equatable {
                 threshold: sealStatus.t,
                 supportsUnseal: sealStatus.supportsUnseal
             )
-            primaryAction = .unseal(enabled: model.canUnseal)
+            primaryAction = .unseal(enabled: sealStatus.supportsUnseal)
         } else {
             status = .unsealed
             primaryAction = .checkStatus(enabled: true)
         }
-        notice = nil
+        self.notice = nil
     }
 
     private static func displayOrigin(_ origin: String) -> String {

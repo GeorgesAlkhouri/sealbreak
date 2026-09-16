@@ -1,6 +1,6 @@
 import Foundation
 
-struct AppFailure: LocalizedError, Sendable {
+struct AppFailure: Equatable, LocalizedError, Sendable {
     let message: String
 
     init(_ message: String) {
@@ -78,7 +78,7 @@ struct ServerProfile: Codable, Equatable, Sendable {
     }
 }
 
-struct ShareRecord: Codable, Sendable {
+struct ShareRecord: Codable, Equatable, Sendable {
     let version: Int
     let profile: ServerProfile
     var share: String
@@ -111,7 +111,7 @@ struct ShareRecord: Codable, Sendable {
     }
 }
 
-struct SealStatus: Decodable, Sendable {
+struct SealStatus: Decodable, Equatable, Sendable {
     let type: String
     let initialized: Bool
     let sealed: Bool

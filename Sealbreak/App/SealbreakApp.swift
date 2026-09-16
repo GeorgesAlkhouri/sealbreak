@@ -1,13 +1,15 @@
+import ComposableArchitecture
 import SwiftUI
 
 @main
-@MainActor
 struct SealbreakApp: App {
-    @StateObject private var model = AppModel()
+    private let store = Store(initialState: AppFeature.State()) {
+        AppFeature()
+    }
 
     var body: some Scene {
         WindowGroup {
-            AppRootView(model: model)
+            AppRootView(store: store)
         }
     }
 }

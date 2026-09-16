@@ -1,8 +1,16 @@
 import SwiftUI
 
+enum HomeMenuAction {
+    case refresh
+    case serverDetails
+    case replaceShare
+    case restoreProfile
+    case removeLocalData
+}
+
 struct HomeHeader: View {
     let isBusy: Bool
-    let onAction: (HomeAction) -> Void
+    let onAction: (HomeMenuAction) -> Void
 
     var body: some View {
         HStack(spacing: 12) {

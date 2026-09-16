@@ -1,22 +1,19 @@
+import ComposableArchitecture
 import SwiftUI
 
-@MainActor
 struct ServerDetailsView: View {
-    @ObservedObject var model: AppModel
-    @Environment(\.dismiss) private var dismiss
+    let store: StoreOf<ServerDetailsFeature>
 
     var body: some View {
         NavigationStack {
             Form {
-                if let profile = model.profile {
-                    Section("Target") {
-                        LabeledContent("Name", value: profile.name)
-                        LabeledContent("Origin", value: profile.origin)
-                    }
+                Section("Target") {
+                    LabeledContent("Name", value: store.profile.name)
+                    LabeledContent("Origin", value: store.profile.origin)
                 }
 
                 Section("Seal status") {
-                    if let status = model.status {
+                    if let status = store.status {
                         LabeledContent("Initialized", value: status.initialized ? "Yes" : "No")
                         LabeledContent("Seal", value: status.sealed ? "Sealed" : "Unsealed")
                         LabeledContent("Type", value: status.type)
@@ -27,15 +24,17 @@ struct ServerDetailsView: View {
                             .foregroundStyle(.secondary)
                     }
 
-                    Button("Check status", systemImage: "arrow.clockwise", action: model.refresh)
-                        .disabled(model.busy)
+                    Button("Check status", systemImage: "arrow.clockwise") {
+                        store.send(.refreshTapped)
+                    }
+                    .disabled(store.isBusy)
                 }
 
                 Section("Result") {
-                    if model.busy {
-                        ProgressView(model.activity)
+                    if store.isBusy {
+                        ProgressView(store.activity)
                     }
-                    Text(model.notice)
+                    Text(store.notice)
                         .font(.callout)
                 }
             }
@@ -43,7 +42,7 @@ struct ServerDetailsView: View {
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Done") {
-                        dismiss()
+                        store.send(.doneTapped)
                     }
                 }
             }

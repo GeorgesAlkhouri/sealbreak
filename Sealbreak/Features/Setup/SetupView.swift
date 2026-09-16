@@ -1,14 +1,13 @@
+import ComposableArchitecture
 import SwiftUI
 
-@MainActor
 struct SetupView: View {
-    @ObservedObject var model: AppModel
+    let store: StoreOf<SetupFeature>
 
     @State private var name = "OpenBao"
     @State private var address = ""
     @State private var share = ""
     @State private var recoveryConfirmed = false
-    @State private var confirmDelete = false
 
     var body: some View {
         Form {
@@ -23,7 +22,7 @@ struct SetupView: View {
                     share: $share,
                     recoveryConfirmed: $recoveryConfirmed,
                     saveTitle: "Save share with Face ID",
-                    busy: model.busy,
+                    busy: store.isBusy,
                     onSave: save
                 )
 
@@ -33,13 +32,15 @@ struct SetupView: View {
             }
 
             Section("Recovery and local data") {
-                Button("Restore profile from Keychain", action: model.restoreProfile)
-                    .disabled(model.busy)
+                Button("Restore profile from Keychain") {
+                    store.send(.restoreProfileTapped)
+                }
+                .disabled(store.isBusy)
 
                 Button("Remove local data", role: .destructive) {
-                    confirmDelete = true
+                    store.send(.removeLocalDataTapped)
                 }
-                .disabled(model.busy)
+                .disabled(store.isBusy)
 
                 Text("Keep an independent recovery copy. Face ID changes, device loss, or passcode removal can make the saved share inaccessible. Deleting the app is not a reliable Keychain wipe.")
                     .font(.footnote)
@@ -47,41 +48,53 @@ struct SetupView: View {
             }
 
             Section("Result") {
-                if model.busy {
-                    ProgressView(model.activity)
+                if store.isBusy {
+                    ProgressView(store.activity)
                 }
-                Text(model.notice)
+                Text(store.notice)
                     .font(.callout)
             }
         }
         .navigationTitle("Sealbreak")
         .confirmationDialog(
             "Remove the local share?",
-            isPresented: $confirmDelete,
+            isPresented: confirmationBinding,
             titleVisibility: .visible
         ) {
             Button("I have recovery — remove local data", role: .destructive) {
                 clearDraft()
-                model.removeLocalData()
+                store.send(.confirmRemoveLocalDataTapped)
             }
         } message: {
             Text("Requires fresh Face ID. This cannot be undone and does not revoke copies elsewhere.")
         }
         .clearSensitiveDraftOnPrivacyChange(clearDraft)
-        .onChange(of: model.profile) { _, _ in
-            clearDraft()
-        }
+    }
+
+    private var confirmationBinding: Binding<Bool> {
+        Binding(
+            get: { store.confirmDelete },
+            set: { presented in
+                if !presented {
+                    store.send(.confirmationDismissed)
+                }
+            }
+        )
     }
 
     private func save() {
+        let name = name
+        let address = address
         let value = share
         let recovery = recoveryConfirmed
         clearDraft()
-        model.importShare(
-            name: name,
-            address: address,
-            input: value,
-            recoveryConfirmed: recovery
+        store.send(
+            .saveTapped(
+                name: name,
+                address: address,
+                share: value,
+                recoveryConfirmed: recovery
+            )
         )
     }
 
