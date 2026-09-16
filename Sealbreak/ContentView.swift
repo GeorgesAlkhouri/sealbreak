@@ -533,8 +533,10 @@ struct ContentView: View {
     private var replacement: some View {
         NavigationStack {
             Form {
-                Section("Replace local share") {
+                Section {
                     secretEditor(replacing: true)
+                } header: {
+                    Text("Replace local share")
                 } footer: {
                     Text("This replaces only the locally stored share. It does not rotate OpenBao keys or change the configured target.")
                 }
