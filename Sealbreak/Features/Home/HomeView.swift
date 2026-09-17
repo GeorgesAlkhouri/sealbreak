@@ -3,6 +3,7 @@ import SwiftUI
 
 struct HomeView: View {
     @Bindable var store: StoreOf<HomeFeature>
+    let privacyStore: StoreOf<PrivacyFeature>
 
     var body: some View {
         GeometryReader { proxy in
@@ -65,12 +66,16 @@ struct HomeView: View {
         .sheet(
             item: $store.scope(state: \.$serverDetails, action: \.serverDetails)
         ) { detailsStore in
-            ServerDetailsView(store: detailsStore)
+            PrivacyCover(store: privacyStore) {
+                ServerDetailsView(store: detailsStore)
+            }
         }
         .sheet(
             item: $store.scope(state: \.$replaceShare, action: \.replaceShare)
         ) { replacementStore in
-            ReplaceShareView(store: replacementStore)
+            PrivacyCover(store: privacyStore) {
+                ReplaceShareView(store: replacementStore)
+            }
         }
         .confirmationDialog(
             confirmationTitle,

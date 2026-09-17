@@ -2,9 +2,7 @@ import ComposableArchitecture
 import SwiftUI
 import UIKit
 
-struct PrivacyGate<Content: View>: View {
-    @Environment(\.scenePhase) private var scenePhase
-
+struct PrivacyCover<Content: View>: View {
     let store: StoreOf<PrivacyFeature>
     @ViewBuilder let content: () -> Content
 
@@ -30,6 +28,19 @@ struct PrivacyGate<Content: View>: View {
                     .transition(.opacity)
                     .zIndex(10)
             }
+        }
+    }
+}
+
+struct PrivacyGate<Content: View>: View {
+    @Environment(\.scenePhase) private var scenePhase
+
+    let store: StoreOf<PrivacyFeature>
+    @ViewBuilder let content: () -> Content
+
+    var body: some View {
+        PrivacyCover(store: store) {
+            content()
         }
         .onAppear {
             store.send(.phaseChanged(Self.phase(scenePhase)))

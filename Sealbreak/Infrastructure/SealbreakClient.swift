@@ -104,6 +104,25 @@ func normalizedAppFailure(_ error: Error) -> AppFailure {
     return AppFailure("Operation failed. No sensitive diagnostic data was recorded.")
 }
 
+func replaceShareIfBound(
+    expectedProfile: ServerProfile,
+    replacement: ShareRecord,
+    readExisting: () throws -> ShareRecord,
+    beforeReplace: () throws -> Void,
+    replace: (ShareRecord) throws -> Void
+) throws {
+    var existing = try readExisting()
+    defer { existing.share.removeAll(keepingCapacity: false) }
+
+    guard existing.profile == expectedProfile,
+          replacement.profile == expectedProfile else {
+        throw AppFailure("Target binding mismatch. Restore the protected profile first.")
+    }
+
+    try beforeReplace()
+    try replace(replacement)
+}
+
 #if canImport(UIKit)
 import LocalAuthentication
 import UIKit
@@ -156,13 +175,19 @@ private final class LiveSealbreakClientController {
         reason: String
     ) async throws {
         try await withAuthorizedContext(reason: reason) { context in
-            var existing = try keychain.read(context: context)
-            defer { existing.share.removeAll(keepingCapacity: false) }
-            guard existing.profile == expectedProfile else {
-                throw AppFailure("Target binding mismatch. Restore the protected profile first.")
-            }
-            try requireForeground()
-            try keychain.replace(replacement, context: context)
+            try replaceShareIfBound(
+                expectedProfile: expectedProfile,
+                replacement: replacement,
+                readExisting: {
+                    try keychain.read(context: context)
+                },
+                beforeReplace: {
+                    try requireForeground()
+                },
+                replace: { record in
+                    try keychain.replace(record, context: context)
+                }
+            )
         }
     }
 

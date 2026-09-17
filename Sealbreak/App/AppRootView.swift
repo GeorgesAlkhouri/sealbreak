@@ -5,10 +5,10 @@ struct AppRootView: View {
     let store: StoreOf<AppFeature>
 
     var body: some View {
-        PrivacyGate(store: store.scope(state: \.privacy, action: \.privacy)) {
+        PrivacyGate(store: privacyStore) {
             NavigationStack {
                 if let homeStore = store.scope(state: \.home, action: \.home) {
-                    HomeView(store: homeStore)
+                    HomeView(store: homeStore, privacyStore: privacyStore)
                 } else if let setupStore = store.scope(state: \.setup, action: \.setup) {
                     SetupView(store: setupStore)
                 } else {
@@ -24,5 +24,9 @@ struct AppRootView: View {
         .task {
             await store.send(.task).finish()
         }
+    }
+
+    private var privacyStore: StoreOf<PrivacyFeature> {
+        store.scope(state: \.privacy, action: \.privacy)
     }
 }

@@ -245,6 +245,7 @@ struct HomeFeature {
 
             case .unsealFailed(let failure):
                 state.operation = nil
+                state.status = nil
                 state.notice = failure.message
                 synchronizeServerDetails(&state)
                 return .none
@@ -314,6 +315,7 @@ struct HomeFeature {
 
             case .restoreProfileResponse(.failure(let failure)):
                 state.operation = nil
+                state.status = nil
                 state.notice = failure.message
                 synchronizeServerDetails(&state)
                 return .none
@@ -361,6 +363,7 @@ struct HomeFeature {
 
             case .removeLocalDataResponse(.failure(let failure)):
                 state.operation = nil
+                state.status = nil
                 state.notice = failure.message
                 synchronizeServerDetails(&state)
                 return .none
