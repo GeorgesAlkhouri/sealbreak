@@ -15,9 +15,9 @@ enum PapercutPalette {
     static let menu = Color(red: 11 / 255, green: 56 / 255, blue: 102 / 255)
     static let buttonBack = Color(red: 6 / 255, green: 61 / 255, blue: 145 / 255)
     static let button = Color(red: 10 / 255, green: 122 / 255, blue: 250 / 255)
-    static let sealed = Color(red: 255 / 255, green: 79 / 255, blue: 56 / 255)
+    static let sealed = Color(red: 1, green: 79 / 255, blue: 56 / 255)
     static let unsealed = Color(red: 49 / 255, green: 208 / 255, blue: 170 / 255)
-    static let sun = Color(red: 255 / 255, green: 89 / 255, blue: 64 / 255)
+    static let sun = Color(red: 1, green: 89 / 255, blue: 64 / 255)
     static let cream = Color(red: 245 / 255, green: 232 / 255, blue: 204 / 255)
     static let secondaryText = Color(red: 150 / 255, green: 184 / 255, blue: 214 / 255)
 }

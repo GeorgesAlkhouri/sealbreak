@@ -169,6 +169,7 @@ struct FeatureTests {
         store.exhaustivity = .off(showSkippedAssertions: false)
 
         await store.send(.task).finish()
+        await store.skipReceivedActions()
 
         #expect(store.state.setup == nil)
         #expect(store.state.home?.profile == target)
@@ -188,6 +189,7 @@ struct FeatureTests {
         store.exhaustivity = .off(showSkippedAssertions: false)
 
         await store.send(.task).finish()
+        await store.skipReceivedActions()
 
         #expect(store.state.home == nil)
         #expect(store.state.setup?.notice.contains("could not be read") == true)
@@ -204,10 +206,12 @@ struct FeatureTests {
         let store = homeStore(profile: target, spy: spy)
 
         await store.send(.refreshRequested).finish()
+        await store.skipReceivedActions()
         #expect(store.state.status?.sealed == true)
         #expect(store.state.canUnseal)
 
         await store.send(.refreshTapped).finish()
+        await store.skipReceivedActions()
         #expect(store.state.status?.type == "transit")
         #expect(!store.state.canUnseal)
         #expect(store.state.notice.contains("Only initialized Shamir seals"))
@@ -221,6 +225,7 @@ struct FeatureTests {
         let store = homeStore(profile: target, spy: spy)
 
         await store.send(.refreshTapped).finish()
+        await store.skipReceivedActions()
 
         #expect(store.state.status == nil)
         #expect(store.state.notice == "status failed")
@@ -240,6 +245,7 @@ struct FeatureTests {
         await store.send(.unsealTapped)
         #expect(store.state.confirmation == .unseal)
         await store.send(.confirmUnsealTapped).finish()
+        await store.skipReceivedActions()
 
         #expect(store.state.status == after)
         #expect(store.state.operation == nil)
@@ -258,6 +264,7 @@ struct FeatureTests {
 
         await store.send(.unsealTapped)
         await store.send(.confirmUnsealTapped).finish()
+        await store.skipReceivedActions()
 
         #expect(store.state.notice.contains("Target binding mismatch"))
         let submittedCount = await spy.submittedCount
@@ -275,6 +282,7 @@ struct FeatureTests {
 
         await store.send(.unsealTapped)
         await store.send(.confirmUnsealTapped).finish()
+        await store.skipReceivedActions()
 
         #expect(store.state.status == nil)
         #expect(store.state.notice.contains("submit failed"))
@@ -290,6 +298,7 @@ struct FeatureTests {
 
         await store.send(.unsealTapped)
         await store.send(.confirmUnsealTapped).finish()
+        await store.skipReceivedActions()
 
         #expect(store.state.status?.sealed == false)
         #expect(store.state.notice == "Already unsealed. No share was read or sent.")
@@ -318,6 +327,9 @@ struct FeatureTests {
         await store.send(
             .saveTapped(name: target.name, address: target.origin, share: share, recoveryConfirmed: true)
         ).finish()
+        let savedNotice = "Share saved with device-bound biometric protection. Check status to begin."
+        await store.receive(.importResponse(.success(.init(profile: target, notice: savedNotice))))
+        await store.receive(.delegate(.profileReady(target, notice: savedNotice)))
 
         #expect(store.state.operation == nil)
         #expect(store.state.notice.contains("Share saved"))
@@ -342,6 +354,10 @@ struct FeatureTests {
         await store.send(
             .saveTapped(name: target.name, address: target.origin, share: share, recoveryConfirmed: true)
         ).finish()
+        let fallbackNotice =
+            "Protected share exists, but display metadata could not be saved. Use Restore profile from Keychain on the next launch."
+        await store.receive(.importResponse(.success(.init(profile: target, notice: fallbackNotice))))
+        await store.receive(.delegate(.profileReady(target, notice: fallbackNotice)))
 
         let insertedCount = await spy.insertedCount
         #expect(insertedCount == 1)
@@ -361,12 +377,16 @@ struct FeatureTests {
         store.exhaustivity = .off(showSkippedAssertions: false)
 
         await store.send(.restoreProfileTapped).finish()
+        let restoredNotice = "Protected target restored. No share was transmitted or exported."
+        await store.receive(.restoreResponse(.success(.init(profile: target, notice: restoredNotice))))
+        await store.receive(.delegate(.profileReady(target, notice: restoredNotice)))
         #expect(store.state.notice.contains("Protected target restored"))
 
         await spy.setDeleteProfileError(AppFailure("delete display failed"))
         await store.send(.removeLocalDataTapped)
         #expect(store.state.confirmDelete)
         await store.send(.confirmRemoveLocalDataTapped).finish()
+        await store.skipReceivedActions()
         #expect(store.state.notice.contains("display file could not be removed"))
         let deleteShareCalls = await spy.deleteShareCalls
         #expect(deleteShareCalls == 1)
@@ -387,6 +407,10 @@ struct FeatureTests {
         #expect(store.state.notice.contains("Confirm recovery"))
 
         await store.send(.saveTapped(share: share, recoveryConfirmed: true)).finish()
+        let replacedNotice =
+            "Local share replaced. This does not rotate OpenBao keys; server-side rekeying is a separate operation."
+        await store.receive(.saveResponse(.success(replacedNotice)))
+        await store.receive(.delegate(.saved(notice: replacedNotice)))
         let replacedCount = await spy.replacedCount
         #expect(replacedCount == 1)
         #expect(store.state.notice.contains("Local share replaced"))

@@ -8,9 +8,8 @@ common=(-project Sealbreak.xcodeproj -scheme Sealbreak
 case "${1:-}" in
   simulator)
     xcodebuild "${common[@]}" -configuration Debug \
-      -destination 'generic/platform=iOS Simulator' -sdk iphonesimulator \
+      -destination 'generic/platform=iOS Simulator' \
       -derivedDataPath build/Simulator \
-      ARCHS=arm64 ONLY_ACTIVE_ARCH=YES \
       build
     ;;
   *) echo 'Usage: build.sh simulator' >&2; exit 2 ;;
