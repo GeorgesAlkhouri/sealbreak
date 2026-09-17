@@ -423,6 +423,7 @@ struct FeatureTests {
         let target = try profile()
         let spy = ClientSpy()
         var initial = HomeFeature.State(profile: target, status: status())
+        initial.operation = .submittingShare
         initial.confirmation = .unseal
         initial.replaceShare = ReplaceShareFeature.State(profile: target)
         initial.serverDetails = ServerDetailsFeature.State(
@@ -445,6 +446,7 @@ struct FeatureTests {
         #expect(store.state.confirmation == nil)
         #expect(store.state.replaceShare == nil)
         #expect(store.state.serverDetails == nil)
+        #expect(store.state.notice.contains("Operation interrupted"))
         let cancelCalls = await spy.cancelCalls
         #expect(cancelCalls == 1)
     }
@@ -787,6 +789,243 @@ struct FeatureTests {
         #expect(interruptionStore.state.activity.isEmpty)
         #expect(interruptionStore.state.notice.contains("Operation interrupted"))
         #expect(await spy.cancelCalls == 1)
+    }
+
+    @Test
+    func appPrivacyInterruptionWithoutVisibleFeatureCancelsSensitiveWork() async {
+        let spy = ClientSpy()
+        let store = TestStore(initialState: AppFeature.State()) {
+            AppFeature()
+        } withDependencies: {
+            $0.sealbreakClient = client(spy)
+        }
+        store.exhaustivity = .off(showSkippedAssertions: false)
+
+        await store.send(.privacy(.delegate(.interrupted))).finish()
+
+        #expect(await spy.cancelCalls == 1)
+    }
+
+    @Test
+    func privacyConcealmentAndRepeatedCaptureChangesAreSafe() async {
+        var state = PrivacyFeature.State()
+        #expect(state.isConcealed)
+
+        state.phase = .active
+        #expect(!state.isConcealed)
+
+        state.isCaptured = true
+        #expect(state.isConcealed)
+
+        state.isCaptured = false
+        let store = TestStore(initialState: state) {
+            PrivacyFeature()
+        }
+        await store.send(.captureChanged(false))
+    }
+
+    @Test
+    func homeDismissesConfirmationAndRejectsUnsupportedPreflight() async throws {
+        let target = try profile()
+        let spy = ClientSpy()
+        await spy.setStatusQueue([
+            .success(status(type: "transit", threshold: 0, shares: 0, recoverySeal: true))
+        ])
+        let store = homeStore(profile: target, status: status(), spy: spy)
+
+        await store.send(.unsealTapped)
+        #expect(store.state.confirmation == .unseal)
+        await store.send(.confirmationDismissed)
+        #expect(store.state.confirmation == nil)
+
+        await store.send(.unsealTapped)
+        await store.send(.confirmUnsealTapped).finish()
+        await store.skipReceivedActions()
+
+        #expect(store.state.operation == nil)
+        #expect(store.state.notice == "This target does not support manual Shamir unseal.")
+        #expect(await spy.submittedCount == 0)
+    }
+
+    @Test
+    func homeHandlesUnsealCancellationAndUnsupportedPostflight() async throws {
+        let target = try profile()
+
+        let cancellationSpy = ClientSpy()
+        await cancellationSpy.setWaitCancellation(true)
+        let cancellationStore = homeStore(profile: target, status: status(), spy: cancellationSpy)
+
+        await cancellationStore.send(.unsealTapped)
+        await cancellationStore.send(.confirmUnsealTapped).finish()
+        await cancellationStore.skipReceivedActions()
+        #expect(cancellationStore.state.operation == nil)
+        #expect(cancellationStore.state.notice.contains("Operation cancelled"))
+
+        let postflightSpy = ClientSpy()
+        await postflightSpy.setReadRecord(try record(target))
+        await postflightSpy.setStatusQueue([
+            .success(status()),
+            .success(status(type: "transit", threshold: 0, shares: 0, recoverySeal: true))
+        ])
+        let postflightStore = homeStore(profile: target, status: status(), spy: postflightSpy)
+
+        await postflightStore.send(.unsealTapped)
+        await postflightStore.send(.confirmUnsealTapped).finish()
+        await postflightStore.skipReceivedActions()
+
+        #expect(postflightStore.state.operation == nil)
+        #expect(postflightStore.state.notice.contains("Unexpected seal configuration"))
+        #expect(postflightStore.state.notice.contains("final outcome is unknown"))
+        #expect(await postflightSpy.submittedCount == 1)
+    }
+
+    @Test
+    func homeHandlesPersistenceFallbacksAndCancellation() async throws {
+        let target = try profile()
+        let persistenceSpy = ClientSpy()
+        await persistenceSpy.setReadRecord(try record(target))
+        await persistenceSpy.setSaveProfileError(AppFailure("save failed"))
+        let persistenceStore = homeStore(profile: target, status: status(), spy: persistenceSpy)
+
+        await persistenceStore.send(.restoreProfileTapped).finish()
+        await persistenceStore.skipReceivedActions()
+        #expect(persistenceStore.state.notice.contains("display metadata could not be saved"))
+
+        await persistenceSpy.setDeleteProfileError(AppFailure("delete profile failed"))
+        await persistenceStore.send(.removeLocalDataTapped)
+        await persistenceStore.send(.confirmRemoveLocalDataTapped).finish()
+        await persistenceStore.skipReceivedActions()
+        #expect(persistenceStore.state.notice.contains("display file could not be removed"))
+
+        let cancellationSpy = ClientSpy()
+        await cancellationSpy.setWaitCancellation(true)
+        let cancellationStore = homeStore(profile: target, status: status(), spy: cancellationSpy)
+
+        await cancellationStore.send(.restoreProfileTapped).finish()
+        await cancellationStore.skipReceivedActions()
+        #expect(cancellationStore.state.notice.contains("Operation cancelled"))
+
+        await cancellationStore.send(.removeLocalDataTapped)
+        await cancellationStore.send(.confirmRemoveLocalDataTapped).finish()
+        await cancellationStore.skipReceivedActions()
+        #expect(cancellationStore.state.notice.contains("Operation cancelled"))
+    }
+
+    @Test
+    func setupOperationActivityMapsEveryState() {
+        let cases: [(SetupFeature.State.Operation, String)] = [
+            (.importing, "Importing share…"),
+            (.restoring, "Restoring local profile…"),
+            (.removingLocalData, "Removing local data…")
+        ]
+
+        for (operation, expectedActivity) in cases {
+            var state = SetupFeature.State()
+            state.operation = operation
+            #expect(state.activity == expectedActivity)
+            #expect(state.isBusy)
+        }
+
+        #expect(SetupFeature.State().activity.isEmpty)
+    }
+
+    @Test
+    func setupHandlesImportCancellationAndRestoreOutcomes() async throws {
+        let target = try profile()
+        let importSpy = ClientSpy()
+        await importSpy.setWaitCancellation(true)
+        let importStore = TestStore(initialState: SetupFeature.State()) {
+            SetupFeature()
+        } withDependencies: {
+            $0.sealbreakClient = client(importSpy)
+        }
+        importStore.exhaustivity = .off(showSkippedAssertions: false)
+
+        await importStore.send(
+            .saveTapped(name: target.name, address: target.origin, share: share, recoveryConfirmed: true)
+        ).finish()
+        await importStore.skipReceivedActions()
+        #expect(importStore.state.operation == nil)
+        #expect(importStore.state.notice.contains("Operation cancelled"))
+
+        let fallbackSpy = ClientSpy()
+        await fallbackSpy.setReadRecord(try record(target))
+        await fallbackSpy.setSaveProfileError(AppFailure("save failed"))
+        let fallbackStore = TestStore(initialState: SetupFeature.State()) {
+            SetupFeature()
+        } withDependencies: {
+            $0.sealbreakClient = client(fallbackSpy)
+        }
+        fallbackStore.exhaustivity = .off(showSkippedAssertions: false)
+
+        await fallbackStore.send(.restoreProfileTapped).finish()
+        await fallbackStore.skipReceivedActions()
+        #expect(fallbackStore.state.notice.contains("display metadata could not be saved"))
+
+        let failureSpy = ClientSpy()
+        await failureSpy.setReadError(AppFailure("restore failed"))
+        let failureStore = TestStore(initialState: SetupFeature.State()) {
+            SetupFeature()
+        } withDependencies: {
+            $0.sealbreakClient = client(failureSpy)
+        }
+        failureStore.exhaustivity = .off(showSkippedAssertions: false)
+
+        await failureStore.send(.restoreProfileTapped).finish()
+        await failureStore.skipReceivedActions()
+        #expect(failureStore.state.operation == nil)
+        #expect(failureStore.state.notice == "restore failed")
+    }
+
+    @Test
+    func setupHandlesConfirmationAndRemoveOutcomes() async throws {
+        let successSpy = ClientSpy()
+        let successStore = TestStore(initialState: SetupFeature.State()) {
+            SetupFeature()
+        } withDependencies: {
+            $0.sealbreakClient = client(successSpy)
+        }
+        successStore.exhaustivity = .off(showSkippedAssertions: false)
+
+        await successStore.send(.removeLocalDataTapped)
+        #expect(successStore.state.confirmDelete)
+        await successStore.send(.confirmationDismissed)
+        #expect(!successStore.state.confirmDelete)
+
+        await successStore.send(.removeLocalDataTapped)
+        await successStore.send(.confirmRemoveLocalDataTapped).finish()
+        await successStore.skipReceivedActions()
+        #expect(successStore.state.notice.contains("Local share removed"))
+
+        let cancellationSpy = ClientSpy()
+        await cancellationSpy.setWaitCancellation(true)
+        let cancellationStore = TestStore(initialState: SetupFeature.State()) {
+            SetupFeature()
+        } withDependencies: {
+            $0.sealbreakClient = client(cancellationSpy)
+        }
+        cancellationStore.exhaustivity = .off(showSkippedAssertions: false)
+
+        await cancellationStore.send(.removeLocalDataTapped)
+        await cancellationStore.send(.confirmRemoveLocalDataTapped).finish()
+        await cancellationStore.skipReceivedActions()
+        #expect(cancellationStore.state.operation == nil)
+        #expect(cancellationStore.state.notice.contains("Operation cancelled"))
+
+        let failureSpy = ClientSpy()
+        await failureSpy.setDeleteShareError(AppFailure("delete failed"))
+        let failureStore = TestStore(initialState: SetupFeature.State()) {
+            SetupFeature()
+        } withDependencies: {
+            $0.sealbreakClient = client(failureSpy)
+        }
+        failureStore.exhaustivity = .off(showSkippedAssertions: false)
+
+        await failureStore.send(.removeLocalDataTapped)
+        await failureStore.send(.confirmRemoveLocalDataTapped).finish()
+        await failureStore.skipReceivedActions()
+        #expect(failureStore.state.operation == nil)
+        #expect(failureStore.state.notice == "delete failed")
     }
 }
 
