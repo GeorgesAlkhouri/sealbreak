@@ -234,7 +234,7 @@ struct HomeFeature {
                 synchronizeServerDetails(&state)
                 return .none
 
-            case .unsealCompleted(let status)):
+            case .unsealCompleted(let status):
                 state.operation = nil
                 state.status = status
                 state.notice = status.sealed
