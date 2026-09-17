@@ -1,0 +1,45 @@
+import SwiftUI
+
+struct HomeMenu: View {
+    let isBusy: Bool
+    let onAction: (HomeMenuAction) -> Void
+
+    var body: some View {
+        Menu {
+            Button("Check status", systemImage: "arrow.clockwise") {
+                onAction(.refresh)
+            }
+            .disabled(isBusy)
+
+            Button("Server details", systemImage: "info.circle") {
+                onAction(.serverDetails)
+            }
+
+            Button("Replace local share", systemImage: "key.horizontal") {
+                onAction(.replaceShare)
+            }
+            .disabled(isBusy)
+
+            Button("Restore profile from Keychain", systemImage: "arrow.uturn.backward") {
+                onAction(.restoreProfile)
+            }
+            .disabled(isBusy)
+
+            Divider()
+
+            Button("Remove local data", systemImage: "trash", role: .destructive) {
+                onAction(.removeLocalData)
+            }
+            .disabled(isBusy)
+        } label: {
+            Image(systemName: "ellipsis")
+                .font(.system(size: 20, weight: .bold))
+                .foregroundStyle(PapercutPalette.cream)
+                .frame(width: 44, height: 44)
+                .background(PapercutPalette.menu)
+                .clipShape(Circle())
+                .shadow(color: .black.opacity(0.30), radius: 9, y: 8)
+        }
+        .accessibilityLabel("More options")
+    }
+}

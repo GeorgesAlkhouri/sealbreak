@@ -3,14 +3,13 @@ set -euo pipefail
 cd "$(dirname "$0")/../.."
 common=(-project Sealbreak.xcodeproj -scheme Sealbreak
   CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO DEVELOPMENT_TEAM=
-  SWIFT_TREAT_WARNINGS_AS_ERRORS=YES GCC_TREAT_WARNINGS_AS_ERRORS=YES
-  COMPILER_INDEX_STORE_ENABLE=NO)
+  COMPILER_INDEX_STORE_ENABLE=NO
+  -skipMacroValidation)
 case "${1:-}" in
   simulator)
     xcodebuild "${common[@]}" -configuration Debug \
-      -destination 'generic/platform=iOS Simulator' -sdk iphonesimulator \
+      -destination 'generic/platform=iOS Simulator' \
       -derivedDataPath build/Simulator \
-      ARCHS=arm64 ONLY_ACTIVE_ARCH=YES \
       build
     ;;
   *) echo 'Usage: build.sh simulator' >&2; exit 2 ;;

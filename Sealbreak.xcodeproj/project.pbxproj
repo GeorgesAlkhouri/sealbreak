@@ -7,25 +7,74 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		000000000000000000000200 /* SealbreakApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000100 /* SealbreakApp.swift */; };
-		000000000000000000000201 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000101 /* ContentView.swift */; };
-		000000000000000000000202 /* AppModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000102 /* AppModel.swift */; };
 		000000000000000000000203 /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000103 /* Models.swift */; };
 		000000000000000000000204 /* KeychainStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000104 /* KeychainStore.swift */; };
 		000000000000000000000205 /* OpenBaoClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000105 /* OpenBaoClient.swift */; };
 		000000000000000000000206 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000107 /* PrivacyInfo.xcprivacy */; };
+		000000000000000000000210 /* SealbreakApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000110 /* SealbreakApp.swift */; };
+		000000000000000000000211 /* AppRootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000111 /* AppRootView.swift */; };
+		000000000000000000000212 /* PrivacyGate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000112 /* PrivacyGate.swift */; };
+		000000000000000000000213 /* SensitiveDraftGuard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000113 /* SensitiveDraftGuard.swift */; };
+		000000000000000000000214 /* AppFeature.swift in Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000114 /* AppFeature.swift */; };
+		000000000000000000000215 /* PrivacyFeature.swift in Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000115 /* PrivacyFeature.swift */; };
+		000000000000000000000220 /* HomeFeature.swift in Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000120 /* HomeFeature.swift */; };
+		000000000000000000000221 /* HomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000121 /* HomeView.swift */; };
+		000000000000000000000222 /* HomeViewState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000122 /* HomeViewState.swift */; };
+		000000000000000000000224 /* HomeHeader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000124 /* HomeHeader.swift */; };
+		000000000000000000000225 /* HomeMenu.swift in Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000125 /* HomeMenu.swift */; };
+		000000000000000000000226 /* ServerStatusCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000126 /* ServerStatusCard.swift */; };
+		000000000000000000000227 /* SealStatusIndicator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000127 /* SealStatusIndicator.swift */; };
+		000000000000000000000228 /* UnsealButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000128 /* UnsealButton.swift */; };
+		000000000000000000000230 /* SetupView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000130 /* SetupView.swift */; };
+		000000000000000000000231 /* ServerDetailsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000131 /* ServerDetailsView.swift */; };
+		000000000000000000000232 /* ReplaceShareView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000132 /* ReplaceShareView.swift */; };
+		000000000000000000000233 /* ShareEditor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000133 /* ShareEditor.swift */; };
+		000000000000000000000234 /* SetupFeature.swift in Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000134 /* SetupFeature.swift */; };
+		000000000000000000000235 /* ServerDetailsFeature.swift in Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000135 /* ServerDetailsFeature.swift */; };
+		000000000000000000000236 /* ReplaceShareFeature.swift in Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000136 /* ReplaceShareFeature.swift */; };
+		000000000000000000000240 /* PapercutPalette.swift in Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000140 /* PapercutPalette.swift */; };
+		000000000000000000000241 /* PapercutCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000141 /* PapercutCard.swift */; };
+		000000000000000000000242 /* PapercutBackground.swift in Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000142 /* PapercutBackground.swift */; };
+		000000000000000000000243 /* PapercutLandscape.swift in Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000143 /* PapercutLandscape.swift */; };
+		000000000000000000000244 /* PapercutShapes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000144 /* PapercutShapes.swift */; };
+		000000000000000000000245 /* SealbreakClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000145 /* SealbreakClient.swift */; };
+		000000000000000000000250 /* ComposableArchitecture in Frameworks */ = {isa = PBXBuildFile; productRef = 000000000000000000000401 /* ComposableArchitecture */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
 		000000000000000000000006 /* Sealbreak.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Sealbreak.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		000000000000000000000100 /* SealbreakApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SealbreakApp.swift; sourceTree = "<group>"; };
-		000000000000000000000101 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
-		000000000000000000000102 /* AppModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppModel.swift; sourceTree = "<group>"; };
 		000000000000000000000103 /* Models.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models.swift; sourceTree = "<group>"; };
 		000000000000000000000104 /* KeychainStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainStore.swift; sourceTree = "<group>"; };
 		000000000000000000000105 /* OpenBaoClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OpenBaoClient.swift; sourceTree = "<group>"; };
 		000000000000000000000106 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		000000000000000000000107 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
+		000000000000000000000110 /* SealbreakApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SealbreakApp.swift; sourceTree = "<group>"; };
+		000000000000000000000111 /* AppRootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppRootView.swift; sourceTree = "<group>"; };
+		000000000000000000000112 /* PrivacyGate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PrivacyGate.swift; sourceTree = "<group>"; };
+		000000000000000000000113 /* SensitiveDraftGuard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SensitiveDraftGuard.swift; sourceTree = "<group>"; };
+		000000000000000000000114 /* AppFeature.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppFeature.swift; sourceTree = "<group>"; };
+		000000000000000000000115 /* PrivacyFeature.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PrivacyFeature.swift; sourceTree = "<group>"; };
+		000000000000000000000120 /* HomeFeature.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeFeature.swift; sourceTree = "<group>"; };
+		000000000000000000000121 /* HomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeView.swift; sourceTree = "<group>"; };
+		000000000000000000000122 /* HomeViewState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeViewState.swift; sourceTree = "<group>"; };
+		000000000000000000000124 /* HomeHeader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeHeader.swift; sourceTree = "<group>"; };
+		000000000000000000000125 /* HomeMenu.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeMenu.swift; sourceTree = "<group>"; };
+		000000000000000000000126 /* ServerStatusCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServerStatusCard.swift; sourceTree = "<group>"; };
+		000000000000000000000127 /* SealStatusIndicator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SealStatusIndicator.swift; sourceTree = "<group>"; };
+		000000000000000000000128 /* UnsealButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UnsealButton.swift; sourceTree = "<group>"; };
+		000000000000000000000130 /* SetupView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SetupView.swift; sourceTree = "<group>"; };
+		000000000000000000000131 /* ServerDetailsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServerDetailsView.swift; sourceTree = "<group>"; };
+		000000000000000000000132 /* ReplaceShareView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReplaceShareView.swift; sourceTree = "<group>"; };
+		000000000000000000000133 /* ShareEditor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareEditor.swift; sourceTree = "<group>"; };
+		000000000000000000000134 /* SetupFeature.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SetupFeature.swift; sourceTree = "<group>"; };
+		000000000000000000000135 /* ServerDetailsFeature.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServerDetailsFeature.swift; sourceTree = "<group>"; };
+		000000000000000000000136 /* ReplaceShareFeature.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReplaceShareFeature.swift; sourceTree = "<group>"; };
+		000000000000000000000140 /* PapercutPalette.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PapercutPalette.swift; sourceTree = "<group>"; };
+		000000000000000000000141 /* PapercutCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PapercutCard.swift; sourceTree = "<group>"; };
+		000000000000000000000142 /* PapercutBackground.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PapercutBackground.swift; sourceTree = "<group>"; };
+		000000000000000000000143 /* PapercutLandscape.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PapercutLandscape.swift; sourceTree = "<group>"; };
+		000000000000000000000144 /* PapercutShapes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PapercutShapes.swift; sourceTree = "<group>"; };
+		000000000000000000000145 /* SealbreakClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SealbreakClient.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -33,6 +82,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				000000000000000000000250 /* ComposableArchitecture in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -50,12 +100,11 @@
 		000000000000000000000004 /* Sealbreak */ = {
 			isa = PBXGroup;
 			children = (
-				000000000000000000000100 /* SealbreakApp.swift */,
-				000000000000000000000101 /* ContentView.swift */,
-				000000000000000000000102 /* AppModel.swift */,
-				000000000000000000000103 /* Models.swift */,
-				000000000000000000000104 /* KeychainStore.swift */,
-				000000000000000000000105 /* OpenBaoClient.swift */,
+				000000000000000000000300 /* App */,
+				000000000000000000000301 /* Features */,
+				000000000000000000000308 /* DesignSystem */,
+				000000000000000000000310 /* Domain */,
+				000000000000000000000311 /* Infrastructure */,
 				000000000000000000000106 /* Info.plist */,
 				000000000000000000000107 /* PrivacyInfo.xcprivacy */,
 			);
@@ -68,6 +117,127 @@
 				000000000000000000000006 /* Sealbreak.app */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		000000000000000000000300 /* App */ = {
+			isa = PBXGroup;
+			children = (
+				000000000000000000000110 /* SealbreakApp.swift */,
+				000000000000000000000111 /* AppRootView.swift */,
+				000000000000000000000114 /* AppFeature.swift */,
+				000000000000000000000112 /* PrivacyGate.swift */,
+				000000000000000000000115 /* PrivacyFeature.swift */,
+				000000000000000000000113 /* SensitiveDraftGuard.swift */,
+			);
+			path = App;
+			sourceTree = "<group>";
+		};
+		000000000000000000000301 /* Features */ = {
+			isa = PBXGroup;
+			children = (
+				000000000000000000000302 /* Home */,
+				000000000000000000000304 /* Setup */,
+				000000000000000000000305 /* ServerDetails */,
+				000000000000000000000306 /* ShareManagement */,
+			);
+			path = Features;
+			sourceTree = "<group>";
+		};
+		000000000000000000000302 /* Home */ = {
+			isa = PBXGroup;
+			children = (
+				000000000000000000000120 /* HomeFeature.swift */,
+				000000000000000000000121 /* HomeView.swift */,
+				000000000000000000000122 /* HomeViewState.swift */,
+				000000000000000000000303 /* Components */,
+			);
+			path = Home;
+			sourceTree = "<group>";
+		};
+		000000000000000000000303 /* Components */ = {
+			isa = PBXGroup;
+			children = (
+				000000000000000000000124 /* HomeHeader.swift */,
+				000000000000000000000125 /* HomeMenu.swift */,
+				000000000000000000000126 /* ServerStatusCard.swift */,
+				000000000000000000000127 /* SealStatusIndicator.swift */,
+				000000000000000000000128 /* UnsealButton.swift */,
+			);
+			path = Components;
+			sourceTree = "<group>";
+		};
+		000000000000000000000304 /* Setup */ = {
+			isa = PBXGroup;
+			children = (
+				000000000000000000000134 /* SetupFeature.swift */,
+				000000000000000000000130 /* SetupView.swift */,
+			);
+			path = Setup;
+			sourceTree = "<group>";
+		};
+		000000000000000000000305 /* ServerDetails */ = {
+			isa = PBXGroup;
+			children = (
+				000000000000000000000135 /* ServerDetailsFeature.swift */,
+				000000000000000000000131 /* ServerDetailsView.swift */,
+			);
+			path = ServerDetails;
+			sourceTree = "<group>";
+		};
+		000000000000000000000306 /* ShareManagement */ = {
+			isa = PBXGroup;
+			children = (
+				000000000000000000000136 /* ReplaceShareFeature.swift */,
+				000000000000000000000132 /* ReplaceShareView.swift */,
+				000000000000000000000307 /* Components */,
+			);
+			path = ShareManagement;
+			sourceTree = "<group>";
+		};
+		000000000000000000000307 /* Components */ = {
+			isa = PBXGroup;
+			children = (
+				000000000000000000000133 /* ShareEditor.swift */,
+			);
+			path = Components;
+			sourceTree = "<group>";
+		};
+		000000000000000000000308 /* DesignSystem */ = {
+			isa = PBXGroup;
+			children = (
+				000000000000000000000309 /* Papercut */,
+			);
+			path = DesignSystem;
+			sourceTree = "<group>";
+		};
+		000000000000000000000309 /* Papercut */ = {
+			isa = PBXGroup;
+			children = (
+				000000000000000000000140 /* PapercutPalette.swift */,
+				000000000000000000000141 /* PapercutCard.swift */,
+				000000000000000000000142 /* PapercutBackground.swift */,
+				000000000000000000000143 /* PapercutLandscape.swift */,
+				000000000000000000000144 /* PapercutShapes.swift */,
+			);
+			path = Papercut;
+			sourceTree = "<group>";
+		};
+		000000000000000000000310 /* Domain */ = {
+			isa = PBXGroup;
+			children = (
+				000000000000000000000103 /* Models.swift */,
+			);
+			path = Domain;
+			sourceTree = "<group>";
+		};
+		000000000000000000000311 /* Infrastructure */ = {
+			isa = PBXGroup;
+			children = (
+				000000000000000000000104 /* KeychainStore.swift */,
+				000000000000000000000105 /* OpenBaoClient.swift */,
+				000000000000000000000145 /* SealbreakClient.swift */,
+			);
+			path = Infrastructure;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -86,6 +256,9 @@
 			dependencies = (
 			);
 			name = Sealbreak;
+			packageProductDependencies = (
+				000000000000000000000401 /* ComposableArchitecture */,
+			);
 			productName = Sealbreak;
 			productReference = 000000000000000000000006 /* Sealbreak.app */;
 			productType = "com.apple.product-type.application";
@@ -114,6 +287,9 @@
 				Base,
 			);
 			mainGroup = 000000000000000000000003;
+			packageReferences = (
+				000000000000000000000400 /* XCRemoteSwiftPackageReference "swift-composable-architecture" */,
+			);
 			productRefGroup = 000000000000000000000005 /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
@@ -139,12 +315,36 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				000000000000000000000200 /* SealbreakApp.swift in Sources */,
-				000000000000000000000201 /* ContentView.swift in Sources */,
-				000000000000000000000202 /* AppModel.swift in Sources */,
 				000000000000000000000203 /* Models.swift in Sources */,
 				000000000000000000000204 /* KeychainStore.swift in Sources */,
 				000000000000000000000205 /* OpenBaoClient.swift in Sources */,
+				000000000000000000000245 /* SealbreakClient.swift in Sources */,
+				000000000000000000000210 /* SealbreakApp.swift in Sources */,
+				000000000000000000000211 /* AppRootView.swift in Sources */,
+				000000000000000000000212 /* PrivacyGate.swift in Sources */,
+				000000000000000000000213 /* SensitiveDraftGuard.swift in Sources */,
+				000000000000000000000214 /* AppFeature.swift in Sources */,
+				000000000000000000000215 /* PrivacyFeature.swift in Sources */,
+				000000000000000000000220 /* HomeFeature.swift in Sources */,
+				000000000000000000000221 /* HomeView.swift in Sources */,
+				000000000000000000000222 /* HomeViewState.swift in Sources */,
+				000000000000000000000224 /* HomeHeader.swift in Sources */,
+				000000000000000000000225 /* HomeMenu.swift in Sources */,
+				000000000000000000000226 /* ServerStatusCard.swift in Sources */,
+				000000000000000000000227 /* SealStatusIndicator.swift in Sources */,
+				000000000000000000000228 /* UnsealButton.swift in Sources */,
+				000000000000000000000234 /* SetupFeature.swift in Sources */,
+				000000000000000000000230 /* SetupView.swift in Sources */,
+				000000000000000000000235 /* ServerDetailsFeature.swift in Sources */,
+				000000000000000000000231 /* ServerDetailsView.swift in Sources */,
+				000000000000000000000236 /* ReplaceShareFeature.swift in Sources */,
+				000000000000000000000232 /* ReplaceShareView.swift in Sources */,
+				000000000000000000000233 /* ShareEditor.swift in Sources */,
+				000000000000000000000240 /* PapercutPalette.swift in Sources */,
+				000000000000000000000241 /* PapercutCard.swift in Sources */,
+				000000000000000000000242 /* PapercutBackground.swift in Sources */,
+				000000000000000000000243 /* PapercutLandscape.swift in Sources */,
+				000000000000000000000244 /* PapercutShapes.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -249,6 +449,7 @@
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
+				GCC_TREAT_WARNINGS_AS_ERRORS = YES;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = Sealbreak/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -261,6 +462,7 @@
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SUPPORTS_MACCATALYST = NO;
 				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SWIFT_TREAT_WARNINGS_AS_ERRORS = YES;
 				TARGETED_DEVICE_FAMILY = 1;
 			};
 			name = Debug;
@@ -270,6 +472,7 @@
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
+				GCC_TREAT_WARNINGS_AS_ERRORS = YES;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = Sealbreak/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -282,6 +485,7 @@
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SUPPORTS_MACCATALYST = NO;
 				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SWIFT_TREAT_WARNINGS_AS_ERRORS = YES;
 				TARGETED_DEVICE_FAMILY = 1;
 			};
 			name = Release;
@@ -308,6 +512,25 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		000000000000000000000400 /* XCRemoteSwiftPackageReference "swift-composable-architecture" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/pointfreeco/swift-composable-architecture";
+			requirement = {
+				kind = exactVersion;
+				version = 1.26.1;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		000000000000000000000401 /* ComposableArchitecture */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 000000000000000000000400 /* XCRemoteSwiftPackageReference "swift-composable-architecture" */;
+			productName = ComposableArchitecture;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 000000000000000000000001 /* Project object */;
 }
