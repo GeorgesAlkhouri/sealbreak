@@ -34,6 +34,12 @@ final class TransportPolicy: NSObject, URLSessionTaskDelegate, @unchecked Sendab
     }
 }
 
+enum ServerProduct: String, Equatable, Sendable {
+    case openBao = "OpenBao"
+    case vault = "Vault"
+    case generic = "Generic"
+}
+
 struct OpenBaoClient: Sendable {
     private let configuration: URLSessionConfiguration
 
@@ -60,8 +66,25 @@ struct OpenBaoClient: Sendable {
         try JSONEncoder().encode(UnsealBody(key: share))
     }
 
-    static func makeRequest(_ profile: ServerProfile, path: String, body: Data?) throws -> URLRequest {
-        var request = URLRequest(url: try profile.endpoint(path))
+    static func makeRequest(
+        _ profile: ServerProfile,
+        path: String,
+        queryItems: [URLQueryItem] = [],
+        body: Data?
+    ) throws -> URLRequest {
+        var url = try profile.endpoint(path)
+        if !queryItems.isEmpty {
+            guard var components = URLComponents(url: url, resolvingAgainstBaseURL: false) else {
+                throw AppFailure("Unable to build server request.")
+            }
+            components.queryItems = queryItems
+            guard let queriedURL = components.url else {
+                throw AppFailure("Unable to build server request.")
+            }
+            url = queriedURL
+        }
+
+        var request = URLRequest(url: url)
         request.httpMethod = body == nil ? "GET" : "POST"
         request.httpBody = body
         request.httpShouldHandleCookies = false
@@ -71,6 +94,32 @@ struct OpenBaoClient: Sendable {
             request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         }
         return request
+    }
+
+    static func detectProduct(from data: Data) -> ServerProduct {
+        guard let response = try? JSONDecoder().decode(HelpResponse.self, from: data),
+              let title = response.openapi?.info?.title else {
+            return .generic
+        }
+
+        switch title {
+        case "OpenBao API":
+            return .openBao
+        case "HashiCorp Vault API":
+            return .vault
+        default:
+            return .generic
+        }
+    }
+
+    func detectProduct(_ profile: ServerProfile) async throws -> ServerProduct {
+        let data = try await request(
+            profile,
+            path: "seal-status",
+            queryItems: [URLQueryItem(name: "help", value: "1")],
+            body: nil
+        )
+        return Self.detectProduct(from: data)
     }
 
     func status(_ profile: ServerProfile) async throws -> SealStatus {
@@ -90,6 +139,18 @@ struct OpenBaoClient: Sendable {
         _ = try await request(record.profile, path: "unseal", body: body)
     }
 
+    private struct HelpResponse: Decodable {
+        let openapi: OpenAPIDocument?
+    }
+
+    private struct OpenAPIDocument: Decodable {
+        let info: Info?
+
+        struct Info: Decodable {
+            let title: String?
+        }
+    }
+
     private struct UnsealBody: Encodable {
         let key: String
     }
@@ -97,6 +158,7 @@ struct OpenBaoClient: Sendable {
     private func request(
         _ profile: ServerProfile,
         path: String,
+        queryItems: [URLQueryItem] = [],
         body: Data?
     ) async throws -> Data {
         let session = URLSession(
@@ -108,7 +170,12 @@ struct OpenBaoClient: Sendable {
             session.invalidateAndCancel()
         }
 
-        let request = try Self.makeRequest(profile, path: path, body: body)
+        let request = try Self.makeRequest(
+            profile,
+            path: path,
+            queryItems: queryItems,
+            body: body
+        )
 
         try Task.checkCancellation()
 
