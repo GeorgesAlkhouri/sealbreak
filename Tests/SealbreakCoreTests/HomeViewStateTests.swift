@@ -21,7 +21,7 @@ struct HomeViewStateTests {
             (.sealed(progress: -1, threshold: 3, supportsUnseal: true), "SEALED", "-1 of 3 shares submitted", "Shamir seal", 0),
             (.sealed(progress: 5, threshold: 3, supportsUnseal: true), "SEALED", "5 of 3 shares submitted", "Shamir seal", 1),
             (.unsealing(activity: "Submitting one share…"), "UNSEALING", "Submitting one share…", "Please keep the app open", 0.66),
-            (.unsealed, "UNSEALED", "OpenBao is available", "Status checked", 1)
+            (.unsealed, "UNSEALED", "Server is available", "Status checked", 1)
         ]
 
         for item in cases {
@@ -57,7 +57,7 @@ struct HomeViewStateTests {
 
     @Test
     func viewStateMapsEveryOperationToVisibleActivity() throws {
-        let profile = try ServerProfile(name: "OpenBao", address: "https://bao.example.com/")
+        let profile = try ServerProfile(name: "Server", address: "https://bao.example.com/")
         let operations: [(HomeFeature.State.Operation, HomeViewState.Status, String)] = [
             (.checkingStatus, .checking(activity: "Checking seal status…"), "Checking seal status…"),
             (.checkingTarget, .unsealing(activity: "Checking target…"), "Checking target…"),
@@ -87,7 +87,7 @@ struct HomeViewStateTests {
 
     @Test
     func viewStateMapsUnknownSealedAndUnsealedStates() throws {
-        let profile = try ServerProfile(name: "OpenBao", address: "https://bao.example.com")
+        let profile = try ServerProfile(name: "Server", address: "https://bao.example.com")
 
         let unknown = HomeViewState(
             profile: profile,
@@ -131,7 +131,7 @@ struct HomeViewStateTests {
 
     @Test
     func serverDetailsRoutesUserIntentThroughDelegates() async throws {
-        let profile = try ServerProfile(name: "OpenBao", address: "https://bao.example.com")
+        let profile = try ServerProfile(name: "Server", address: "https://bao.example.com")
         let store = TestStore(
             initialState: ServerDetailsFeature.State(
                 profile: profile,

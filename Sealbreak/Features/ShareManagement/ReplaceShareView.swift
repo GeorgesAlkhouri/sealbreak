@@ -19,7 +19,7 @@ struct ReplaceShareView: View {
                         onSave: save
                     )
 
-                    Text("This replaces only the locally stored share. It does not rotate OpenBao keys or change the configured target.")
+                    Text("This replaces only the locally stored share. It does not rotate server keys or change the configured target.")
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                 }

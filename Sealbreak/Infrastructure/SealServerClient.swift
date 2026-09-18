@@ -34,16 +34,10 @@ final class TransportPolicy: NSObject, URLSessionTaskDelegate, @unchecked Sendab
     }
 }
 
-enum ServerProduct: String, Equatable, Sendable {
-    case openBao = "OpenBao"
-    case vault = "Vault"
-    case generic = "Generic"
-}
-
-struct OpenBaoClient: Sendable {
+struct SealServerClient: Sendable {
     private let configuration: URLSessionConfiguration
 
-    init(configuration: URLSessionConfiguration = OpenBaoClient.makeConfiguration()) {
+    init(configuration: URLSessionConfiguration = SealServerClient.makeConfiguration()) {
         self.configuration = configuration
     }
 
@@ -190,12 +184,12 @@ struct OpenBaoClient: Sendable {
             }
             guard response.statusCode == 200 else {
                 if (300...399).contains(response.statusCode) {
-                    throw AppFailure("Redirect blocked. Configure the direct HTTPS origin of one OpenBao node.")
+                    throw AppFailure("Redirect blocked. Configure the direct HTTPS origin of one server node.")
                 }
-                throw AppFailure("OpenBao returned HTTP \(response.statusCode). A share or request may have been rejected; no automatic retry is made.")
+                throw AppFailure("Server returned HTTP \(response.statusCode). A share or request may have been rejected; no automatic retry is made.")
             }
             guard response.mimeType == "application/json" else {
-                throw AppFailure("Expected a JSON response from OpenBao.")
+                throw AppFailure("Expected a JSON response from the server.")
             }
             guard response.expectedContentLength <= 65_536 else {
                 throw AppFailure("Server response too large.")
@@ -228,7 +222,7 @@ struct OpenBaoClient: Sendable {
                  .clientCertificateRequired:
                 throw AppFailure("TLS validation failed. Fix the server certificate/trust configuration; verification cannot be disabled.")
             default:
-                throw AppFailure("Connection failed or timed out. Check the network, VPN, DNS, and the direct OpenBao endpoint.")
+                throw AppFailure("Connection failed or timed out. Check the network, VPN, DNS, and the configured server endpoint.")
             }
         } catch {
             throw AppFailure("The request failed. No automatic retry is made.")

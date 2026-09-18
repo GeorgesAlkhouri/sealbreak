@@ -75,6 +75,7 @@ struct KeychainStoreTests {
         let data = try #require(stub.lastAddRequest?[kSecValueData as String] as? Data)
         let decoded = try JSONDecoder().decode(ShareRecord.self, from: data)
         #expect(decoded.profile == record.profile)
+        #expect(decoded.profile.product == .vault)
         #expect(decoded.share == record.share)
         #expect(stub.lastAddRequest?[kSecAttrAccessControl as String] != nil)
         #expect(stub.lastAddRequest?[kSecUseAuthenticationContext as String] as? LAContext === context)
@@ -147,7 +148,7 @@ struct KeychainStoreTests {
         let root = temporaryRoot()
         defer { try? FileManager.default.removeItem(at: root) }
         let store = ProfileStore(baseDirectory: root)
-        let profile = try ServerProfile(name: "Test", address: origin)
+        let profile = try ServerProfile(name: "Test", address: origin, product: .openBao)
 
         #expect(try store.load() == nil)
         try store.save(profile)
@@ -172,7 +173,7 @@ struct KeychainStoreTests {
     }
 
     private func makeRecord() throws -> ShareRecord {
-        let profile = try ServerProfile(name: "Test", address: origin)
+        let profile = try ServerProfile(name: "Test", address: origin, product: .vault)
         return try ShareRecord(profile: profile, input: syntheticShare)
     }
 

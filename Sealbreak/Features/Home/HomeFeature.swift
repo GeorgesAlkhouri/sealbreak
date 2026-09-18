@@ -340,7 +340,7 @@ struct HomeFeature {
                         let notice: String
                         do {
                             try await client.deleteProfile()
-                            notice = "Local share removed. Copies elsewhere remain valid; only OpenBao rekeying replaces the server’s Shamir shares."
+                            notice = "Local share removed. Copies elsewhere remain valid; only server-side rekeying replaces the server’s Shamir shares."
                         } catch {
                             notice = "The Keychain share was removed, but its non-secret display file could not be removed. Restart may show stale metadata."
                         }

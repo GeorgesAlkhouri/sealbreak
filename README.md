@@ -1,7 +1,7 @@
 <h1 align="center">Sealbreak</h1>
 
 <p align="center">
-  <strong>Unlock OpenBao with Face ID.</strong>
+  <strong>Unlock OpenBao or HashiCorp Vault with Face ID.</strong>
 </p>
 
 <p align="center">
@@ -13,7 +13,7 @@
   </a>
 </p>
 
-Sealbreak is a small iOS app for securely storing an OpenBao Shamir unseal share on your iPhone and submitting it only after explicit Face ID authorization.
+Sealbreak is a small iOS app for securely storing a Shamir unseal share for OpenBao or HashiCorp Vault on your iPhone and submitting it only after explicit Face ID authorization.
 
 ## How it works
 

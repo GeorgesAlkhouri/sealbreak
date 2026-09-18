@@ -4,7 +4,7 @@ import Testing
 
 struct ModelsTests {
     private let origin = "https://bao.example.com"
-    // Synthetic format-only input. Never use a real OpenBao share in a test.
+    // Synthetic format-only input. Never use a real Shamir share in a test.
     private let syntheticShare = String(repeating: "a", count: 64)
 
     @Test
@@ -15,13 +15,23 @@ struct ModelsTests {
 
     @Test(arguments: ["OpenBao", "Freiburg – Süd", "東京", String(repeating: "🔒", count: 40)])
     func ordinaryNamesRoundTrip(name: String) throws {
-        let profile = try ServerProfile(name: name, address: origin)
+        let profile = try ServerProfile(name: name, address: origin, product: .vault)
         let record = try ShareRecord(profile: profile, input: syntheticShare)
         let encoded = try JSONEncoder().encode(record)
         try StorageLimits.validateEncodedSize(encoded)
         let decoded = try JSONDecoder().decode(ShareRecord.self, from: encoded).validated()
         #expect(decoded.profile == profile)
         #expect(decoded.share == syntheticShare)
+    }
+
+    @Test
+    func legacyProfileWithoutProductDefaultsToGeneric() throws {
+        let json = #"{\"name\":\"Test\",\"origin\":\"https://bao.example.com\"}"#
+        let profile = try JSONDecoder()
+            .decode(ServerProfile.self, from: Data(json.utf8))
+            .validated()
+
+        #expect(profile.product == .generic)
     }
 
     @Test

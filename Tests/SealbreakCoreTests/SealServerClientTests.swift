@@ -3,13 +3,13 @@ import Testing
 @testable import SealbreakCore
 
 @Suite(.serialized)
-struct OpenBaoClientTests {
-    private let origin = "https://bao.example.com"
+struct SealServerClientTests {
+    private let origin = "https://server.example.com"
     private let syntheticShare = String(repeating: "a", count: 64)
 
     @Test
     func defaultConfigurationKeepsTransportEphemeralAndStrict() {
-        let config = OpenBaoClient.makeConfiguration()
+        let config = SealServerClient.makeConfiguration()
 
         #expect(config.urlCache == nil)
         #expect(config.urlCredentialStorage == nil)
@@ -26,9 +26,9 @@ struct OpenBaoClientTests {
     @Test
     func requestBuilderSetsTransportPolicyAndUnsealBody() throws {
         let profile = try profile()
-        let get = try OpenBaoClient.makeRequest(profile, path: "seal-status", body: nil)
-        let body = try OpenBaoClient.encodeUnsealBody(syntheticShare)
-        let post = try OpenBaoClient.makeRequest(profile, path: "unseal", body: body)
+        let get = try SealServerClient.makeRequest(profile, path: "seal-status", body: nil)
+        let body = try SealServerClient.encodeUnsealBody(syntheticShare)
+        let post = try SealServerClient.makeRequest(profile, path: "unseal", body: body)
         let json = try #require(JSONSerialization.jsonObject(with: body) as? [String: String])
 
         #expect(get.httpMethod == "GET")
@@ -51,7 +51,7 @@ struct OpenBaoClientTests {
         let profile = try profile()
 
         #expect(throws: AppFailure.self) {
-            _ = try OpenBaoClient.makeRequest(
+            _ = try SealServerClient.makeRequest(
                 profile,
                 path: "seal-status",
                 queryItems: [URLQueryItem(name: "help", value: "1")],
@@ -66,7 +66,7 @@ struct OpenBaoClientTests {
         let profile = try profile()
 
         #expect(throws: AppFailure.self) {
-            _ = try OpenBaoClient.makeRequest(
+            _ = try SealServerClient.makeRequest(
                 profile,
                 path: "seal-status",
                 queryItems: [URLQueryItem(name: "help", value: "1")],
@@ -107,8 +107,8 @@ struct OpenBaoClientTests {
 
     @Test
     func missingProductMetadataFallsBackToGeneric() {
-        #expect(OpenBaoClient.detectProduct(from: Data("{}".utf8)) == .generic)
-        #expect(OpenBaoClient.detectProduct(from: Data("not-json".utf8)) == .generic)
+        #expect(SealServerClient.detectProduct(from: Data("{}".utf8)) == .generic)
+        #expect(SealServerClient.detectProduct(from: Data("not-json".utf8)) == .generic)
     }
 
     @Test
@@ -161,8 +161,8 @@ struct OpenBaoClientTests {
     func requestRejectsUnexpectedResponses() async throws {
         let cases: [(Int, [String: String], String, String)] = [
             (302, ["Content-Type": "application/json"], origin, "Redirect blocked."),
-            (500, ["Content-Type": "application/json"], origin, "OpenBao returned HTTP 500."),
-            (200, ["Content-Type": "text/plain"], origin, "Expected a JSON response from OpenBao."),
+            (500, ["Content-Type": "application/json"], origin, "Server returned HTTP 500."),
+            (200, ["Content-Type": "text/plain"], origin, "Expected a JSON response from the server."),
             (200, ["Content-Type": "application/json", "Content-Length": "65537"], origin, "Server response too large."),
             (200, ["Content-Type": "application/json"], "https://other.example.com", "Unexpected server response or response target.")
         ]
@@ -227,11 +227,11 @@ struct OpenBaoClientTests {
 
     private func makeClient(
         handler: @escaping @Sendable (URLRequest) throws -> (HTTPURLResponse, Data)
-    ) -> OpenBaoClient {
+    ) -> SealServerClient {
         MockURLProtocol.setHandler(handler)
-        let config = OpenBaoClient.makeConfiguration()
+        let config = SealServerClient.makeConfiguration()
         config.protocolClasses = [MockURLProtocol.self]
-        return OpenBaoClient(configuration: config)
+        return SealServerClient(configuration: config)
     }
 
     private func failureMessage(_ operation: () async throws -> Void) async -> String? {

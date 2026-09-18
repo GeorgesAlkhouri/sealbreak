@@ -18,8 +18,8 @@ In scope:
 
 Out of scope:
 
-- OpenBao internal implementation security;
-- general OpenBao administration, policy management, and secret browsing;
+- OpenBao, HashiCorp Vault, or another compatible server's internal implementation security;
+- general server administration, policy management, and secret browsing;
 - auto-unseal and seal migration;
 - cloud synchronization of the share;
 - protection against an already fully compromised iPhone or developer workstation;
@@ -110,7 +110,7 @@ flowchart TB
 | **TB3** | iPhone → OpenBao or TLS proxy | Server identity and transport must be authenticated; redirects must not retarget the share |
 | **TB4** | TLS proxy → OpenBao | A proxy expands the trusted infrastructure and can observe the share after TLS termination |
 | **TB5** | Build/signing path → installed app | A malicious but validly signed build can misuse a legitimately released share |
-| **TB6** | Sealbreak/device → independent recovery | Recovery must remain usable without the original iPhone, app, or sealed OpenBao instance |
+| **TB6** | Sealbreak/device → independent recovery | Recovery must remain usable without the original iPhone, app, or sealed server instance |
 
 ### 2.3 Security-Critical Unseal Flow
 

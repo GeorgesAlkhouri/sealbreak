@@ -65,7 +65,7 @@ struct ReplaceShareFeature {
                         await send(
                             .saveResponse(
                                 .success(
-                                    "Local share replaced. This does not rotate OpenBao keys; server-side rekeying is a separate operation."
+                                    "Local share replaced. This does not rotate server keys; server-side rekeying is a separate operation."
                                 )
                             )
                         )

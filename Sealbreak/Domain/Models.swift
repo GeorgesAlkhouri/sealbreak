@@ -21,11 +21,22 @@ enum StorageLimits {
     }
 }
 
+enum ServerProduct: String, Codable, Equatable, Sendable {
+    case openBao = "OpenBao"
+    case vault = "Vault"
+    case generic = "Generic"
+}
+
 struct ServerProfile: Codable, Equatable, Sendable {
     let name: String
     let origin: String
+    let product: ServerProduct
 
-    init(name: String, address: String) throws {
+    init(
+        name: String,
+        address: String,
+        product: ServerProduct = .generic
+    ) throws {
         let name = name.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !name.isEmpty,
               name.utf8.count <= StorageLimits.maxRecordBytes,
@@ -35,10 +46,22 @@ struct ServerProfile: Codable, Equatable, Sendable {
         }
         self.name = name
         self.origin = try Self.canonicalOrigin(address)
+        self.product = product
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case name, origin, product
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        name = try container.decode(String.self, forKey: .name)
+        origin = try container.decode(String.self, forKey: .origin)
+        product = try container.decodeIfPresent(ServerProduct.self, forKey: .product) ?? .generic
     }
 
     func validated() throws -> Self {
-        guard try ServerProfile(name: name, address: origin) == self else {
+        guard try ServerProfile(name: name, address: origin, product: product) == self else {
             throw AppFailure("The server profile is invalid. Restore its protected copy from Keychain.")
         }
         return self
@@ -65,15 +88,12 @@ struct ServerProfile: Codable, Equatable, Sendable {
               parts.fragment == nil,
               parts.path.isEmpty || parts.path == "/",
               parts.port == nil || (1...65535).contains(parts.port!) else {
-            throw AppFailure("Use an HTTPS origin such as https://bao.example.com:8200. No credentials, path, query, fragment, or non-ASCII hostname is allowed.")
+            throw AppFailure("Use an HTTPS origin such as https://server.example.com:8200. No credentials, path, query, fragment, or non-ASCII hostname is allowed.")
         }
-
         parts.scheme = "https"
         parts.host = host.lowercased()
         parts.path = ""
-        if parts.port == 443 {
-            parts.port = nil
-        }
+        if parts.port == 443 { parts.port = nil }
         return parts.url!.absoluteString
     }
 }
@@ -105,7 +125,7 @@ struct ShareRecord: Codable, Equatable, Sendable {
         }
         guard (16...1024).contains(text.utf8.count),
               isHex || Data(base64Encoded: text) != nil else {
-            throw AppFailure("Enter one hexadecimal or Base64 Shamir share. Its validity is ultimately checked by OpenBao.")
+            throw AppFailure("Enter one hexadecimal or Base64 Shamir share. Its validity is ultimately checked by the configured server.")
         }
         return text
     }

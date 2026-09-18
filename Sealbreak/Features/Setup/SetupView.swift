@@ -4,14 +4,14 @@ import SwiftUI
 struct SetupView: View {
     let store: StoreOf<SetupFeature>
 
-    @State private var name = "OpenBao"
+    @State private var name = "Server"
     @State private var address = ""
     @State private var share = ""
     @State private var recoveryConfirmed = false
 
     var body: some View {
         Form {
-            Section("Add one OpenBao node") {
+            Section("Add one server node") {
                 TextField("Server name", text: $name)
                 TextField("OpenBao HTTPS origin", text: $address)
                     .keyboardType(.URL)
