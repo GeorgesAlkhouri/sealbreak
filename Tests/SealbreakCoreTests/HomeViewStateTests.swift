@@ -76,7 +76,7 @@ struct HomeViewStateTests {
                 notice: "Hidden while busy"
             )
 
-            #expect(state.serverName == "OpenBao")
+            #expect(state.serverName == "Server")
             #expect(state.origin == "bao.example.com")
             #expect(state.status == expectedStatus)
             #expect(state.primaryAction == .working(title: expectedActivity))
