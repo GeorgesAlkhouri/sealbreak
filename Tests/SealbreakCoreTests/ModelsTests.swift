@@ -35,6 +35,16 @@ struct ModelsTests {
     }
 
     @Test
+    func unknownStoredProductDefaultsToGeneric() throws {
+        let json = #"{"name":"Test","origin":"https://bao.example.com","product":"FutureServer"}"#
+        let profile = try JSONDecoder()
+            .decode(ServerProfile.self, from: Data(json.utf8))
+            .validated()
+
+        #expect(profile.product == .generic)
+    }
+
+    @Test
     func c01RejectsOversizedGrapheme() {
         let name = "a" + String(repeating: "\u{0301}", count: 3_000)
         #expect(name.count == 1)

@@ -25,6 +25,16 @@ enum ServerProduct: String, Codable, Equatable, Sendable {
     case openBao = "OpenBao"
     case vault = "Vault"
     case generic = "Generic"
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.singleValueContainer()
+        self = try Self(rawValue: container.decode(String.self)) ?? .generic
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        try container.encode(rawValue)
+    }
 }
 
 struct ServerProfile: Codable, Equatable, Sendable {
