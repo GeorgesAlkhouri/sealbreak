@@ -47,6 +47,41 @@ struct OpenBaoClientTests {
     }
 
     @Test
+    func requestBuilderFailsWhenURLComponentsCannotBeCreated() throws {
+        let profile = try profile()
+
+        #expect(throws: AppFailure.self) {
+            _ = try OpenBaoClient.makeRequest(
+                profile,
+                path: "seal-status",
+                queryItems: [URLQueryItem(name: "help", value: "1")],
+                body: nil,
+                componentsForURL: { _ in nil }
+            )
+        }
+    }
+
+    @Test
+    func requestBuilderFailsWhenURLComponentsCannotProduceURL() throws {
+        let profile = try profile()
+
+        #expect(throws: AppFailure.self) {
+            _ = try OpenBaoClient.makeRequest(
+                profile,
+                path: "seal-status",
+                queryItems: [URLQueryItem(name: "help", value: "1")],
+                body: nil,
+                componentsForURL: { _ in
+                    var components = URLComponents()
+                    components.scheme = "https"
+                    components.host = "["
+                    return components
+                }
+            )
+        }
+    }
+
+    @Test
     func detectsServerProductFromSealStatusHelp() async throws {
         let cases: [(String, ServerProduct)] = [
             (#"{"openapi":{"info":{"title":"OpenBao API"}}}"#, .openBao),
