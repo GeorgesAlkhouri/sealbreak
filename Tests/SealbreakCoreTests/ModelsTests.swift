@@ -25,26 +25,6 @@ struct ModelsTests {
     }
 
     @Test
-    func legacyProfileWithoutProductDefaultsToGeneric() throws {
-        let json = #"{"name":"Test","origin":"https://bao.example.com"}"#
-        let profile = try JSONDecoder()
-            .decode(ServerProfile.self, from: Data(json.utf8))
-            .validated()
-
-        #expect(profile.product == .generic)
-    }
-
-    @Test
-    func unknownStoredProductDefaultsToGeneric() throws {
-        let json = #"{"name":"Test","origin":"https://bao.example.com","product":"FutureServer"}"#
-        let profile = try JSONDecoder()
-            .decode(ServerProfile.self, from: Data(json.utf8))
-            .validated()
-
-        #expect(profile.product == .generic)
-    }
-
-    @Test
     func c01RejectsOversizedGrapheme() {
         let name = "a" + String(repeating: "\u{0301}", count: 3_000)
         #expect(name.count == 1)
@@ -104,11 +84,11 @@ struct ModelsTests {
 
     @Test
     func decodedProfileStillNeedsValidation() throws {
-        let unsafeJSON = #"{"name":"Test","origin":"http://bao.example.com"}"#
+        let unsafeJSON = #"{"name":"Test","origin":"http://bao.example.com","product":"Generic"}"#
         let unsafe = try JSONDecoder().decode(ServerProfile.self, from: Data(unsafeJSON.utf8))
         #expect(throws: AppFailure.self) { try unsafe.validated() }
 
-        let nonCanonicalJSON = #"{"name":"Test","origin":"https://BAO.example.com:443/"}"#
+        let nonCanonicalJSON = #"{"name":"Test","origin":"https://BAO.example.com:443/","product":"Generic"}"#
         let nonCanonical = try JSONDecoder().decode(ServerProfile.self, from: Data(nonCanonicalJSON.utf8))
         #expect(throws: AppFailure.self) { try nonCanonical.validated() }
     }
@@ -124,7 +104,7 @@ struct ModelsTests {
         let record = try ShareRecord(profile: profile, input: " \(syntheticShare)\n")
         #expect(record.share == syntheticShare)
         let json = """
-        {"version":2,"profile":{"name":"Test","origin":"\(origin)"},"share":"\(syntheticShare)"}
+        {"version":2,"profile":{"name":"Test","origin":"\(origin)","product":"Generic"},"share":"\(syntheticShare)"}
         """
         let decoded = try JSONDecoder().decode(ShareRecord.self, from: Data(json.utf8))
         #expect(throws: AppFailure.self) { try decoded.validated() }
