@@ -47,6 +47,36 @@ struct OpenBaoClientTests {
     }
 
     @Test
+    func detectsServerProductFromSealStatusHelp() async throws {
+        let cases: [(String, ServerProduct)] = [
+            (#"{"openapi":{"info":{"title":"OpenBao API"}}}"#, .openBao),
+            (#"{"openapi":{"info":{"title":"HashiCorp Vault API"}}}"#, .vault),
+            (#"{"openapi":{"info":{"title":"Compatible Server API"}}}"#, .generic)
+        ]
+
+        for (payload, expected) in cases {
+            let recorder = RequestRecorder()
+            let client = makeClient { request in
+                recorder.record(request)
+                return (Self.response(for: request), Data(payload.utf8))
+            }
+
+            let product = try await client.detectProduct(try profile())
+            let request = try #require(recorder.request)
+
+            #expect(product == expected)
+            #expect(request.httpMethod == "GET")
+            #expect(request.url?.absoluteString == "\(origin)/v1/sys/seal-status?help=1")
+        }
+    }
+
+    @Test
+    func missingProductMetadataFallsBackToGeneric() {
+        #expect(OpenBaoClient.detectProduct(from: Data("{}".utf8)) == .generic)
+        #expect(OpenBaoClient.detectProduct(from: Data("not-json".utf8)) == .generic)
+    }
+
+    @Test
     func statusBuildsGetRequestAndDecodesResponse() async throws {
         let recorder = RequestRecorder()
         let client = makeClient { request in
