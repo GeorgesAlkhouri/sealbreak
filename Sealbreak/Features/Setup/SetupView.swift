@@ -13,7 +13,7 @@ struct SetupView: View {
         Form {
             Section("Add one server node") {
                 TextField("Server name", text: $name)
-                TextField("OpenBao HTTPS origin", text: $address)
+                TextField("Server HTTPS origin", text: $address)
                     .keyboardType(.URL)
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()

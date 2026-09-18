@@ -93,7 +93,9 @@ struct ServerProfile: Codable, Equatable, Sendable {
         parts.scheme = "https"
         parts.host = host.lowercased()
         parts.path = ""
-        if parts.port == 443 { parts.port = nil }
+        if parts.port == 443 {
+            parts.port = nil
+        }
         return parts.url!.absoluteString
     }
 }

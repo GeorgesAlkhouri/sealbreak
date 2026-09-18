@@ -13,7 +13,7 @@ struct ModelsTests {
         #expect(error.errorDescription == "test failure")
     }
 
-    @Test(arguments: ["OpenBao", "Freiburg – Süd", "東京", String(repeating: "🔒", count: 40)])
+    @Test(arguments: ["Server", "Freiburg – Süd", "東京", String(repeating: "🔒", count: 40)])
     func ordinaryNamesRoundTrip(name: String) throws {
         let profile = try ServerProfile(name: name, address: origin, product: .vault)
         let record = try ShareRecord(profile: profile, input: syntheticShare)
@@ -26,7 +26,7 @@ struct ModelsTests {
 
     @Test
     func legacyProfileWithoutProductDefaultsToGeneric() throws {
-        let json = #"{\"name\":\"Test\",\"origin\":\"https://bao.example.com\"}"#
+        let json = #"{"name":"Test","origin":"https://bao.example.com"}"#
         let profile = try JSONDecoder()
             .decode(ServerProfile.self, from: Data(json.utf8))
             .validated()
