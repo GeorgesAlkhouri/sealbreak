@@ -70,11 +70,14 @@ struct OpenBaoClient: Sendable {
         _ profile: ServerProfile,
         path: String,
         queryItems: [URLQueryItem] = [],
-        body: Data?
+        body: Data?,
+        componentsForURL: (URL) -> URLComponents? = {
+            URLComponents(url: $0, resolvingAgainstBaseURL: false)
+        }
     ) throws -> URLRequest {
         var url = try profile.endpoint(path)
         if !queryItems.isEmpty {
-            guard var components = URLComponents(url: url, resolvingAgainstBaseURL: false) else {
+            guard var components = componentsForURL(url) else {
                 throw AppFailure("Unable to build server request.")
             }
             components.queryItems = queryItems
