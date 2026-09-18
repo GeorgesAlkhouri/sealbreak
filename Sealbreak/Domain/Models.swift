@@ -25,16 +25,6 @@ enum ServerProduct: String, Codable, Equatable, Sendable {
     case openBao = "OpenBao"
     case vault = "Vault"
     case generic = "Generic"
-
-    init(from decoder: Decoder) throws {
-        let container = try decoder.singleValueContainer()
-        self = try Self(rawValue: container.decode(String.self)) ?? .generic
-    }
-
-    func encode(to encoder: Encoder) throws {
-        var container = encoder.singleValueContainer()
-        try container.encode(rawValue)
-    }
 }
 
 struct ServerProfile: Codable, Equatable, Sendable {
@@ -57,17 +47,6 @@ struct ServerProfile: Codable, Equatable, Sendable {
         self.name = name
         self.origin = try Self.canonicalOrigin(address)
         self.product = product
-    }
-
-    private enum CodingKeys: String, CodingKey {
-        case name, origin, product
-    }
-
-    init(from decoder: Decoder) throws {
-        let container = try decoder.container(keyedBy: CodingKeys.self)
-        name = try container.decode(String.self, forKey: .name)
-        origin = try container.decode(String.self, forKey: .origin)
-        product = try container.decodeIfPresent(ServerProduct.self, forKey: .product) ?? .generic
     }
 
     func validated() throws -> Self {
