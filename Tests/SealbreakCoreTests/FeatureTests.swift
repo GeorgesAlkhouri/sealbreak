@@ -408,7 +408,6 @@ struct FeatureTests {
         #expect(submittedCount == 0)
     }
 
-
     @Test
     func setupImportRequiresRecoveryAndDelegatesProfile() async throws {
         let target = try profile(product: .vault)
@@ -797,7 +796,6 @@ struct FeatureTests {
         #expect(store.state.notice == "delete failed")
     }
 
-
     @Test
     func setupChecksInstanceBeforeAdvancingToShare() async throws {
         let spy = ClientSpy()
@@ -1140,7 +1138,6 @@ struct FeatureTests {
         await cancellationStore.skipReceivedActions()
         #expect(cancellationStore.state.notice.contains("Operation cancelled"))
     }
-
 
     @Test
     func setupOperationActivityMapsEveryState() throws {
