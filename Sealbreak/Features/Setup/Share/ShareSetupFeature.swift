@@ -10,9 +10,6 @@ struct ShareImportPreview: Equatable, Sendable {
 
         let characters = Array(share)
         let visible = visibleCharacterCount
-        guard characters.count > visible * 2 else {
-            return nil
-        }
 
         let prefix = String(characters.prefix(visible))
         let suffix = String(characters.suffix(visible))
