@@ -5,10 +5,10 @@ struct ShareSetupFeature {
     @ObservableState
     struct State: Equatable {
         enum Operation: Equatable {
-            case importing
+            case protecting
 
             var activity: String {
-                "Importing share…"
+                "Protecting share…"
             }
         }
 
@@ -38,7 +38,7 @@ struct ShareSetupFeature {
             case profileReady(ServerProfile, notice: String)
         }
 
-        case saveTapped(share: String, recoveryConfirmed: Bool)
+        case saveTapped(share: String)
         case importResponse(Result<ProfileResult, AppFailure>)
         case operationCancelled
         case privacyInterrupted
@@ -54,12 +54,8 @@ struct ShareSetupFeature {
     var body: some ReducerOf<Self> {
         Reduce { state, action in
             switch action {
-            case .saveTapped(let input, let recoveryConfirmed):
+            case .saveTapped(let input):
                 guard !state.isBusy else { return .none }
-                guard recoveryConfirmed else {
-                    state.notice = "Confirm an independent recovery copy before importing."
-                    return .none
-                }
 
                 let record: ShareRecord
                 do {
@@ -69,11 +65,12 @@ struct ShareSetupFeature {
                     return .none
                 }
 
-                state.operation = .importing
+                state.operation = .protecting
                 let client = self.client
                 return .run { send in
                     var record = record
                     defer { record.share.removeAll(keepingCapacity: false) }
+
                     do {
                         try await client.waitForForeground()
                         try await client.insertShare(
@@ -85,19 +82,29 @@ struct ShareSetupFeature {
                         let notice: String
                         do {
                             try await client.saveProfile(profile)
-                            notice = "Share saved with device-bound biometric protection. Check status to begin."
+                            notice = "Share protected on this iPhone. Check status to begin."
                         } catch {
                             notice = "Protected share exists, but display metadata could not be saved. Use Restore profile from Keychain on the next launch."
                         }
+
                         await send(
                             .importResponse(
-                                .success(ProfileResult(profile: profile, notice: notice))
+                                .success(
+                                    ProfileResult(
+                                        profile: profile,
+                                        notice: notice
+                                    )
+                                )
                             )
                         )
                     } catch is CancellationError {
                         await send(.operationCancelled)
                     } catch {
-                        await send(.importResponse(.failure(normalizedAppFailure(error))))
+                        await send(
+                            .importResponse(
+                                .failure(normalizedAppFailure(error))
+                            )
+                        )
                     }
                 }
                 .cancellable(id: CancelID.importShare)
@@ -105,7 +112,14 @@ struct ShareSetupFeature {
             case .importResponse(.success(let result)):
                 state.operation = nil
                 state.notice = result.notice
-                return .send(.delegate(.profileReady(result.profile, notice: result.notice)))
+                return .send(
+                    .delegate(
+                        .profileReady(
+                            result.profile,
+                            notice: result.notice
+                        )
+                    )
+                )
 
             case .importResponse(.failure(let failure)):
                 state.operation = nil
@@ -123,10 +137,13 @@ struct ShareSetupFeature {
                 if wasBusy {
                     state.notice = "Operation interrupted. No new protected share should be assumed saved."
                 }
+
                 let client = self.client
                 return .merge(
                     .cancel(id: CancelID.importShare),
-                    .run { _ in await client.cancelSensitiveOperation() }
+                    .run { _ in
+                        await client.cancelSensitiveOperation()
+                    }
                 )
 
             case .delegate:

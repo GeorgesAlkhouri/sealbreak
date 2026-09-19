@@ -270,7 +270,7 @@ Controls: **M01, M06, M08**
 
 Device loss, hardware failure, Face ID re-enrollment, Keychain invalidation, app deletion, or an application-identity change may make the local share inaccessible.
 
-This is partly an intentional consequence of device-bound storage. Sealbreak requires an independent recovery copy before import and replacement, but that requirement does not prove the external recovery procedure has been tested successfully.
+This is partly an intentional consequence of device-bound storage. Sealbreak's operating model requires an independent recovery copy outside the app. Setup communicates that requirement, but the application cannot prove that the external copy exists or is usable. Recovery therefore remains an operator and deployment responsibility.
 
 Affected assets: **A04**
 
