@@ -1,6 +1,5 @@
 import ComposableArchitecture
 import SwiftUI
-import UIKit
 
 struct ShareSetupView: View {
     let store: StoreOf<ShareSetupFeature>
@@ -30,10 +29,32 @@ struct ShareSetupView: View {
                             .font(.system(size: 14, weight: .bold))
                             .foregroundStyle(PapercutPalette.secondaryText)
 
-                        MaskedShareField(
-                            share: $share,
-                            busy: store.isBusy
+                        SecureField(
+                            "Paste one Shamir share",
+                            text: $share
                         )
+                        .font(.system(size: 16, weight: .semibold, design: .monospaced))
+                        .foregroundStyle(PapercutPalette.cream)
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled()
+                        .keyboardType(.asciiCapable)
+                        .privacySensitive()
+                        .disabled(store.isBusy)
+                        .padding(.horizontal, 14)
+                        .frame(height: 52)
+                        .background {
+                            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                .fill(PapercutPalette.sky.opacity(0.72))
+                                .overlay {
+                                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                        .stroke(PapercutPalette.ring, lineWidth: 1)
+                                }
+                        }
+                        .onChange(of: share) { _, value in
+                            if value.utf8.count > 1024 {
+                                share.removeAll(keepingCapacity: false)
+                            }
+                        }
 
                         Divider()
                             .overlay(PapercutPalette.ring)
@@ -164,12 +185,8 @@ struct ShareSetupView: View {
             .shadow(color: .black.opacity(0.30), radius: 8, y: 8)
         }
         .buttonStyle(.plain)
-        .disabled(store.isBusy || !ShareImportPreview.isValid(share))
-        .opacity(
-            store.isBusy || ShareImportPreview.isValid(share)
-                ? 1
-                : 0.5
-        )
+        .disabled(store.isBusy || share.isEmpty)
+        .opacity(store.isBusy || !share.isEmpty ? 1 : 0.5)
     }
 
     @ViewBuilder
@@ -215,209 +232,5 @@ struct ShareSetupView: View {
 
     private func clearDraft() {
         share.removeAll(keepingCapacity: false)
-    }
-}
-
-private struct MaskedShareField: View {
-    @Binding var share: String
-    let busy: Bool
-
-    @State private var isFocused = false
-
-    var body: some View {
-        MaskedShareTextField(
-            share: $share,
-            isFocused: $isFocused,
-            busy: busy
-        )
-        .privacySensitive()
-        .padding(.horizontal, 14)
-        .frame(height: 52)
-        .background {
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .fill(PapercutPalette.sky.opacity(0.72))
-                .overlay {
-                    RoundedRectangle(cornerRadius: 14, style: .continuous)
-                        .stroke(
-                            isFocused
-                                ? PapercutPalette.button
-                                : PapercutPalette.ring,
-                            lineWidth: isFocused ? 1.5 : 1
-                        )
-                }
-        }
-        .animation(.easeOut(duration: 0.16), value: isFocused)
-    }
-}
-
-private struct MaskedShareTextField: UIViewRepresentable {
-    @Binding var share: String
-    @Binding var isFocused: Bool
-
-    let busy: Bool
-
-    func makeCoordinator() -> Coordinator {
-        Coordinator(parent: self)
-    }
-
-    func makeUIView(context: Context) -> UITextField {
-        let textField = UITextField(frame: .zero)
-        textField.delegate = context.coordinator
-        textField.borderStyle = .none
-        textField.backgroundColor = .clear
-        textField.font = .monospacedSystemFont(
-            ofSize: 16,
-            weight: .semibold
-        )
-        textField.textColor = UIColor(PapercutPalette.cream)
-        textField.tintColor = UIColor(PapercutPalette.button)
-        textField.keyboardType = .asciiCapable
-        textField.returnKeyType = .done
-        textField.autocapitalizationType = .none
-        textField.autocorrectionType = .no
-        textField.spellCheckingType = .no
-        textField.smartDashesType = .no
-        textField.smartQuotesType = .no
-        textField.smartInsertDeleteType = .no
-        textField.clearButtonMode = .never
-        textField.isSecureTextEntry = true
-        textField.attributedPlaceholder = NSAttributedString(
-            string: "Paste one Shamir share",
-            attributes: [
-                .font: UIFont.monospacedSystemFont(
-                    ofSize: 16,
-                    weight: .semibold
-                ),
-                .foregroundColor: UIColor(
-                    PapercutPalette.secondaryText.opacity(0.7)
-                )
-            ]
-        )
-        textField.addTarget(
-            context.coordinator,
-            action: #selector(Coordinator.editingChanged(_:)),
-            for: .editingChanged
-        )
-        context.coordinator.updateDisplay(textField)
-        return textField
-    }
-
-    func updateUIView(
-        _ textField: UITextField,
-        context: Context
-    ) {
-        context.coordinator.parent = self
-        textField.isEnabled = !busy
-        context.coordinator.updateDisplay(textField)
-    }
-
-    @MainActor
-    final class Coordinator: NSObject, UITextFieldDelegate {
-        var parent: MaskedShareTextField
-
-        private var isEditing = false
-        private var collapseAfterChange = false
-
-        init(parent: MaskedShareTextField) {
-            self.parent = parent
-        }
-
-        func updateDisplay(_ textField: UITextField) {
-            guard !isEditing else {
-                setText(
-                    parent.share,
-                    secure: true,
-                    in: textField
-                )
-                return
-            }
-
-            if let preview = ShareImportPreview.masked(parent.share) {
-                setText(
-                    preview,
-                    secure: false,
-                    in: textField
-                )
-            } else {
-                setText(
-                    parent.share,
-                    secure: true,
-                    in: textField
-                )
-            }
-        }
-
-        func textFieldDidBeginEditing(_ textField: UITextField) {
-            isEditing = true
-            parent.isFocused = true
-            setText(
-                parent.share,
-                secure: true,
-                in: textField
-            )
-        }
-
-        func textFieldDidEndEditing(_ textField: UITextField) {
-            isEditing = false
-            parent.isFocused = false
-            updateDisplay(textField)
-        }
-
-        func textField(
-            _ textField: UITextField,
-            shouldChangeCharactersIn range: NSRange,
-            replacementString string: String
-        ) -> Bool {
-            guard let current = textField.text,
-                  let swiftRange = Range(range, in: current) else {
-                return false
-            }
-
-            let candidate = current.replacingCharacters(
-                in: swiftRange,
-                with: string
-            )
-
-            guard candidate.utf8.count <= 1024 else {
-                parent.share.removeAll(keepingCapacity: false)
-                textField.text = ""
-                return false
-            }
-
-            collapseAfterChange =
-                string.utf8.count >= 8
-                && ShareImportPreview.masked(candidate) != nil
-
-            return true
-        }
-
-        @objc
-        func editingChanged(_ textField: UITextField) {
-            parent.share = textField.text ?? ""
-
-            if collapseAfterChange {
-                collapseAfterChange = false
-                textField.resignFirstResponder()
-            }
-        }
-
-        func textFieldShouldReturn(_ textField: UITextField) -> Bool {
-            textField.resignFirstResponder()
-            return true
-        }
-
-        private func setText(
-            _ value: String,
-            secure: Bool,
-            in textField: UITextField
-        ) {
-            guard textField.isSecureTextEntry != secure
-                    || textField.text != value else {
-                return
-            }
-
-            textField.isSecureTextEntry = secure
-            textField.text = value
-        }
     }
 }
