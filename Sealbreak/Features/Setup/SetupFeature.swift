@@ -74,6 +74,7 @@ struct SetupFeature {
         case removeResponse(Result<String, AppFailure>)
         case operationCancelled
         case privacyInterrupted(SensitiveInterruption)
+        case becameActive
         case delegate(Delegate)
     }
 
@@ -231,6 +232,12 @@ struct SetupFeature {
                     .cancel(id: CancelID.operation),
                     .run { _ in await client.cancelSensitiveOperation() }
                 )
+
+            case .becameActive:
+                guard state.step == .share, state.share != nil else {
+                    return .none
+                }
+                return .send(.share(.becameActive))
 
             case .instance, .share, .delegate:
                 return .none
