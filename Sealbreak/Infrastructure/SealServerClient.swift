@@ -1,5 +1,66 @@
 import Foundation
 import Security
+import dnssd
+
+enum DNSSECStatus: Equatable, Sendable {
+    case secure
+    case insecure
+    case bogus
+    case indeterminate
+    case notApplicable
+    case unavailable
+}
+
+private final class DNSSECResultBox {
+    var status: DNSSECStatus?
+}
+
+private func dnssecStatus(from flags: DNSServiceFlags) -> DNSSECStatus? {
+    guard (flags & kDNSServiceFlagsValidate) == kDNSServiceFlagsValidate,
+          (flags & kDNSServiceFlagsAdd) == kDNSServiceFlagsAdd else {
+        return nil
+    }
+
+    if (flags & kDNSServiceFlagsSecure) == kDNSServiceFlagsSecure {
+        return .secure
+    }
+    if (flags & kDNSServiceFlagsInsecure) == kDNSServiceFlagsInsecure {
+        return .insecure
+    }
+    if (flags & kDNSServiceFlagsBogus) == kDNSServiceFlagsBogus {
+        return .bogus
+    }
+    if (flags & kDNSServiceFlagsIndeterminate) == kDNSServiceFlagsIndeterminate {
+        return .indeterminate
+    }
+    return .unavailable
+}
+
+private func dnssecGetAddrInfoReply(
+    _: DNSServiceRef?,
+    flags: DNSServiceFlags,
+    _: UInt32,
+    errorCode: DNSServiceErrorType,
+    _: UnsafePointer<CChar>?,
+    _: UnsafePointer<sockaddr>?,
+    _: UInt32,
+    context: UnsafeMutableRawPointer?
+) {
+    guard let context else {
+        return
+    }
+
+    let result = Unmanaged<DNSSECResultBox>
+        .fromOpaque(context)
+        .takeUnretainedValue()
+
+    guard errorCode == kDNSServiceErr_NoError else {
+        result.status = .unavailable
+        return
+    }
+
+    result.status = dnssecStatus(from: flags)
+}
 
 final class TransportPolicy: NSObject, URLSessionTaskDelegate, @unchecked Sendable {
     func urlSession(
@@ -109,6 +170,24 @@ struct SealServerClient: Sendable {
         }
     }
 
+    static func dnssecStatus(for host: String) async -> DNSSECStatus {
+        let normalized = host
+            .trimmingCharacters(in: CharacterSet(charactersIn: "[]"))
+            .lowercased()
+
+        guard !normalized.isEmpty else {
+            return .unavailable
+        }
+        guard !isIPAddress(normalized),
+              !normalized.hasSuffix(".local") else {
+            return .notApplicable
+        }
+
+        return await Task.detached(priority: .userInitiated) {
+            resolveDNSSECStatus(host: normalized)
+        }.value
+    }
+
     func detectProduct(_ profile: ServerProfile) async throws -> ServerProduct {
         let data = try await request(
             profile,
@@ -150,6 +229,61 @@ struct SealServerClient: Sendable {
 
     private struct UnsealBody: Encodable {
         let key: String
+    }
+
+    private static func isIPAddress(_ host: String) -> Bool {
+        if host.contains(":") {
+            return true
+        }
+
+        let octets = host.split(separator: ".", omittingEmptySubsequences: false)
+        guard octets.count == 4 else {
+            return false
+        }
+
+        return octets.allSatisfy { octet in
+            guard let value = Int(octet) else {
+                return false
+            }
+            return (0...255).contains(value)
+        }
+    }
+
+    private static func resolveDNSSECStatus(host: String) -> DNSSECStatus {
+        var service: DNSServiceRef?
+        let result = DNSSECResultBox()
+        let context = Unmanaged.passUnretained(result).toOpaque()
+        let flags = kDNSServiceFlagsValidate | kDNSServiceFlagsTimeout
+        let protocols = DNSServiceProtocol(kDNSServiceProtocol_IPv4 | kDNSServiceProtocol_IPv6)
+
+        let startError = host.withCString { hostname in
+            DNSServiceGetAddrInfo(
+                &service,
+                flags,
+                0,
+                protocols,
+                hostname,
+                dnssecGetAddrInfoReply,
+                context
+            )
+        }
+
+        guard startError == kDNSServiceErr_NoError,
+              let service else {
+            return .unavailable
+        }
+        defer {
+            DNSServiceRefDeallocate(service)
+        }
+
+        while result.status == nil {
+            let processError = DNSServiceProcessResult(service)
+            guard processError == kDNSServiceErr_NoError else {
+                return .unavailable
+            }
+        }
+
+        return result.status ?? .unavailable
     }
 
     private func request(
