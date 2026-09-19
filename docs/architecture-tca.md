@@ -22,14 +22,18 @@ AppFeature
 
 ## Dependency boundary
 
-Reducers depend only on `SealbreakClient`, registered through TCA `DependencyValues`. The live dependency adapts the existing infrastructure:
+Reducers depend only on the lightweight `SealbreakClient` interface in `Sealbreak/Dependencies`. The interface conforms to TCA's `TestDependencyKey` and provides a fail-closed test value, so feature tests never need the live iOS implementation and never fall back to network, Keychain, Face ID, or UIKit behavior accidentally.
+
+The iOS app target separately compiles `Infrastructure/Live/LiveSealbreakClient.swift`. That file adds the `DependencyKey` conformance and `liveValue`, adapting the production infrastructure:
 
 - `SealServerClient` for bounded HTTPS requests with redirects/cookies/cache disabled.
 - `KeychainStore` for device-only biometric protected Shamir-share storage.
 - `ProfileStore` for non-secret display metadata.
-- `LAContext` and foreground/protected-data/screen-capture checks for authorization.
+- `LAContext`, `UIApplication`, and `UIScreen` for biometric authorization and foreground/protected-data/screen-capture checks.
 
-The low-level infrastructure does not import feature reducers.
+The Swift Package core target explicitly excludes `Infrastructure/Live`. This keeps iOS-only composition out of `SealbreakCoreTests` without conditional-import branches in production source. Test doubles such as `ClientSpy` live only under `Tests/` and are injected through `TestStore` dependency overrides.
+
+This follows the Point-Free dependency modularization pattern: the interface owns `TestDependencyKey`; the live implementation adds `DependencyKey`. Low-level infrastructure does not import feature reducers.
 
 ## Sensitive drafts
 
