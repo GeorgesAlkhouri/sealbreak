@@ -171,12 +171,12 @@ struct SetupCoverageTests {
         var busyState = SetupFeature.State()
         busyState.step = .share
         busyState.share = ShareSetupFeature.State(profile: target)
-        busyState.share?.operation = .importing
+        busyState.share?.operation = .protecting
         let busyStore = setupStore(busyState, dependency: .testValue)
 
         await busyStore.send(.backTapped)
         #expect(busyStore.state.step == .share)
-        #expect(busyStore.state.share?.operation == .importing)
+        #expect(busyStore.state.share?.operation == .protecting)
     }
 
     @Test
@@ -241,7 +241,7 @@ struct SetupCoverageTests {
         var shareState = SetupFeature.State()
         shareState.step = .share
         shareState.share = ShareSetupFeature.State(profile: target)
-        shareState.share?.operation = .importing
+        shareState.share?.operation = .protecting
         let shareStore = setupStore(shareState, dependency: shareDependency)
 
         await shareStore.send(.privacyInterrupted).finish()
