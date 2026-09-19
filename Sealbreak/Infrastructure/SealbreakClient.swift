@@ -98,7 +98,9 @@ extension SealbreakClient {
         deleteShare: { _ in throw AppFailure("Unimplemented protected-share dependency.") },
         requireForeground: { throw AppFailure("Unimplemented foreground dependency.") },
         waitForForeground: { throw AppFailure("Unimplemented foreground dependency.") },
-        cancelSensitiveOperation: {}
+        cancelSensitiveOperation: {
+            // Intentionally empty: the unimplemented dependency owns no sensitive context to cancel.
+        }
     )
 }
 

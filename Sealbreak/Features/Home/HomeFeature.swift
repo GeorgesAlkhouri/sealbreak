@@ -243,13 +243,6 @@ struct HomeFeature {
                 synchronizeServerDetails(&state)
                 return .none
 
-            case .unsealFailed(let failure):
-                state.operation = nil
-                state.status = nil
-                state.notice = failure.message
-                synchronizeServerDetails(&state)
-                return .none
-
             case .operationCancelled:
                 state.operation = nil
                 state.status = nil
@@ -313,13 +306,6 @@ struct HomeFeature {
                 synchronizeServerDetails(&state)
                 return .none
 
-            case .restoreProfileResponse(.failure(let failure)):
-                state.operation = nil
-                state.status = nil
-                state.notice = failure.message
-                synchronizeServerDetails(&state)
-                return .none
-
             case .removeLocalDataTapped:
                 guard !state.isBusy else { return .none }
                 state.confirmation = .removeLocalData
@@ -361,7 +347,9 @@ struct HomeFeature {
                 state.replaceShare = nil
                 return .send(.delegate(.localDataRemoved(notice: notice)))
 
-            case .removeLocalDataResponse(.failure(let failure)):
+            case .unsealFailed(let failure),
+                 .restoreProfileResponse(.failure(let failure)),
+                 .removeLocalDataResponse(.failure(let failure)):
                 state.operation = nil
                 state.status = nil
                 state.notice = failure.message
