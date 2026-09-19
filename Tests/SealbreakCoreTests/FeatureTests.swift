@@ -15,7 +15,6 @@ private actor ClientSpy {
     var readRecord: ShareRecord?
     var readError: AppFailure?
     var insertError: AppFailure?
-    var insertBiometricFailure: BiometricAuthorizationFailure?
     var replaceError: AppFailure?
     var deleteShareError: AppFailure?
     var submitError: AppFailure?
@@ -74,7 +73,6 @@ private actor ClientSpy {
     }
 
     func insert(_ record: ShareRecord) throws {
-        if let insertBiometricFailure { throw insertBiometricFailure }
         if let insertError { throw insertError }
         insertedRecords.append(record)
         readRecord = record
@@ -411,7 +409,7 @@ struct FeatureTests {
     }
 
     @Test
-    func setupImportProtectsShareWithoutRecoveryConfirmation() async throws {
+    func setupImportRequiresRecoveryAndDelegatesProfile() async throws {
         let target = try profile(product: .vault)
         let spy = ClientSpy()
         let store = TestStore(
@@ -423,32 +421,24 @@ struct FeatureTests {
         }
         store.exhaustivity = .off(showSkippedAssertions: false)
 
-        await store.send(.saveTapped(share: share)).finish()
-        let savedNotice = "Share protected on this iPhone. Check status to begin."
+        await store.send(
+            .saveTapped(share: share, recoveryConfirmed: false)
+        )
+        #expect(store.state.notice.contains("Confirm an independent recovery copy"))
+        #expect(await spy.insertedCount == 0)
+
+        await store.send(
+            .saveTapped(share: share, recoveryConfirmed: true)
+        ).finish()
+        let savedNotice = "Share saved with device-bound biometric protection. Check status to begin."
         await store.receive(.importResponse(.success(.init(profile: target, notice: savedNotice))))
+        await store.receive(.delegate(.profileReady(target, notice: savedNotice)))
 
         #expect(store.state.operation == nil)
-        #expect(store.state.notice.contains("Share protected"))
-        #expect(store.state.draftClearGeneration == 1)
-        #expect(store.state.pendingCompletion?.profile == target)
-
-        await store.send(.draftCleared)
-        await store.receive(.delegate(.profileReady(target, notice: savedNotice)))
+        #expect(store.state.notice.contains("Share saved"))
         #expect(await spy.insertedCount == 1)
         #expect(await spy.insertedProducts == [.vault])
         #expect(await spy.savedProfilesCount == 1)
-    }
-
-    @Test
-    func shareImportPreviewShowsOnlyBoundedFragments() {
-        let input = String(repeating: "0123456789abcdef", count: 4)
-
-        #expect(
-            ShareImportPreview.masked(input)
-                == "0123 •••• •••• cdef"
-        )
-        #expect(ShareImportPreview.masked("short") == nil)
-        #expect(ShareImportPreview.masked(input) != input)
     }
 
     @Test
@@ -489,15 +479,11 @@ struct FeatureTests {
         store.exhaustivity = .off(showSkippedAssertions: false)
 
         await store.send(
-            .saveTapped(share: share)
+            .saveTapped(share: share, recoveryConfirmed: true)
         ).finish()
         let fallbackNotice =
             "Protected share exists, but display metadata could not be saved. Use Restore profile from Keychain on the next launch."
         await store.receive(.importResponse(.success(.init(profile: target, notice: fallbackNotice))))
-        #expect(store.state.draftClearGeneration == 1)
-        #expect(store.state.pendingCompletion?.profile == target)
-
-        await store.send(.draftCleared)
         await store.receive(.delegate(.profileReady(target, notice: fallbackNotice)))
 
         #expect(await spy.insertedCount == 1)
@@ -905,14 +891,14 @@ struct FeatureTests {
         store.exhaustivity = .off(showSkippedAssertions: false)
 
         await store.send(
-            .saveTapped(share: "short")
+            .saveTapped(share: "short", recoveryConfirmed: true)
         )
         #expect(store.state.operation == nil)
         #expect(store.state.notice.contains("share"))
 
         await spy.setInsertError(AppFailure("insert failed"))
         await store.send(
-            .saveTapped(share: share)
+            .saveTapped(share: share, recoveryConfirmed: true)
         ).finish()
         await store.skipReceivedActions()
         #expect(store.state.operation == nil)
@@ -939,7 +925,7 @@ struct FeatureTests {
         var interruptedState = SetupFeature.State()
         interruptedState.step = .share
         interruptedState.share = ShareSetupFeature.State(profile: target)
-        interruptedState.share?.operation = .protecting
+        interruptedState.share?.operation = .importing
         let interruptionStore = TestStore(initialState: interruptedState) {
             SetupFeature()
         } withDependencies: {
@@ -947,80 +933,11 @@ struct FeatureTests {
         }
         interruptionStore.exhaustivity = .off(showSkippedAssertions: false)
 
-        await interruptionStore.send(.privacyInterrupted(.screenCapture)).finish()
+        await interruptionStore.send(.privacyInterrupted).finish()
         await interruptionStore.skipReceivedActions()
         #expect(interruptionStore.state.share?.operation == nil)
-        #expect(interruptionStore.state.share?.draftClearGeneration == 1)
         #expect(await spy.cancelCalls == 1)
     }
-
-    @Test
-    func setupFaceIDUserCancellationPreservesDraftAfterLifecycleBackground() async throws {
-        let target = try profile()
-        var state = ShareSetupFeature.State(profile: target)
-        state.operation = .protecting
-
-        let store = TestStore(initialState: state) {
-            ShareSetupFeature()
-        }
-        store.exhaustivity = .off(showSkippedAssertions: false)
-
-        await store.send(.privacyInterrupted(.background))
-        #expect(store.state.operation == .protecting)
-        #expect(store.state.backgroundedDuringProtection)
-        #expect(store.state.draftClearGeneration == 0)
-
-        await store.send(.biometricFailure(.userCancelled))
-        #expect(store.state.operation == nil)
-        #expect(!store.state.backgroundedDuringProtection)
-        #expect(store.state.draftClearGeneration == 0)
-        #expect(store.state.notice.contains("remains ready to retry"))
-    }
-
-    @Test
-    func setupSystemCancellationAfterBackgroundDiscardsDraft() async throws {
-        let target = try profile()
-        var state = ShareSetupFeature.State(profile: target)
-        state.operation = .protecting
-
-        let store = TestStore(initialState: state) {
-            ShareSetupFeature()
-        }
-        store.exhaustivity = .off(showSkippedAssertions: false)
-
-        await store.send(.privacyInterrupted(.background))
-        #expect(store.state.backgroundedDuringProtection)
-        #expect(store.state.draftClearGeneration == 0)
-
-        await store.send(.biometricFailure(.systemCancelled))
-        #expect(store.state.operation == nil)
-        #expect(!store.state.backgroundedDuringProtection)
-        #expect(store.state.draftClearGeneration == 1)
-    }
-
-    @Test
-    func setupBiometricUserCancelFromDependencyKeepsDraft() async throws {
-        let target = try profile()
-        let spy = ClientSpy()
-        await spy.setInsertBiometricFailure(.userCancelled)
-
-        let store = TestStore(
-            initialState: ShareSetupFeature.State(profile: target)
-        ) {
-            ShareSetupFeature()
-        } withDependencies: {
-            $0.sealbreakClient = client(spy)
-        }
-        store.exhaustivity = .off(showSkippedAssertions: false)
-
-        await store.send(.saveTapped(share: share)).finish()
-        await store.skipReceivedActions()
-
-        #expect(store.state.operation == nil)
-        #expect(store.state.draftClearGeneration == 0)
-        #expect(store.state.notice.contains("remains ready to retry"))
-    }
-
     @Test
     func replaceShareRejectsInvalidInputAndSurfacesDependencyFailure() async throws {
         let target = try profile()
@@ -1239,8 +1156,8 @@ struct FeatureTests {
         state.instance.isCheckingConnection = false
         state.step = .share
         state.share = ShareSetupFeature.State(profile: try profile())
-        state.share?.operation = .protecting
-        #expect(state.activity == "Protecting share…")
+        state.share?.operation = .importing
+        #expect(state.activity == "Importing share…")
 
         state.share?.operation = nil
         #expect(state.activity.isEmpty)
@@ -1261,7 +1178,7 @@ struct FeatureTests {
         importStore.exhaustivity = .off(showSkippedAssertions: false)
 
         await importStore.send(
-            .saveTapped(share: share)
+            .saveTapped(share: share, recoveryConfirmed: true)
         ).finish()
         await importStore.skipReceivedActions()
         #expect(importStore.state.operation == nil)
@@ -1359,9 +1276,6 @@ private extension ClientSpy {
     func setReadRecord(_ value: ShareRecord?) { readRecord = value }
     func setReadError(_ value: AppFailure?) { readError = value }
     func setInsertError(_ value: AppFailure?) { insertError = value }
-    func setInsertBiometricFailure(_ value: BiometricAuthorizationFailure?) {
-        insertBiometricFailure = value
-    }
     func setReplaceError(_ value: AppFailure?) { replaceError = value }
     func setDeleteShareError(_ value: AppFailure?) { deleteShareError = value }
     func setSubmitError(_ value: AppFailure?) { submitError = value }
