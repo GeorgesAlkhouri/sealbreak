@@ -14,8 +14,10 @@ struct ShareImportPreview: Equatable, Sendable {
             return nil
         }
 
+        let hiddenCount = share.count - visibleSuffixCharacterCount
+        let hidden = String(repeating: "•", count: hiddenCount)
         let suffix = share.suffix(visibleSuffixCharacterCount)
-        return "•••• •••• •••• \(suffix)"
+        return "\(hidden)\(suffix)"
     }
 }
 
