@@ -66,14 +66,11 @@ struct AppFeature {
                 return .none
 
             case .privacy(.delegate(.interrupted)):
-                let interruption: SensitiveInterruption =
-                    state.privacy.isCaptured ? .screenCapture : .background
-
                 if state.home != nil {
                     return .send(.home(.privacyInterrupted))
                 }
                 if state.setup != nil {
-                    return .send(.setup(.privacyInterrupted(interruption)))
+                    return .send(.setup(.privacyInterrupted))
                 }
                 if state.welcome != nil {
                     return .none
@@ -83,10 +80,6 @@ struct AppFeature {
                 }
 
             case .privacy(.delegate(.becameActive)):
-                if state.setup != nil {
-                    return .send(.setup(.becameActive))
-                }
-
                 guard state.home?.isBusy == false else { return .none }
                 return state.home == nil ? .none : .send(.home(.refreshRequested))
 
