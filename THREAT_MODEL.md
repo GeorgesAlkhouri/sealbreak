@@ -230,7 +230,6 @@ A share may already exist in a password manager, clipboard history, note, screen
 
 Sealbreak performs no automatic clipboard read and provides no share-export feature, but it cannot revoke or control copies that already exist elsewhere.
 
-
 Affected assets: **A01**
 
 Controls: **M07, M09**
