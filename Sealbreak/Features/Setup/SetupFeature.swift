@@ -169,9 +169,8 @@ struct SetupFeature {
                         let product: ServerProduct
                         do {
                             product = try await client.detectProduct(profile)
-                        } catch let detectionFailure as AppFailure {
+                        } catch is AppFailure {
                             _ = try await client.status(profile)
-                            _ = detectionFailure
                             product = .generic
                         }
 
