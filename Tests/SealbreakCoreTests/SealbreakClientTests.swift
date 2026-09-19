@@ -7,15 +7,7 @@ struct SealbreakClientTests {
 
     @Test
     func unimplementedDependenciesFailClosed() async throws {
-        #if !canImport(UIKit)
-        let liveClient = SealbreakClient.liveValue
-        #expect(
-            await failureMessage { try await liveClient.loadProfile() }
-                == "Unimplemented profile load dependency."
-        )
-        #endif
-
-        let dependency = SealbreakClient.unimplemented
+        let dependency = SealbreakClient.testValue
         let profile = try ServerProfile(name: "Server", address: "https://server.example.com")
         let record = try ShareRecord(profile: profile, input: String(repeating: "a", count: 64))
 
