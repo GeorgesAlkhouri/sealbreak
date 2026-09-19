@@ -8,7 +8,7 @@ struct SensitiveDraftGuard: ViewModifier {
     func body(content: Content) -> some View {
         content
             .onChange(of: scenePhase) { _, phase in
-                if phase != .active {
+                if phase == .background {
                     clear()
                 }
             }
