@@ -31,4 +31,4 @@ Security assumptions, design decisions, and known risks are documented openly in
 
 ## License
 
-Sealbreak is licensed under the [Mozilla Public License 2.0](LICENSE).
+Sealbreak is licensed under the [GNU General Public License v3.0](LICENSE).
