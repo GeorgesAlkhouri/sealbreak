@@ -131,16 +131,6 @@ struct SetupFeature {
                 }
                 .cancellable(id: CancelID.operation)
 
-            case .importResponse(.success(let result)):
-                state.operation = nil
-                state.notice = result.notice
-                return .send(.delegate(.profileReady(result.profile, notice: result.notice)))
-
-            case .importResponse(.failure(let failure)):
-                state.operation = nil
-                state.notice = failure.message
-                return .none
-
             case .restoreProfileTapped:
                 guard !state.isBusy else { return .none }
                 state.operation = .restoring
@@ -169,15 +159,11 @@ struct SetupFeature {
                 }
                 .cancellable(id: CancelID.operation)
 
-            case .restoreResponse(.success(let result)):
+            case .importResponse(.success(let result)),
+                 .restoreResponse(.success(let result)):
                 state.operation = nil
                 state.notice = result.notice
                 return .send(.delegate(.profileReady(result.profile, notice: result.notice)))
-
-            case .restoreResponse(.failure(let failure)):
-                state.operation = nil
-                state.notice = failure.message
-                return .none
 
             case .removeLocalDataTapped:
                 guard !state.isBusy else { return .none }
@@ -220,7 +206,9 @@ struct SetupFeature {
                 state.notice = notice
                 return .none
 
-            case .removeResponse(.failure(let failure)):
+            case .importResponse(.failure(let failure)),
+                 .restoreResponse(.failure(let failure)),
+                 .removeResponse(.failure(let failure)):
                 state.operation = nil
                 state.notice = failure.message
                 return .none
