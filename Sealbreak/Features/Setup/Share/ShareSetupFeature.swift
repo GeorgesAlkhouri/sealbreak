@@ -1,19 +1,21 @@
 import ComposableArchitecture
 
 struct ShareImportPreview: Equatable, Sendable {
-    static let visibleCharacterCount = 4
+    static let minimumCharacterCount = 32
+    static let visibleSuffixCharacterCount = 3
+
+    static func isValid(_ input: String) -> Bool {
+        (try? ShareRecord.validateShare(input)) != nil
+    }
 
     static func masked(_ input: String) -> String? {
-        guard let share = try? ShareRecord.validateShare(input) else {
+        guard let share = try? ShareRecord.validateShare(input),
+              share.count >= minimumCharacterCount else {
             return nil
         }
 
-        let characters = Array(share)
-        let visible = visibleCharacterCount
-
-        let prefix = String(characters.prefix(visible))
-        let suffix = String(characters.suffix(visible))
-        return "\(prefix) •••• •••• \(suffix)"
+        let suffix = share.suffix(visibleSuffixCharacterCount)
+        return "•••• •••• •••• \(suffix)"
     }
 }
 
