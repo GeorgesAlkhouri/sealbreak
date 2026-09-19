@@ -3,6 +3,7 @@ import ComposableArchitecture
 struct ShareImportPreview: Equatable, Sendable {
     static let minimumCharacterCount = 32
     static let visibleSuffixCharacterCount = 3
+    static let displayedMaskCharacterCount = 21
 
     static func isValid(_ input: String) -> Bool {
         (try? ShareRecord.validateShare(input)) != nil
@@ -14,8 +15,10 @@ struct ShareImportPreview: Equatable, Sendable {
             return nil
         }
 
-        let hiddenCount = share.count - visibleSuffixCharacterCount
-        let hidden = String(repeating: "•", count: hiddenCount)
+        let hidden = String(
+            repeating: "•",
+            count: displayedMaskCharacterCount
+        )
         let suffix = share.suffix(visibleSuffixCharacterCount)
         return "\(hidden)\(suffix)"
     }
