@@ -28,3 +28,7 @@ Sealbreak treats the unseal share as sensitive key material rather than a regula
 Security assumptions, design decisions, and known risks are documented openly in the project's [threat model](THREAT_MODEL.md). It provides the basis for reviewing the security of Sealbreak as the project evolves.
 
 > Sealbreak is under active development. Use disposable test shares until a stable release is available.
+
+## License
+
+Sealbreak is licensed under the [GNU General Public License v3.0](LICENSE).
