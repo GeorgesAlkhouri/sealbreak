@@ -76,7 +76,10 @@ struct ShareSetupView: View {
         }
         .scrollIndicators(.hidden)
         .scrollDismissesKeyboard(.interactively)
-        .clearSensitiveDraftOnPrivacyChange(clearDraft)
+        .clearSensitiveDraftOnPrivacyChange(
+            preserveDuringSensitiveOperation: store.isBusy,
+            clearDraft
+        )
     }
 
     private var targetCard: some View {
