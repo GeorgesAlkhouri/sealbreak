@@ -51,16 +51,8 @@ private final class ResultBox {
     var status: DNSSECStatus?
 }
 
-private func dnssecGetAddrInfoReply(
-    _: DNSServiceRef?,
-    flags: DNSServiceFlags,
-    _: UInt32,
-    errorCode: DNSServiceErrorType,
-    _: UnsafePointer<CChar>?,
-    _: UnsafePointer<sockaddr>?,
-    _: UInt32,
-    context: UnsafeMutableRawPointer?
-) {
+private let dnssecGetAddrInfoReply: DNSServiceGetAddrInfoReply = {
+    _, flags, _, errorCode, _, _, _, context in
     guard let context else {
         return
     }
