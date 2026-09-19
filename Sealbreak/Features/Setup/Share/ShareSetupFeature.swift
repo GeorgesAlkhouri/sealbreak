@@ -66,6 +66,7 @@ struct ShareSetupFeature {
         case biometricFailure(BiometricAuthorizationFailure)
         case operationCancelled
         case privacyInterrupted(SensitiveInterruption)
+        case becameActive
         case draftCleared
         case delegate(Delegate)
     }
@@ -187,6 +188,10 @@ struct ShareSetupFeature {
                     .cancel(id: CancelID.importShare),
                     .run { _ in await client.cancelSensitiveOperation() }
                 )
+
+            case .becameActive:
+                state.backgroundedDuringProtection = false
+                return .none
 
             case .draftCleared:
                 guard let completion = state.pendingCompletion else {
