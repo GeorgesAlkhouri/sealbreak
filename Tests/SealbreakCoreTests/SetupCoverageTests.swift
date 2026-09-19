@@ -118,9 +118,15 @@ struct SetupCoverageTests {
         await store.send(.privacyInterrupted)
         #expect(store.state.notice == "Connection check interrupted. Try again.")
 
-        store.state.isCheckingConnection = true
-        await store.send(.cancelCheck)
-        #expect(!store.state.isCheckingConnection)
+        var cancelState = InstanceSetupFeature.State()
+        cancelState.isCheckingConnection = true
+        let cancelStore = TestStore(initialState: cancelState) {
+            InstanceSetupFeature()
+        }
+        cancelStore.exhaustivity = .off(showSkippedAssertions: false)
+
+        await cancelStore.send(.cancelCheck)
+        #expect(!cancelStore.state.isCheckingConnection)
 
         await store.send(.continueTapped)
         #expect(store.state.checkedProfile == nil)
@@ -261,18 +267,18 @@ struct SetupCoverageTests {
     }
 
     @Test
-    func setupBusyStateBlocksRestoreAndRemove() {
+    func setupBusyStateBlocksRestoreAndRemove() async {
         var state = SetupFeature.State()
         state.instance.isCheckingConnection = true
         let store = setupStore(state, dependency: .testValue)
 
-        store.send(.restoreProfileTapped)
+        await store.send(.restoreProfileTapped)
         #expect(store.state.operation == nil)
 
-        store.send(.removeLocalDataTapped)
+        await store.send(.removeLocalDataTapped)
         #expect(!store.state.confirmDelete)
 
-        store.send(.confirmRemoveLocalDataTapped)
+        await store.send(.confirmRemoveLocalDataTapped)
         #expect(store.state.operation == nil)
     }
 
