@@ -131,16 +131,35 @@ struct WelcomeView: View {
         .toolbar(.hidden, for: .navigationBar)
     }
 
-    private var compatibilityCopy: Text {
-        Text("Works with ")
-            .foregroundColor(PapercutPalette.secondaryText)
-            + Text(Image("OpenBaoMark"))
-            + Text(" OpenBao, ")
-                .foregroundColor(PapercutPalette.secondaryText)
-            + Text(Image("VaultMark"))
-                .foregroundColor(vaultBrand)
-            + Text(" Vault, and compatible Shamir seal servers.")
-                .foregroundColor(PapercutPalette.secondaryText)
+    private var compatibilityCopy: some View {
+        VStack(spacing: 4) {
+            HStack(spacing: 6) {
+                Text("Works with")
+                compatibilityProduct(icon: "OpenBaoMark", name: "OpenBao")
+                Text("and")
+                compatibilityProduct(icon: "VaultMark", name: "Vault", tint: vaultBrand)
+            }
+
+            Text("and compatible Shamir seal servers.")
+        }
+        .foregroundStyle(PapercutPalette.secondaryText)
+    }
+
+    private func compatibilityProduct(
+        icon: String,
+        name: String,
+        tint: Color? = nil
+    ) -> some View {
+        HStack(spacing: 4) {
+            Image(icon)
+                .resizable()
+                .scaledToFit()
+                .frame(width: 16, height: 16)
+                .foregroundStyle(tint ?? PapercutPalette.secondaryText)
+                .accessibilityHidden(true)
+
+            Text(name)
+        }
     }
 
     private var vaultBrand: Color {
