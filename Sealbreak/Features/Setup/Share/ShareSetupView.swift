@@ -1,10 +1,7 @@
 import ComposableArchitecture
 import SwiftUI
-import UIKit
 
 struct ShareSetupView: View {
-    @Environment(\.scenePhase) private var scenePhase
-
     let store: StoreOf<ShareSetupFeature>
 
     @State private var share = ""
@@ -79,25 +76,7 @@ struct ShareSetupView: View {
         }
         .scrollIndicators(.hidden)
         .scrollDismissesKeyboard(.interactively)
-        .onChange(of: scenePhase) { _, phase in
-            if phase == .background, !store.isBusy {
-                clearDraft()
-            }
-        }
-        .onReceive(
-            NotificationCenter.default.publisher(
-                for: UIScreen.capturedDidChangeNotification
-            )
-        ) { _ in
-            if UIScreen.main.isCaptured {
-                clearDraft()
-            }
-        }
-        .onChange(of: store.draftClearGeneration) { _, _ in
-            clearDraft()
-            store.send(.draftCleared)
-        }
-        .onDisappear(perform: clearDraft)
+        .clearSensitiveDraftOnPrivacyChange(clearDraft)
     }
 
     private var targetCard: some View {
@@ -234,7 +213,9 @@ struct ShareSetupView: View {
     }
 
     private func save() {
-        store.send(.saveTapped(share: share))
+        let value = share
+        clearDraft()
+        store.send(.saveTapped(share: value))
     }
 
     private func clearDraft() {
