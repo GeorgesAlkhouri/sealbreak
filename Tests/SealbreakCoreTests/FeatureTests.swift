@@ -446,9 +446,9 @@ struct FeatureTests {
         #expect(ShareImportPreview.masked(minimumBase64) == nil)
 
         let expectedHex =
-            String(repeating: "•", count: 29) + "def"
+            String(repeating: "•", count: 21) + "def"
         let expectedBase64 =
-            String(repeating: "•", count: 29) + "GGG"
+            String(repeating: "•", count: 21) + "GGG"
 
         #expect(ShareImportPreview.masked(previewHex) == expectedHex)
         #expect(ShareImportPreview.masked(previewBase64) == expectedBase64)
