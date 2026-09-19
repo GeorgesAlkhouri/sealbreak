@@ -36,6 +36,7 @@ let package = Package(
                 "Features/ShareManagement/ReplaceShareView.swift",
                 "Features/ShareManagement/Components",
                 "DesignSystem",
+                "Infrastructure/Live",
                 "Resources",
                 "Info.plist",
                 "PrivacyInfo.xcprivacy"

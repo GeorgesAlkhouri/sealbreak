@@ -7,30 +7,58 @@ struct SealbreakClientTests {
 
     @Test
     func unimplementedDependenciesFailClosed() async throws {
-        #if !canImport(UIKit)
-        let liveClient = SealbreakClient.liveValue
-        #expect(
-            await failureMessage { try await liveClient.loadProfile() }
-                == "Unimplemented profile load dependency."
-        )
-        #endif
-
-        let dependency = SealbreakClient.unimplemented
+        let dependency = SealbreakClient.testValue
         let profile = try ServerProfile(name: "Server", address: "https://server.example.com")
         let record = try ShareRecord(profile: profile, input: String(repeating: "a", count: 64))
 
-        #expect(await failureMessage { try await dependency.loadProfile() } != nil)
-        #expect(await failureMessage { try await dependency.saveProfile(profile) } != nil)
-        #expect(await failureMessage { try await dependency.deleteProfile() } != nil)
-        #expect(await failureMessage { try await dependency.detectProduct(profile) } != nil)
-        #expect(await failureMessage { try await dependency.status(profile) } != nil)
-        #expect(await failureMessage { try await dependency.submit(record) } != nil)
-        #expect(await failureMessage { try await dependency.readShare("Test") } != nil)
-        #expect(await failureMessage { try await dependency.insertShare(record, "Test") } != nil)
-        #expect(await failureMessage { try await dependency.replaceShare(profile, record, "Test") } != nil)
-        #expect(await failureMessage { try await dependency.deleteShare("Test") } != nil)
-        #expect(await failureMessage { try await dependency.requireForeground() } != nil)
-        #expect(await failureMessage { try await dependency.waitForForeground() } != nil)
+        #expect(
+            await failureMessage { try await dependency.loadProfile() }
+                == "Unimplemented profile load dependency."
+        )
+        #expect(
+            await failureMessage { try await dependency.saveProfile(profile) }
+                == "Unimplemented profile save dependency."
+        )
+        #expect(
+            await failureMessage { try await dependency.deleteProfile() }
+                == "Unimplemented profile delete dependency."
+        )
+        #expect(
+            await failureMessage { try await dependency.detectProduct(profile) }
+                == "Unimplemented server-product detection dependency."
+        )
+        #expect(
+            await failureMessage { try await dependency.status(profile) }
+                == "Unimplemented seal-status dependency."
+        )
+        #expect(
+            await failureMessage { try await dependency.submit(record) }
+                == "Unimplemented share submission dependency."
+        )
+        #expect(
+            await failureMessage { try await dependency.readShare("Test") }
+                == "Unimplemented protected-share dependency."
+        )
+        #expect(
+            await failureMessage { try await dependency.insertShare(record, "Test") }
+                == "Unimplemented protected-share dependency."
+        )
+        #expect(
+            await failureMessage { try await dependency.replaceShare(profile, record, "Test") }
+                == "Unimplemented protected-share dependency."
+        )
+        #expect(
+            await failureMessage { try await dependency.deleteShare("Test") }
+                == "Unimplemented protected-share dependency."
+        )
+        #expect(
+            await failureMessage { try await dependency.requireForeground() }
+                == "Unimplemented foreground dependency."
+        )
+        #expect(
+            await failureMessage { try await dependency.waitForForeground() }
+                == "Unimplemented foreground dependency."
+        )
         await dependency.cancelSensitiveOperation()
     }
 

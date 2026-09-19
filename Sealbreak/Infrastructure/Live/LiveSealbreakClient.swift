@@ -1,29 +1,10 @@
 import ComposableArchitecture
 import Foundation
-
-struct SealbreakClient: Sendable {
-    var loadProfile: @Sendable () async throws -> ServerProfile?
-    var saveProfile: @Sendable (ServerProfile) async throws -> Void
-    var deleteProfile: @Sendable () async throws -> Void
-    var detectProduct: @Sendable (ServerProfile) async throws -> ServerProduct
-    var status: @Sendable (ServerProfile) async throws -> SealStatus
-    var submit: @Sendable (ShareRecord) async throws -> Void
-    var readShare: @Sendable (_ reason: String) async throws -> ShareRecord
-    var insertShare: @Sendable (_ record: ShareRecord, _ reason: String) async throws -> Void
-    var replaceShare: @Sendable (
-        _ expectedProfile: ServerProfile,
-        _ replacement: ShareRecord,
-        _ reason: String
-    ) async throws -> Void
-    var deleteShare: @Sendable (_ reason: String) async throws -> Void
-    var requireForeground: @Sendable () async throws -> Void
-    var waitForForeground: @Sendable () async throws -> Void
-    var cancelSensitiveOperation: @Sendable () async -> Void
-}
+import LocalAuthentication
+import UIKit
 
 extension SealbreakClient: DependencyKey {
     static var liveValue: Self {
-        #if canImport(UIKit)
         Self(
             loadProfile: {
                 try await LiveSealbreakClientController.shared.loadProfile()
@@ -69,70 +50,8 @@ extension SealbreakClient: DependencyKey {
                 await LiveSealbreakClientController.shared.cancelSensitiveOperation()
             }
         )
-        #else
-        .unimplemented
-        #endif
-    }
-
-    static let testValue = Self.unimplemented
-}
-
-extension DependencyValues {
-    var sealbreakClient: SealbreakClient {
-        get { self[SealbreakClient.self] }
-        set { self[SealbreakClient.self] = newValue }
     }
 }
-
-extension SealbreakClient {
-    static let unimplemented = Self(
-        loadProfile: { throw AppFailure("Unimplemented profile load dependency.") },
-        saveProfile: { _ in throw AppFailure("Unimplemented profile save dependency.") },
-        deleteProfile: { throw AppFailure("Unimplemented profile delete dependency.") },
-        detectProduct: { _ in throw AppFailure("Unimplemented server-product detection dependency.") },
-        status: { _ in throw AppFailure("Unimplemented seal-status dependency.") },
-        submit: { _ in throw AppFailure("Unimplemented share submission dependency.") },
-        readShare: { _ in throw AppFailure("Unimplemented protected-share dependency.") },
-        insertShare: { _, _ in throw AppFailure("Unimplemented protected-share dependency.") },
-        replaceShare: { _, _, _ in throw AppFailure("Unimplemented protected-share dependency.") },
-        deleteShare: { _ in throw AppFailure("Unimplemented protected-share dependency.") },
-        requireForeground: { throw AppFailure("Unimplemented foreground dependency.") },
-        waitForForeground: { throw AppFailure("Unimplemented foreground dependency.") },
-        cancelSensitiveOperation: {
-            // Intentionally empty: the unimplemented dependency owns no sensitive context to cancel.
-        }
-    )
-}
-
-func normalizedAppFailure(_ error: Error) -> AppFailure {
-    if let failure = error as? AppFailure {
-        return failure
-    }
-    return AppFailure("Operation failed. No sensitive diagnostic data was recorded.")
-}
-
-func replaceShareIfBound(
-    expectedProfile: ServerProfile,
-    replacement: ShareRecord,
-    readExisting: () throws -> ShareRecord,
-    beforeReplace: () throws -> Void,
-    replace: (ShareRecord) throws -> Void
-) throws {
-    var existing = try readExisting()
-    defer { existing.share.removeAll(keepingCapacity: false) }
-
-    guard existing.profile == expectedProfile,
-          replacement.profile == expectedProfile else {
-        throw AppFailure("Target binding mismatch. Restore the protected profile first.")
-    }
-
-    try beforeReplace()
-    try replace(replacement)
-}
-
-#if canImport(UIKit)
-import LocalAuthentication
-import UIKit
 
 @MainActor
 private final class LiveSealbreakClientController {
@@ -212,13 +131,19 @@ private final class LiveSealbreakClientController {
     func requireForeground() throws {
         try Task.checkCancellation()
         guard UIApplication.shared.applicationState == .active else {
-            throw AppFailure("Sealbreak is not the active app. Return to it after the system dialog closes, then retry.")
+            throw AppFailure(
+                "Sealbreak is not the active app. Return to it after the system dialog closes, then retry."
+            )
         }
         guard UIApplication.shared.isProtectedDataAvailable else {
-            throw AppFailure("Protected iPhone data is unavailable. Unlock the device and retry in Sealbreak.")
+            throw AppFailure(
+                "Protected iPhone data is unavailable. Unlock the device and retry in Sealbreak."
+            )
         }
         guard !UIScreen.main.isCaptured else {
-            throw AppFailure("iPhone screen capture or mirroring is active. Stop it and retry directly on the unlocked device.")
+            throw AppFailure(
+                "iPhone screen capture or mirroring is active. Stop it and retry directly on the unlocked device."
+            )
         }
     }
 
@@ -259,7 +184,9 @@ private final class LiveSealbreakClientController {
         var error: NSError?
         guard context.canEvaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, error: &error),
               context.biometryType == .faceID else {
-            throw AppFailure("Face ID is unavailable, not enrolled, or locked out. Enable Face ID and a device passcode, or unlock the device in iOS before retrying. No app passcode fallback is offered.")
+            throw AppFailure(
+                "Face ID is unavailable, not enrolled, or locked out. Enable Face ID and a device passcode, or unlock the device in iOS before retrying. No app passcode fallback is offered."
+            )
         }
 
         do {
@@ -272,7 +199,9 @@ private final class LiveSealbreakClientController {
         } catch is CancellationError {
             throw CancellationError()
         } catch {
-            throw AppFailure("Face ID was cancelled or denied. No new share submission was started.")
+            throw AppFailure(
+                "Face ID was cancelled or denied. No new share submission was started."
+            )
         }
 
         try await waitForForeground()
@@ -281,4 +210,3 @@ private final class LiveSealbreakClientController {
         return try operation(context)
     }
 }
-#endif

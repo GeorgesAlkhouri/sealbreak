@@ -22,14 +22,20 @@ AppFeature
 
 ## Dependency boundary
 
-Reducers depend only on `SealbreakClient`, registered through TCA `DependencyValues`. The live dependency adapts the existing infrastructure:
+Reducers depend only on the lightweight `SealbreakClient` interface in `Sealbreak/Dependencies`. The interface conforms to TCA's `TestDependencyKey` and provides a fail-closed test value, so feature tests never need the live iOS implementation and never fall back to network, Keychain, Face ID, or UIKit behavior accidentally.
+
+The iOS app target separately compiles `Infrastructure/Live/LiveSealbreakClient.swift`. That file adds the `DependencyKey` conformance and `liveValue`, adapting the production infrastructure:
 
 - `SealServerClient` for bounded HTTPS requests with redirects/cookies/cache disabled.
 - `KeychainStore` for device-only biometric protected Shamir-share storage.
 - `ProfileStore` for non-secret display metadata.
-- `LAContext` and foreground/protected-data/screen-capture checks for authorization.
+- `LAContext`, `UIApplication`, and `UIScreen` for biometric authorization and foreground/protected-data/screen-capture checks.
 
-The low-level infrastructure does not import feature reducers.
+The Swift Package core target explicitly excludes `Infrastructure/Live`. This keeps the iOS live-composition layer out of `SealbreakCoreTests` without conditional-import branches in production source. The core target still compiles testable infrastructure such as `SealServerClient`, `KeychainStore`, and `ProfileStore`; those components are covered directly by unit tests and rely only on APIs available to the macOS test build.
+
+Test doubles such as `ClientSpy` live only under `Tests/` and are injected through `TestStore` dependency overrides. New UIKit-dependent composition code belongs under `Infrastructure/Live` so that it cannot leak back into the Swift Package test target.
+
+This follows the Point-Free dependency modularization pattern: the interface owns `TestDependencyKey`; the live implementation adds `DependencyKey`. Low-level infrastructure does not import feature reducers.
 
 ## Sensitive drafts
 

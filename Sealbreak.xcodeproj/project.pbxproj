@@ -8,6 +8,8 @@
 
 /* Begin PBXBuildFile section */
 		000000000000000000000203 /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000103 /* Models.swift */; };
+		000000000000000000000251 /* AppFailure.swift in Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000150 /* AppFailure.swift */; };
+		000000000000000000000252 /* ShareBinding.swift in Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000151 /* ShareBinding.swift */; };
 		000000000000000000000204 /* KeychainStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000104 /* KeychainStore.swift */; };
 		000000000000000000000205 /* SealServerClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000105 /* SealServerClient.swift */; };
 		000000000000000000000206 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000107 /* PrivacyInfo.xcprivacy */; };
@@ -41,12 +43,15 @@
 		000000000000000000000246 /* WelcomeFeature.swift in Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000146 /* WelcomeFeature.swift */; };
 		000000000000000000000247 /* WelcomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000147 /* WelcomeView.swift */; };
 		000000000000000000000248 /* Brand.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000148 /* Brand.xcassets */; };
+		000000000000000000000249 /* LiveSealbreakClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000149 /* LiveSealbreakClient.swift */; };
 		000000000000000000000250 /* ComposableArchitecture in Frameworks */ = {isa = PBXBuildFile; productRef = 000000000000000000000401 /* ComposableArchitecture */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
 		000000000000000000000006 /* Sealbreak.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Sealbreak.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		000000000000000000000103 /* Models.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models.swift; sourceTree = "<group>"; };
+		000000000000000000000150 /* AppFailure.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppFailure.swift; sourceTree = "<group>"; };
+		000000000000000000000151 /* ShareBinding.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareBinding.swift; sourceTree = "<group>"; };
 		000000000000000000000104 /* KeychainStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainStore.swift; sourceTree = "<group>"; };
 		000000000000000000000105 /* SealServerClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SealServerClient.swift; sourceTree = "<group>"; };
 		000000000000000000000106 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
@@ -81,6 +86,7 @@
 		000000000000000000000146 /* WelcomeFeature.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WelcomeFeature.swift; sourceTree = "<group>"; };
 		000000000000000000000147 /* WelcomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WelcomeView.swift; sourceTree = "<group>"; };
 		000000000000000000000148 /* Brand.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Resources/Brand.xcassets; sourceTree = "<group>"; };
+		000000000000000000000149 /* LiveSealbreakClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveSealbreakClient.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -110,6 +116,7 @@
 				000000000000000000000301 /* Features */,
 				000000000000000000000308 /* DesignSystem */,
 				000000000000000000000310 /* Domain */,
+				000000000000000000000314 /* Dependencies */,
 				000000000000000000000311 /* Infrastructure */,
 				000000000000000000000148 /* Brand.xcassets */,
 				000000000000000000000106 /* Info.plist */,
@@ -242,9 +249,19 @@
 		000000000000000000000310 /* Domain */ = {
 			isa = PBXGroup;
 			children = (
+				000000000000000000000150 /* AppFailure.swift */,
 				000000000000000000000103 /* Models.swift */,
+				000000000000000000000151 /* ShareBinding.swift */,
 			);
 			path = Domain;
+			sourceTree = "<group>";
+		};
+		000000000000000000000314 /* Dependencies */ = {
+			isa = PBXGroup;
+			children = (
+				000000000000000000000145 /* SealbreakClient.swift */,
+			);
+			path = Dependencies;
 			sourceTree = "<group>";
 		};
 		000000000000000000000311 /* Infrastructure */ = {
@@ -252,9 +269,17 @@
 			children = (
 				000000000000000000000104 /* KeychainStore.swift */,
 				000000000000000000000105 /* SealServerClient.swift */,
-				000000000000000000000145 /* SealbreakClient.swift */,
+				000000000000000000000313 /* Live */,
 			);
 			path = Infrastructure;
+			sourceTree = "<group>";
+		};
+		000000000000000000000313 /* Live */ = {
+			isa = PBXGroup;
+			children = (
+				000000000000000000000149 /* LiveSealbreakClient.swift */,
+			);
+			path = Live;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -333,10 +358,13 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				000000000000000000000251 /* AppFailure.swift in Sources */,
 				000000000000000000000203 /* Models.swift in Sources */,
+				000000000000000000000252 /* ShareBinding.swift in Sources */,
 				000000000000000000000204 /* KeychainStore.swift in Sources */,
 				000000000000000000000205 /* SealServerClient.swift in Sources */,
 				000000000000000000000245 /* SealbreakClient.swift in Sources */,
+				000000000000000000000249 /* LiveSealbreakClient.swift in Sources */,
 				000000000000000000000210 /* SealbreakApp.swift in Sources */,
 				000000000000000000000211 /* AppRootView.swift in Sources */,
 				000000000000000000000212 /* PrivacyGate.swift in Sources */,
