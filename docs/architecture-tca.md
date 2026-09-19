@@ -31,7 +31,9 @@ The iOS app target separately compiles `Infrastructure/Live/LiveSealbreakClient.
 - `ProfileStore` for non-secret display metadata.
 - `LAContext`, `UIApplication`, and `UIScreen` for biometric authorization and foreground/protected-data/screen-capture checks.
 
-The Swift Package core target explicitly excludes `Infrastructure/Live`. This keeps iOS-only composition out of `SealbreakCoreTests` without conditional-import branches in production source. Test doubles such as `ClientSpy` live only under `Tests/` and are injected through `TestStore` dependency overrides.
+The Swift Package core target explicitly excludes `Infrastructure/Live`. This keeps the iOS live-composition layer out of `SealbreakCoreTests` without conditional-import branches in production source. The core target still compiles testable infrastructure such as `SealServerClient`, `KeychainStore`, and `ProfileStore`; those components are covered directly by unit tests and rely only on APIs available to the macOS test build.
+
+Test doubles such as `ClientSpy` live only under `Tests/` and are injected through `TestStore` dependency overrides. New UIKit-dependent composition code belongs under `Infrastructure/Live` so that it cannot leak back into the Swift Package test target.
 
 This follows the Point-Free dependency modularization pattern: the interface owns `TestDependencyKey`; the live implementation adds `DependencyKey`. Low-level infrastructure does not import feature reducers.
 
