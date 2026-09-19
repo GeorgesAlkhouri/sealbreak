@@ -1,14 +1,34 @@
 import ComposableArchitecture
 
+struct ShareImportPreview: Equatable, Sendable {
+    static let visibleCharacterCount = 4
+
+    static func masked(_ input: String) -> String? {
+        guard let share = try? ShareRecord.validateShare(input) else {
+            return nil
+        }
+
+        let characters = Array(share)
+        let visible = visibleCharacterCount
+        guard characters.count > visible * 2 else {
+            return nil
+        }
+
+        let prefix = String(characters.prefix(visible))
+        let suffix = String(characters.suffix(visible))
+        return "\(prefix) •••• •••• \(suffix)"
+    }
+}
+
 @Reducer
 struct ShareSetupFeature {
     @ObservableState
     struct State: Equatable {
         enum Operation: Equatable {
-            case importing
+            case protecting
 
             var activity: String {
-                "Importing share…"
+                "Protecting share…"
             }
         }
 
@@ -38,7 +58,7 @@ struct ShareSetupFeature {
             case profileReady(ServerProfile, notice: String)
         }
 
-        case saveTapped(share: String, recoveryConfirmed: Bool)
+        case saveTapped(share: String)
         case importResponse(Result<ProfileResult, AppFailure>)
         case operationCancelled
         case privacyInterrupted
@@ -54,12 +74,8 @@ struct ShareSetupFeature {
     var body: some ReducerOf<Self> {
         Reduce { state, action in
             switch action {
-            case .saveTapped(let input, let recoveryConfirmed):
+            case .saveTapped(let input):
                 guard !state.isBusy else { return .none }
-                guard recoveryConfirmed else {
-                    state.notice = "Confirm an independent recovery copy before importing."
-                    return .none
-                }
 
                 let record: ShareRecord
                 do {
@@ -69,7 +85,7 @@ struct ShareSetupFeature {
                     return .none
                 }
 
-                state.operation = .importing
+                state.operation = .protecting
                 let client = self.client
                 return .run { send in
                     var record = record
@@ -85,7 +101,7 @@ struct ShareSetupFeature {
                         let notice: String
                         do {
                             try await client.saveProfile(profile)
-                            notice = "Share saved with device-bound biometric protection. Check status to begin."
+                            notice = "Share protected on this iPhone. Check status to begin."
                         } catch {
                             notice = "Protected share exists, but display metadata could not be saved. Use Restore profile from Keychain on the next launch."
                         }
