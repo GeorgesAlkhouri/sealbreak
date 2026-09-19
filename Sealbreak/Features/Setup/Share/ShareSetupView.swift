@@ -34,12 +34,6 @@ struct ShareSetupView: View {
                             busy: store.isBusy
                         )
 
-                        if ShareImportPreview.masked(share) != nil {
-                            Text("Compare the visible characters with your original copy.")
-                                .font(.footnote.weight(.medium))
-                                .foregroundStyle(PapercutPalette.secondaryText)
-                        }
-
                         Divider()
                             .overlay(PapercutPalette.ring)
 
@@ -169,9 +163,9 @@ struct ShareSetupView: View {
             .shadow(color: .black.opacity(0.30), radius: 8, y: 8)
         }
         .buttonStyle(.plain)
-        .disabled(store.isBusy || ShareImportPreview.masked(share) == nil)
+        .disabled(store.isBusy || !ShareImportPreview.isValid(share))
         .opacity(
-            store.isBusy || ShareImportPreview.masked(share) != nil
+            store.isBusy || ShareImportPreview.isValid(share)
                 ? 1
                 : 0.5
         )
@@ -266,7 +260,7 @@ private struct MaskedShareField: View {
                 }
 
                 let insertedCount = newValue.utf8.count - oldValue.utf8.count
-                if insertedCount > 8, ShareImportPreview.masked(newValue) != nil {
+                if insertedCount >= 8, ShareImportPreview.masked(newValue) != nil {
                     isFocused = false
                 }
             }
@@ -282,6 +276,7 @@ private struct MaskedShareField: View {
                         .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
+                .privacySensitive()
                 .accessibilityLabel("Masked share preview")
                 .accessibilityValue(preview)
                 .accessibilityHint("Double tap to edit the share.")
