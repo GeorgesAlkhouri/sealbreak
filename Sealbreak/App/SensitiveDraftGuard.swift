@@ -3,16 +3,27 @@ import UIKit
 
 struct SensitiveDraftGuard: ViewModifier {
     @Environment(\.scenePhase) private var scenePhase
+
+    let preserveDuringSensitiveOperation: Bool
     let clear: () -> Void
 
     func body(content: Content) -> some View {
         content
             .onChange(of: scenePhase) { _, phase in
-                if phase == .background {
+                if phase == .background, !preserveDuringSensitiveOperation {
                     clear()
                 }
             }
-            .onReceive(NotificationCenter.default.publisher(for: UIScreen.capturedDidChangeNotification)) { _ in
+            .onChange(of: preserveDuringSensitiveOperation) { _, isPreserving in
+                if !isPreserving, scenePhase == .background {
+                    clear()
+                }
+            }
+            .onReceive(
+                NotificationCenter.default.publisher(
+                    for: UIScreen.capturedDidChangeNotification
+                )
+            ) { _ in
                 if UIScreen.main.isCaptured {
                     clear()
                 }
@@ -21,7 +32,15 @@ struct SensitiveDraftGuard: ViewModifier {
 }
 
 extension View {
-    func clearSensitiveDraftOnPrivacyChange(_ clear: @escaping () -> Void) -> some View {
-        modifier(SensitiveDraftGuard(clear: clear))
+    func clearSensitiveDraftOnPrivacyChange(
+        preserveDuringSensitiveOperation: Bool = false,
+        _ clear: @escaping () -> Void
+    ) -> some View {
+        modifier(
+            SensitiveDraftGuard(
+                preserveDuringSensitiveOperation: preserveDuringSensitiveOperation,
+                clear: clear
+            )
+        )
     }
 }
