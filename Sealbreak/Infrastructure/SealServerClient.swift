@@ -2,15 +2,6 @@ import Foundation
 import Security
 import dnssd
 
-enum DNSSECStatus: Equatable, Sendable {
-    case secure
-    case insecure
-    case bogus
-    case indeterminate
-    case notApplicable
-    case unavailable
-}
-
 private final class DNSSECResultBox {
     var status: DNSSECStatus?
 }
