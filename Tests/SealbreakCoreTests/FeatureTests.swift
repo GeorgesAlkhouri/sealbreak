@@ -10,6 +10,7 @@ private actor ClientSpy {
     var deleteProfileError: AppFailure?
     var detectedProduct: ServerProduct = .generic
     var detectionError: AppFailure?
+    var configuredDNSSECStatus: DNSSECStatus = .insecure
     var statusQueue: [Result<SealStatus, AppFailure>] = []
     var readRecord: ShareRecord?
     var readError: AppFailure?
@@ -26,6 +27,7 @@ private actor ClientSpy {
     var submittedRecords: [ShareRecord] = []
     var statusCalls = 0
     var detectProductCalls = 0
+    var dnssecCalls = 0
     var deleteProfileCalls = 0
     var deleteShareCalls = 0
     var cancelCalls = 0
@@ -51,6 +53,11 @@ private actor ClientSpy {
         detectProductCalls += 1
         if let detectionError { throw detectionError }
         return detectedProduct
+    }
+
+    func dnssecStatus() -> DNSSECStatus {
+        dnssecCalls += 1
+        return configuredDNSSECStatus
     }
 
     func status() throws -> SealStatus {
@@ -104,6 +111,7 @@ private func client(_ spy: ClientSpy) -> SealbreakClient {
         saveProfile: { try await spy.saveProfile($0) },
         deleteProfile: { try await spy.deleteProfile() },
         detectProduct: { _ in try await spy.detectProduct() },
+        dnssecStatus: { _ in await spy.dnssecStatus() },
         status: { _ in try await spy.status() },
         submit: { try await spy.submit($0) },
         readShare: { _ in try await spy.readShare() },
@@ -240,6 +248,25 @@ struct FeatureTests {
         #expect(store.state.welcome == nil)
         #expect(store.state.setup != nil)
         #expect(store.state.home == nil)
+    }
+
+    @Test
+    func appSetupCancellationReturnsToWelcome() async {
+        var initialState = AppFeature.State()
+        initialState.isLoading = false
+        initialState.didLoad = true
+        initialState.setup = SetupFeature.State()
+
+        let store = TestStore(initialState: initialState) {
+            AppFeature()
+        }
+        store.exhaustivity = .off(showSkippedAssertions: false)
+
+        await store.send(.setup(.delegate(.cancelled)))
+
+        #expect(store.state.setup == nil)
+        #expect(store.state.home == nil)
+        #expect(store.state.welcome != nil)
     }
 
     @Test
@@ -771,6 +798,85 @@ struct FeatureTests {
     }
 
     @Test
+    func setupChecksInstanceBeforeAdvancingToShare() async throws {
+        let spy = ClientSpy()
+        await spy.setDetectedProduct(.openBao)
+        await spy.setDNSSECStatus(.secure)
+
+        let store = TestStore(initialState: SetupFeature.State()) {
+            SetupFeature()
+        } withDependencies: {
+            $0.sealbreakClient = client(spy)
+        }
+        store.exhaustivity = .off(showSkippedAssertions: false)
+
+        await store.send(.addressChanged(origin))
+        #expect(store.state.checkedProfile == nil)
+
+        await store.send(.checkConnectionTapped).finish()
+        await store.skipReceivedActions()
+
+        #expect(store.state.operation == nil)
+        #expect(store.state.dnssecStatus == .secure)
+        #expect(store.state.checkedProfile?.origin == origin)
+        #expect(store.state.checkedProfile?.product == .openBao)
+        #expect(store.state.canContinue)
+        #expect(await spy.detectProductCalls == 1)
+        #expect(await spy.dnssecCount == 1)
+
+        await store.send(.continueTapped)
+        #expect(store.state.step == .share)
+    }
+
+    @Test
+    func setupBlocksBogusDNSSECBeforeContactingServer() async {
+        let spy = ClientSpy()
+        await spy.setDNSSECStatus(.bogus)
+
+        let store = TestStore(initialState: SetupFeature.State()) {
+            SetupFeature()
+        } withDependencies: {
+            $0.sealbreakClient = client(spy)
+        }
+        store.exhaustivity = .off(showSkippedAssertions: false)
+
+        await store.send(.addressChanged(origin))
+        await store.send(.checkConnectionTapped).finish()
+        await store.skipReceivedActions()
+
+        #expect(store.state.operation == nil)
+        #expect(store.state.dnssecStatus == .bogus)
+        #expect(store.state.checkedProfile == nil)
+        #expect(store.state.connectionNotice?.contains("DNSSEC validation failed") == true)
+        #expect(!store.state.canContinue)
+        #expect(await spy.detectProductCalls == 0)
+    }
+
+    @Test
+    func setupEditingInstanceInvalidatesSuccessfulCheck() async {
+        let spy = ClientSpy()
+        await spy.setDNSSECStatus(.secure)
+
+        let store = TestStore(initialState: SetupFeature.State()) {
+            SetupFeature()
+        } withDependencies: {
+            $0.sealbreakClient = client(spy)
+        }
+        store.exhaustivity = .off(showSkippedAssertions: false)
+
+        await store.send(.addressChanged(origin))
+        await store.send(.checkConnectionTapped).finish()
+        await store.skipReceivedActions()
+        #expect(store.state.canContinue)
+
+        await store.send(.addressChanged("https://other.example.com"))
+        #expect(store.state.checkedProfile == nil)
+        #expect(store.state.dnssecStatus == nil)
+        #expect(store.state.connectionNotice == nil)
+        #expect(!store.state.canContinue)
+    }
+
+    @Test
     func setupRejectsInvalidImportAndSurfacesDependencyFailure() async throws {
         let target = try profile()
         let spy = ClientSpy()
@@ -1033,6 +1139,7 @@ struct FeatureTests {
     @Test
     func setupOperationActivityMapsEveryState() {
         let cases: [(SetupFeature.State.Operation, String)] = [
+            (.checkingConnection, "Checking connection…"),
             (.importing, "Importing share…"),
             (.restoring, "Restoring local profile…"),
             (.removingLocalData, "Removing local data…")
@@ -1155,6 +1262,7 @@ private extension ClientSpy {
     func setDeleteProfileError(_ value: AppFailure?) { deleteProfileError = value }
     func setDetectedProduct(_ value: ServerProduct) { detectedProduct = value }
     func setDetectionError(_ value: AppFailure?) { detectionError = value }
+    func setDNSSECStatus(_ value: DNSSECStatus) { configuredDNSSECStatus = value }
     func setStatusQueue(_ value: [Result<SealStatus, AppFailure>]) { statusQueue = value }
     func setReadRecord(_ value: ShareRecord?) { readRecord = value }
     func setReadError(_ value: AppFailure?) { readError = value }
@@ -1167,6 +1275,7 @@ private extension ClientSpy {
     var submittedCount: Int { submittedRecords.count }
     var insertedCount: Int { insertedRecords.count }
     var insertedProducts: [ServerProduct] { insertedRecords.map { $0.profile.product } }
+    var dnssecCount: Int { dnssecCalls }
     var replacedCount: Int { replacedRecords.count }
     var savedProfilesCount: Int { savedProfiles.count }
 }
