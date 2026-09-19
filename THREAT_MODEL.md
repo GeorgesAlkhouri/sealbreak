@@ -230,7 +230,6 @@ A share may already exist in a password manager, clipboard history, note, screen
 
 Sealbreak performs no automatic clipboard read and provides no share-export feature, but it cannot revoke or control copies that already exist elsewhere.
 
-During setup, Sealbreak may reveal only the final three characters of the current in-memory import draft, and only when the validated share is at least 32 characters long. The rest is represented by a fixed masked indicator that does not disclose the encoded share length. Those three characters can be observed or captured while displayed. The complete share is never rendered by this preview, and a stored share cannot be revealed through it later.
 
 Affected assets: **A01**
 
@@ -404,7 +403,7 @@ A residual risk rating does not imply risk acceptance. This threat model does no
 | **M04 — Target binding** | Application | Store the authoritative server profile with the share and compare it before submission |
 | **M05 — State machine and request discipline** | Application | Validate seal state, permit only supported Shamir states, perform one explicit submission per action, never automatically retry, and verify state afterwards |
 | **M06 — Data minimization** | Application | Do not log, analyze, cache, export, or persist the share outside the protected record; minimize diagnostic detail and clear mutable buffers where practical |
-| **M07 — Secure import** | Application | Do not read the clipboard automatically or provide share export functionality. During setup, reveal only the final three characters of a validated import draft of at least 32 characters; represent the hidden portion with a fixed mask that does not disclose encoded length, never render the complete share, and never reveal a stored share after setup. |
+| **M07 — Secure import** | Application | Do not read the clipboard automatically and do not provide share export functionality |
 | **M08 — Safe share lifecycle** | Application | Require fresh authorization for replace/delete operations, use safe in-place updates, and enforce one encoded storage-size invariant across readers and writers |
 | **M09 — Recovery and incident response** | Operator / deployment | Maintain independent recovery and use OpenBao rekeying to replace compromised server-side shares |
 | **M10 — Secure infrastructure** | Operator / deployment | Protect OpenBao, TLS proxies, VPN, DNS, certificates, node routing, and bootstrap dependencies outside the application |
