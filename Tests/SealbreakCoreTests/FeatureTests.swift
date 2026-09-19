@@ -532,7 +532,7 @@ struct FeatureTests {
         await store.send(.saveTapped(share: share, recoveryConfirmed: false))
         #expect(store.state.notice.contains("Confirm recovery"))
 
-        await store.send(.saveTapped(share: share)).finish()
+        await store.send(.saveTapped(share: share, recoveryConfirmed: true)).finish()
         let replacedNotice =
             "Local share replaced. This does not rotate server keys; server-side rekeying is a separate operation."
         await store.receive(.saveResponse(.success(replacedNotice)))
@@ -950,12 +950,12 @@ struct FeatureTests {
         }
         store.exhaustivity = .off(showSkippedAssertions: false)
 
-        await store.send(.saveTapped(share: "short"))
+        await store.send(.saveTapped(share: "short", recoveryConfirmed: true))
         #expect(!store.state.isBusy)
         #expect(store.state.notice.contains("share"))
 
         await spy.setReplaceError(AppFailure("replace failed"))
-        await store.send(.saveTapped(share: share)).finish()
+        await store.send(.saveTapped(share: share, recoveryConfirmed: true)).finish()
         await store.skipReceivedActions()
         #expect(!store.state.isBusy)
         #expect(store.state.activity.isEmpty)
@@ -974,7 +974,7 @@ struct FeatureTests {
         }
         cancellationStore.exhaustivity = .off(showSkippedAssertions: false)
 
-        await cancellationStore.send(.saveTapped(share: share)).finish()
+        await cancellationStore.send(.saveTapped(share: share, recoveryConfirmed: true)).finish()
         await cancellationStore.skipReceivedActions()
         #expect(!cancellationStore.state.isBusy)
         #expect(cancellationStore.state.activity.isEmpty)
