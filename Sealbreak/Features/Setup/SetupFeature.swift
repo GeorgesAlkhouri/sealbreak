@@ -73,8 +73,7 @@ struct SetupFeature {
         case confirmationDismissed
         case removeResponse(Result<String, AppFailure>)
         case operationCancelled
-        case privacyInterrupted(SensitiveInterruption)
-        case becameActive
+        case privacyInterrupted
         case delegate(Delegate)
     }
 
@@ -211,9 +210,9 @@ struct SetupFeature {
                 state.notice = "Operation cancelled. Refresh status before retrying; a submitted request may already have been processed."
                 return .none
 
-            case .privacyInterrupted(let interruption):
+            case .privacyInterrupted:
                 if state.step == .share, state.share != nil {
-                    return .send(.share(.privacyInterrupted(interruption)))
+                    return .send(.share(.privacyInterrupted))
                 }
 
                 if state.instance.isCheckingConnection {
@@ -232,12 +231,6 @@ struct SetupFeature {
                     .cancel(id: CancelID.operation),
                     .run { _ in await client.cancelSensitiveOperation() }
                 )
-
-            case .becameActive:
-                guard state.step == .share, state.share != nil else {
-                    return .none
-                }
-                return .send(.share(.becameActive))
 
             case .instance, .share, .delegate:
                 return .none
