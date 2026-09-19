@@ -77,7 +77,7 @@ struct ShareSetupView: View {
         .scrollIndicators(.hidden)
         .scrollDismissesKeyboard(.interactively)
         .clearSensitiveDraftOnPrivacyChange(
-            preserveDuringSensitiveOperation: store.isBusy,
+            clearsOnBackground: false,
             clearDraft
         )
     }
