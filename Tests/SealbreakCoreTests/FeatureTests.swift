@@ -926,7 +926,7 @@ struct FeatureTests {
         var interruptedState = SetupFeature.State()
         interruptedState.step = .share
         interruptedState.share = ShareSetupFeature.State(profile: target)
-        interruptedState.share?.operation = .importing
+        interruptedState.share?.operation = .protecting
         let interruptionStore = TestStore(initialState: interruptedState) {
             SetupFeature()
         } withDependencies: {
