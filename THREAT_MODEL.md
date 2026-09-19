@@ -252,6 +252,8 @@ After successful Face ID authorization, the share must briefly exist in Sealbrea
 
 Sealbreak performs best-effort cleanup of mutable buffers and uses short-lived request data, but Swift strings, serialization internals, networking, a debugger, or a sufficiently privileged process attacker may retain or inspect copies. Guaranteed memory erasure is not claimed.
 
+A transient setup draft is discarded when Sealbreak genuinely enters the background or screen capture begins, and it is cleared before a successful setup leaves the Share view. A temporary lifecycle transition caused by an active Face ID dialog may defer background clearing until the authentication result is known; a user-cancelled Face ID dialog keeps the draft so the operator can retry, while a system/app cancellation associated with leaving the active foreground discards it.
+
 Affected assets: **A01, A06**
 
 Controls: **M01, M02, M06, M11**
@@ -272,7 +274,7 @@ Controls: **M01, M06, M08**
 
 Device loss, hardware failure, Face ID re-enrollment, Keychain invalidation, app deletion, or an application-identity change may make the local share inaccessible.
 
-This is partly an intentional consequence of device-bound storage. Sealbreak tells the operator to keep an independent recovery copy, but the application does not require or verify that such a copy exists. Recovery therefore remains an operator and deployment responsibility.
+This is partly an intentional consequence of device-bound storage. Sealbreak's operating model requires an independent recovery copy outside the app. Setup communicates that requirement, but the application cannot prove that the external copy exists or is usable. Recovery therefore remains an operator and deployment responsibility.
 
 Affected assets: **A04**
 
@@ -403,7 +405,7 @@ A residual risk rating does not imply risk acceptance. This threat model does no
 | **M03 — Transport** | Application | HTTPS only, normal certificate and hostname validation, TLS 1.2 or newer, and blocked redirects |
 | **M04 — Target binding** | Application | Store the authoritative server profile with the share and compare it before submission |
 | **M05 — State machine and request discipline** | Application | Validate seal state, permit only supported Shamir states, perform one explicit submission per action, never automatically retry, and verify state afterwards |
-| **M06 — Data minimization** | Application | Do not log, analyze, cache, export, or persist the share outside the protected record; minimize diagnostic detail and clear mutable buffers where practical |
+| **M06 — Data minimization** | Application | Do not log, analyze, cache, export, or persist the share outside the protected record; minimize diagnostic detail, clear mutable buffers where practical, discard transient setup drafts on true background/capture, and clear the draft before successful setup dismissal |
 | **M07 — Secure import** | Application | Do not read the clipboard automatically or provide share export functionality. During setup, reveal only a fixed four-character prefix and suffix of the current import draft for visual comparison; never render the complete share or reveal a stored share after setup. |
 | **M08 — Safe share lifecycle** | Application | Require fresh authorization for replace/delete operations, use safe in-place updates, and enforce one encoded storage-size invariant across readers and writers |
 | **M09 — Recovery and incident response** | Operator / deployment | Maintain independent recovery and use OpenBao rekeying to replace compromised server-side shares |
