@@ -44,6 +44,12 @@
       "description": "Require explicit approval for major updates",
       "matchUpdateTypes": ["major"],
       "dependencyDashboardApproval": true
+    },
+    {
+      "description": "Keep the CI Python runtime on the 3.13 release line",
+      "matchManagers": ["github-actions"],
+      "matchDepNames": ["python"],
+      "allowedVersions": "/^3\\.13(?:\\.|$)/"
     }
   ]
 }
