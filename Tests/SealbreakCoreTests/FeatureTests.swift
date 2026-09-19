@@ -891,6 +891,26 @@ struct FeatureTests {
     }
 
     @Test
+    func appPrivacyInterruptionOnWelcomeDoesNotCancelSensitiveWork() async {
+        let spy = ClientSpy()
+        var initialState = AppFeature.State()
+        initialState.isLoading = false
+        initialState.welcome = WelcomeFeature.State()
+
+        let store = TestStore(initialState: initialState) {
+            AppFeature()
+        } withDependencies: {
+            $0.sealbreakClient = client(spy)
+        }
+        store.exhaustivity = .off(showSkippedAssertions: false)
+
+        await store.send(.privacy(.delegate(.interrupted))).finish()
+
+        #expect(store.state.welcome != nil)
+        #expect(await spy.cancelCalls == 0)
+    }
+
+    @Test
     func appPrivacyInterruptionWithoutVisibleFeatureCancelsSensitiveWork() async {
         let spy = ClientSpy()
         let store = TestStore(initialState: AppFeature.State()) {
