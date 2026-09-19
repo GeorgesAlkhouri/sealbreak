@@ -38,6 +38,9 @@
 		000000000000000000000243 /* PapercutLandscape.swift in Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000143 /* PapercutLandscape.swift */; };
 		000000000000000000000244 /* PapercutShapes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000144 /* PapercutShapes.swift */; };
 		000000000000000000000245 /* SealbreakClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000145 /* SealbreakClient.swift */; };
+		000000000000000000000246 /* WelcomeFeature.swift in Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000146 /* WelcomeFeature.swift */; };
+		000000000000000000000247 /* WelcomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000147 /* WelcomeView.swift */; };
+		000000000000000000000248 /* Brand.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000148 /* Brand.xcassets */; };
 		000000000000000000000250 /* ComposableArchitecture in Frameworks */ = {isa = PBXBuildFile; productRef = 000000000000000000000401 /* ComposableArchitecture */; };
 /* End PBXBuildFile section */
 
@@ -75,6 +78,9 @@
 		000000000000000000000143 /* PapercutLandscape.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PapercutLandscape.swift; sourceTree = "<group>"; };
 		000000000000000000000144 /* PapercutShapes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PapercutShapes.swift; sourceTree = "<group>"; };
 		000000000000000000000145 /* SealbreakClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SealbreakClient.swift; sourceTree = "<group>"; };
+		000000000000000000000146 /* WelcomeFeature.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WelcomeFeature.swift; sourceTree = "<group>"; };
+		000000000000000000000147 /* WelcomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WelcomeView.swift; sourceTree = "<group>"; };
+		000000000000000000000148 /* Brand.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Resources/Brand.xcassets; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -105,6 +111,7 @@
 				000000000000000000000308 /* DesignSystem */,
 				000000000000000000000310 /* Domain */,
 				000000000000000000000311 /* Infrastructure */,
+				000000000000000000000148 /* Brand.xcassets */,
 				000000000000000000000106 /* Info.plist */,
 				000000000000000000000107 /* PrivacyInfo.xcprivacy */,
 			);
@@ -135,12 +142,22 @@
 		000000000000000000000301 /* Features */ = {
 			isa = PBXGroup;
 			children = (
+				000000000000000000000312 /* Welcome */,
 				000000000000000000000302 /* Home */,
 				000000000000000000000304 /* Setup */,
 				000000000000000000000305 /* ServerDetails */,
 				000000000000000000000306 /* ShareManagement */,
 			);
 			path = Features;
+			sourceTree = "<group>";
+		};
+		000000000000000000000312 /* Welcome */ = {
+			isa = PBXGroup;
+			children = (
+				000000000000000000000146 /* WelcomeFeature.swift */,
+				000000000000000000000147 /* WelcomeView.swift */,
+			);
+			path = Welcome;
 			sourceTree = "<group>";
 		};
 		000000000000000000000302 /* Home */ = {
@@ -305,6 +322,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				000000000000000000000206 /* PrivacyInfo.xcprivacy in Resources */,
+				000000000000000000000248 /* Brand.xcassets in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -325,6 +343,8 @@
 				000000000000000000000213 /* SensitiveDraftGuard.swift in Sources */,
 				000000000000000000000214 /* AppFeature.swift in Sources */,
 				000000000000000000000215 /* PrivacyFeature.swift in Sources */,
+				000000000000000000000246 /* WelcomeFeature.swift in Sources */,
+				000000000000000000000247 /* WelcomeView.swift in Sources */,
 				000000000000000000000220 /* HomeFeature.swift in Sources */,
 				000000000000000000000221 /* HomeView.swift in Sources */,
 				000000000000000000000222 /* HomeViewState.swift in Sources */,

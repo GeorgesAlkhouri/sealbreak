@@ -186,6 +186,7 @@ struct FeatureTests {
         await store.send(.task).finish()
         await store.skipReceivedActions()
 
+        #expect(store.state.welcome == nil)
         #expect(store.state.setup == nil)
         #expect(store.state.home?.profile == target)
         #expect(store.state.home?.status == checked)
@@ -193,7 +194,7 @@ struct FeatureTests {
     }
 
     @Test
-    func appLoadFailureEntersSetup() async {
+    func appLoadFailureEntersWelcome() async {
         let spy = ClientSpy()
         await spy.setLoadError(AppFailure("broken"))
         let store = TestStore(initialState: AppFeature.State()) {
@@ -207,7 +208,66 @@ struct FeatureTests {
         await store.skipReceivedActions()
 
         #expect(store.state.home == nil)
-        #expect(store.state.setup?.notice.contains("could not be read") == true)
+        #expect(store.state.setup == nil)
+        #expect(store.state.welcome?.notice?.contains("could not be read") == true)
+    }
+
+    @Test
+    func welcomeRoutesPrimaryAndRestoreIntent() async {
+        let store = TestStore(initialState: WelcomeFeature.State()) {
+            WelcomeFeature()
+        }
+
+        await store.send(.setUpTapped)
+        await store.receive(.delegate(.setUp))
+        await store.send(.restoreTapped)
+        await store.receive(.delegate(.restore))
+    }
+
+    @Test
+    func appWelcomeSetUpOpensSetup() async {
+        var initialState = AppFeature.State()
+        initialState.isLoading = false
+        initialState.welcome = WelcomeFeature.State()
+
+        let store = TestStore(initialState: initialState) {
+            AppFeature()
+        }
+        store.exhaustivity = .off(showSkippedAssertions: false)
+
+        await store.send(.welcome(.delegate(.setUp)))
+
+        #expect(store.state.welcome == nil)
+        #expect(store.state.setup != nil)
+        #expect(store.state.home == nil)
+    }
+
+    @Test
+    func appWelcomeRestoreUsesExistingKeychainFlow() async throws {
+        let target = try profile(product: .openBao)
+        let checked = status()
+        let spy = ClientSpy()
+        await spy.setReadRecord(try record(target))
+        await spy.setStatusQueue([.success(checked)])
+
+        var initialState = AppFeature.State()
+        initialState.isLoading = false
+        initialState.welcome = WelcomeFeature.State()
+
+        let store = TestStore(initialState: initialState) {
+            AppFeature()
+        } withDependencies: {
+            $0.sealbreakClient = client(spy)
+        }
+        store.exhaustivity = .off(showSkippedAssertions: false)
+
+        await store.send(.welcome(.delegate(.restore))).finish()
+        await store.skipReceivedActions()
+
+        #expect(store.state.welcome == nil)
+        #expect(store.state.setup == nil)
+        #expect(store.state.home?.profile == target)
+        #expect(store.state.home?.status == checked)
     }
 
     @Test
@@ -512,7 +572,7 @@ struct FeatureTests {
     }
 
     @Test
-    func appLoadWithoutProfileEntersSetup() async {
+    func appLoadWithoutProfileEntersWelcome() async {
         let spy = ClientSpy()
         let store = TestStore(initialState: AppFeature.State()) {
             AppFeature()
@@ -525,7 +585,8 @@ struct FeatureTests {
         await store.skipReceivedActions()
 
         #expect(store.state.home == nil)
-        #expect(store.state.setup != nil)
+        #expect(store.state.setup == nil)
+        #expect(store.state.welcome != nil)
         #expect(!store.state.isLoading)
     }
 
@@ -556,7 +617,8 @@ struct FeatureTests {
 
         await store.send(.home(.delegate(.localDataRemoved(notice: "Local data removed"))))
         #expect(store.state.home == nil)
-        #expect(store.state.setup?.notice == "Local data removed")
+        #expect(store.state.setup == nil)
+        #expect(store.state.welcome?.notice == "Local data removed")
     }
 
     @Test
@@ -826,6 +888,26 @@ struct FeatureTests {
         #expect(interruptionStore.state.activity.isEmpty)
         #expect(interruptionStore.state.notice.contains("Operation interrupted"))
         #expect(await spy.cancelCalls == 1)
+    }
+
+    @Test
+    func appPrivacyInterruptionOnWelcomeDoesNotCancelSensitiveWork() async {
+        let spy = ClientSpy()
+        var initialState = AppFeature.State()
+        initialState.isLoading = false
+        initialState.welcome = WelcomeFeature.State()
+
+        let store = TestStore(initialState: initialState) {
+            AppFeature()
+        } withDependencies: {
+            $0.sealbreakClient = client(spy)
+        }
+        store.exhaustivity = .off(showSkippedAssertions: false)
+
+        await store.send(.privacy(.delegate(.interrupted))).finish()
+
+        #expect(store.state.welcome != nil)
+        #expect(await spy.cancelCalls == 0)
     }
 
     @Test
