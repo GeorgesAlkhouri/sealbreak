@@ -228,7 +228,7 @@ struct SetupCoverageTests {
         instanceState.instance.isCheckingConnection = true
         let instanceStore = setupStore(instanceState, dependency: .testValue)
 
-        await instanceStore.send(.privacyInterrupted).finish()
+        await instanceStore.send(.privacyInterrupted(.background)).finish()
         await instanceStore.skipReceivedActions()
         #expect(!instanceStore.state.instance.isCheckingConnection)
         #expect(instanceStore.state.instance.notice == "Connection check interrupted. Try again.")
@@ -244,9 +244,16 @@ struct SetupCoverageTests {
         shareState.share?.operation = .protecting
         let shareStore = setupStore(shareState, dependency: shareDependency)
 
-        await shareStore.send(.privacyInterrupted).finish()
+        await shareStore.send(.privacyInterrupted(.background)).finish()
+        await shareStore.skipReceivedActions()
+        #expect(shareStore.state.share?.operation == .protecting)
+        #expect(shareStore.state.share?.backgroundedDuringProtection == true)
+        #expect(await shareCounter.count == 0)
+
+        await shareStore.send(.privacyInterrupted(.screenCapture)).finish()
         await shareStore.skipReceivedActions()
         #expect(shareStore.state.share?.operation == nil)
+        #expect(shareStore.state.share?.draftClearGeneration == 1)
         #expect(await shareCounter.count == 1)
 
         let ownCounter = CallCounter()
@@ -259,7 +266,7 @@ struct SetupCoverageTests {
         ownState.confirmDelete = true
         let ownStore = setupStore(ownState, dependency: ownDependency)
 
-        await ownStore.send(.privacyInterrupted).finish()
+        await ownStore.send(.privacyInterrupted(.background)).finish()
         #expect(ownStore.state.operation == nil)
         #expect(!ownStore.state.confirmDelete)
         #expect(ownStore.state.notice.contains("Operation interrupted"))
