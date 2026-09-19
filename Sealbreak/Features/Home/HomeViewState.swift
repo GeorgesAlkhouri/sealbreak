@@ -32,7 +32,7 @@ struct HomeViewState: Equatable {
             case .sealed(let progress, let threshold, _):
                 return "\(progress) of \(threshold) shares submitted"
             case .unsealed:
-                return "OpenBao is available"
+                return "Server is available"
             }
         }
 

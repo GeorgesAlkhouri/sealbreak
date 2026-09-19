@@ -8,7 +8,7 @@ struct SecurityRegressionTests {
 
     @Test
     func homeFailuresDiscardStaleStatusSoTheNoticeRemainsVisible() async throws {
-        let profile = try ServerProfile(name: "OpenBao", address: "https://bao.example.com")
+        let profile = try ServerProfile(name: "Server", address: "https://bao.example.com")
         let status = SealStatus(
             type: "shamir",
             initialized: true,

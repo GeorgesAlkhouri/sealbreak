@@ -16,12 +16,13 @@ struct SealbreakClientTests {
         #endif
 
         let dependency = SealbreakClient.unimplemented
-        let profile = try ServerProfile(name: "OpenBao", address: "https://bao.example.com")
+        let profile = try ServerProfile(name: "Server", address: "https://server.example.com")
         let record = try ShareRecord(profile: profile, input: String(repeating: "a", count: 64))
 
         #expect(await failureMessage { try await dependency.loadProfile() } != nil)
         #expect(await failureMessage { try await dependency.saveProfile(profile) } != nil)
         #expect(await failureMessage { try await dependency.deleteProfile() } != nil)
+        #expect(await failureMessage { try await dependency.detectProduct(profile) } != nil)
         #expect(await failureMessage { try await dependency.status(profile) } != nil)
         #expect(await failureMessage { try await dependency.submit(record) } != nil)
         #expect(await failureMessage { try await dependency.readShare("Test") } != nil)

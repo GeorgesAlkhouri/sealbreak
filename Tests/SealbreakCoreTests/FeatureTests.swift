@@ -8,6 +8,8 @@ private actor ClientSpy {
     var loadError: AppFailure?
     var saveProfileError: AppFailure?
     var deleteProfileError: AppFailure?
+    var detectedProduct: ServerProduct = .generic
+    var detectionError: AppFailure?
     var statusQueue: [Result<SealStatus, AppFailure>] = []
     var readRecord: ShareRecord?
     var readError: AppFailure?
@@ -23,6 +25,7 @@ private actor ClientSpy {
     var replacedRecords: [ShareRecord] = []
     var submittedRecords: [ShareRecord] = []
     var statusCalls = 0
+    var detectProductCalls = 0
     var deleteProfileCalls = 0
     var deleteShareCalls = 0
     var cancelCalls = 0
@@ -42,6 +45,12 @@ private actor ClientSpy {
         deleteProfileCalls += 1
         if let deleteProfileError { throw deleteProfileError }
         loadedProfile = nil
+    }
+
+    func detectProduct() throws -> ServerProduct {
+        detectProductCalls += 1
+        if let detectionError { throw detectionError }
+        return detectedProduct
     }
 
     func status() throws -> SealStatus {
@@ -94,6 +103,7 @@ private func client(_ spy: ClientSpy) -> SealbreakClient {
         loadProfile: { try await spy.loadProfile() },
         saveProfile: { try await spy.saveProfile($0) },
         deleteProfile: { try await spy.deleteProfile() },
+        detectProduct: { _ in try await spy.detectProduct() },
         status: { _ in try await spy.status() },
         submit: { try await spy.submit($0) },
         readShare: { _ in try await spy.readShare() },
@@ -111,8 +121,11 @@ struct FeatureTests {
     private let origin = "https://bao.example.com"
     private let share = String(repeating: "a", count: 64)
 
-    private func profile(_ name: String = "OpenBao") throws -> ServerProfile {
-        try ServerProfile(name: name, address: origin)
+    private func profile(
+        _ name: String = "Server",
+        product: ServerProduct = .generic
+    ) throws -> ServerProfile {
+        try ServerProfile(name: name, address: origin, product: product)
     }
 
     private func record(_ profile: ServerProfile) throws -> ShareRecord {
@@ -310,8 +323,9 @@ struct FeatureTests {
 
     @Test
     func setupImportRequiresRecoveryAndDelegatesProfile() async throws {
-        let target = try profile()
+        let target = try profile(product: .vault)
         let spy = ClientSpy()
+        await spy.setDetectedProduct(.vault)
         let store = TestStore(initialState: SetupFeature.State()) {
             SetupFeature()
         } withDependencies: {
@@ -337,8 +351,31 @@ struct FeatureTests {
         #expect(store.state.notice.contains("Share saved"))
         let insertedCount = await spy.insertedCount
         #expect(insertedCount == 1)
+        #expect(await spy.insertedProducts == [.vault])
+        #expect(await spy.detectProductCalls == 1)
         let savedProfilesCount = await spy.savedProfilesCount
         #expect(savedProfilesCount == 1)
+    }
+
+    @Test
+    func setupImportFallsBackToGenericWhenProductDetectionFails() async throws {
+        let target = try profile()
+        let spy = ClientSpy()
+        await spy.setDetectionError(AppFailure("detection failed"))
+        let store = TestStore(initialState: SetupFeature.State()) {
+            SetupFeature()
+        } withDependencies: {
+            $0.sealbreakClient = client(spy)
+        }
+        store.exhaustivity = .off(showSkippedAssertions: false)
+
+        await store.send(
+            .saveTapped(name: target.name, address: target.origin, share: share, recoveryConfirmed: true)
+        ).finish()
+        await store.skipReceivedActions()
+
+        #expect(await spy.insertedProducts == [.generic])
+        #expect(await spy.detectProductCalls == 1)
     }
 
     @Test
@@ -410,7 +447,7 @@ struct FeatureTests {
 
         await store.send(.saveTapped(share: share, recoveryConfirmed: true)).finish()
         let replacedNotice =
-            "Local share replaced. This does not rotate OpenBao keys; server-side rekeying is a separate operation."
+            "Local share replaced. This does not rotate server keys; server-side rekeying is a separate operation."
         await store.receive(.saveResponse(.success(replacedNotice)))
         await store.receive(.delegate(.saved(notice: replacedNotice)))
         let replacedCount = await spy.replacedCount
@@ -1034,6 +1071,8 @@ private extension ClientSpy {
     func setLoadError(_ value: AppFailure?) { loadError = value }
     func setSaveProfileError(_ value: AppFailure?) { saveProfileError = value }
     func setDeleteProfileError(_ value: AppFailure?) { deleteProfileError = value }
+    func setDetectedProduct(_ value: ServerProduct) { detectedProduct = value }
+    func setDetectionError(_ value: AppFailure?) { detectionError = value }
     func setStatusQueue(_ value: [Result<SealStatus, AppFailure>]) { statusQueue = value }
     func setReadRecord(_ value: ShareRecord?) { readRecord = value }
     func setReadError(_ value: AppFailure?) { readError = value }
@@ -1045,6 +1084,7 @@ private extension ClientSpy {
 
     var submittedCount: Int { submittedRecords.count }
     var insertedCount: Int { insertedRecords.count }
+    var insertedProducts: [ServerProduct] { insertedRecords.map { $0.profile.product } }
     var replacedCount: Int { replacedRecords.count }
     var savedProfilesCount: Int { savedProfiles.count }
 }

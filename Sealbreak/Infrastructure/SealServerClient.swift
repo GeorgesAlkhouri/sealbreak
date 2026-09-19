@@ -34,10 +34,10 @@ final class TransportPolicy: NSObject, URLSessionTaskDelegate, @unchecked Sendab
     }
 }
 
-struct OpenBaoClient: Sendable {
+struct SealServerClient: Sendable {
     private let configuration: URLSessionConfiguration
 
-    init(configuration: URLSessionConfiguration = OpenBaoClient.makeConfiguration()) {
+    init(configuration: URLSessionConfiguration = SealServerClient.makeConfiguration()) {
         self.configuration = configuration
     }
 
@@ -60,8 +60,28 @@ struct OpenBaoClient: Sendable {
         try JSONEncoder().encode(UnsealBody(key: share))
     }
 
-    static func makeRequest(_ profile: ServerProfile, path: String, body: Data?) throws -> URLRequest {
-        var request = URLRequest(url: try profile.endpoint(path))
+    static func makeRequest(
+        _ profile: ServerProfile,
+        path: String,
+        queryItems: [URLQueryItem] = [],
+        body: Data?,
+        componentsForURL: (URL) -> URLComponents? = {
+            URLComponents(url: $0, resolvingAgainstBaseURL: false)
+        }
+    ) throws -> URLRequest {
+        var url = try profile.endpoint(path)
+        if !queryItems.isEmpty {
+            guard var components = componentsForURL(url) else {
+                throw AppFailure("Unable to build server request.")
+            }
+            components.queryItems = queryItems
+            guard let queriedURL = components.url else {
+                throw AppFailure("Unable to build server request.")
+            }
+            url = queriedURL
+        }
+
+        var request = URLRequest(url: url)
         request.httpMethod = body == nil ? "GET" : "POST"
         request.httpBody = body
         request.httpShouldHandleCookies = false
@@ -71,6 +91,32 @@ struct OpenBaoClient: Sendable {
             request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         }
         return request
+    }
+
+    static func detectProduct(from data: Data) -> ServerProduct {
+        guard let response = try? JSONDecoder().decode(HelpResponse.self, from: data),
+              let title = response.openapi?.info?.title else {
+            return .generic
+        }
+
+        switch title {
+        case "OpenBao API":
+            return .openBao
+        case "HashiCorp Vault API":
+            return .vault
+        default:
+            return .generic
+        }
+    }
+
+    func detectProduct(_ profile: ServerProfile) async throws -> ServerProduct {
+        let data = try await request(
+            profile,
+            path: "seal-status",
+            queryItems: [URLQueryItem(name: "help", value: "1")],
+            body: nil
+        )
+        return Self.detectProduct(from: data)
     }
 
     func status(_ profile: ServerProfile) async throws -> SealStatus {
@@ -90,6 +136,18 @@ struct OpenBaoClient: Sendable {
         _ = try await request(record.profile, path: "unseal", body: body)
     }
 
+    private struct HelpResponse: Decodable {
+        let openapi: OpenAPIDocument?
+    }
+
+    private struct OpenAPIDocument: Decodable {
+        let info: Info?
+
+        struct Info: Decodable {
+            let title: String?
+        }
+    }
+
     private struct UnsealBody: Encodable {
         let key: String
     }
@@ -97,6 +155,7 @@ struct OpenBaoClient: Sendable {
     private func request(
         _ profile: ServerProfile,
         path: String,
+        queryItems: [URLQueryItem] = [],
         body: Data?
     ) async throws -> Data {
         let session = URLSession(
@@ -108,7 +167,12 @@ struct OpenBaoClient: Sendable {
             session.invalidateAndCancel()
         }
 
-        let request = try Self.makeRequest(profile, path: path, body: body)
+        let request = try Self.makeRequest(
+            profile,
+            path: path,
+            queryItems: queryItems,
+            body: body
+        )
 
         try Task.checkCancellation()
 
@@ -120,12 +184,12 @@ struct OpenBaoClient: Sendable {
             }
             guard response.statusCode == 200 else {
                 if (300...399).contains(response.statusCode) {
-                    throw AppFailure("Redirect blocked. Configure the direct HTTPS origin of one OpenBao node.")
+                    throw AppFailure("Redirect blocked. Configure the direct HTTPS origin of one server node.")
                 }
-                throw AppFailure("OpenBao returned HTTP \(response.statusCode). A share or request may have been rejected; no automatic retry is made.")
+                throw AppFailure("Server returned HTTP \(response.statusCode). A share or request may have been rejected; no automatic retry is made.")
             }
             guard response.mimeType == "application/json" else {
-                throw AppFailure("Expected a JSON response from OpenBao.")
+                throw AppFailure("Expected a JSON response from the server.")
             }
             guard response.expectedContentLength <= 65_536 else {
                 throw AppFailure("Server response too large.")
@@ -158,7 +222,7 @@ struct OpenBaoClient: Sendable {
                  .clientCertificateRequired:
                 throw AppFailure("TLS validation failed. Fix the server certificate/trust configuration; verification cannot be disabled.")
             default:
-                throw AppFailure("Connection failed or timed out. Check the network, VPN, DNS, and the direct OpenBao endpoint.")
+                throw AppFailure("Connection failed or timed out. Check the network, VPN, DNS, and the configured server endpoint.")
             }
         } catch {
             throw AppFailure("The request failed. No automatic retry is made.")

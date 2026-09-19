@@ -92,6 +92,23 @@ struct SetupFeature {
                     defer { record.share.removeAll(keepingCapacity: false) }
                     do {
                         try await client.waitForForeground()
+
+                        let product: ServerProduct
+                        do {
+                            product = try await client.detectProduct(record.profile)
+                        } catch is AppFailure {
+                            product = .generic
+                        }
+
+                        record = try ShareRecord(
+                            profile: ServerProfile(
+                                name: record.profile.name,
+                                address: record.profile.origin,
+                                product: product
+                            ),
+                            input: record.share
+                        )
+
                         try await client.insertShare(
                             record,
                             "Protect this share for \(record.profile.origin)"
@@ -185,7 +202,7 @@ struct SetupFeature {
                         let notice: String
                         do {
                             try await client.deleteProfile()
-                            notice = "Local share removed. Copies elsewhere remain valid; only OpenBao rekeying replaces the server’s Shamir shares."
+                            notice = "Local share removed. Copies elsewhere remain valid; only server-side rekeying replaces the server’s Shamir shares."
                         } catch {
                             notice = "The Keychain share was removed, but its non-secret display file could not be removed. Restart may show stale metadata."
                         }

@@ -23,9 +23,9 @@
     <key>LSRequiresIPhoneOS</key>
     <true/>
     <key>NSFaceIDUsageDescription</key>
-    <string>Authorize access to your device-bound OpenBao Shamir share before each unseal or local share change.</string>
+    <string>Authorize access to your device-bound Shamir share before each unseal or local share change.</string>
     <key>NSLocalNetworkUsageDescription</key>
-    <string>Connect directly to the OpenBao server that you configure on your local network.</string>
+    <string>Connect directly to the server that you configure on your local network.</string>
     <key>UIApplicationSceneManifest</key>
     <dict>
         <key>UIApplicationSupportsMultipleScenes</key>

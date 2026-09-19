@@ -4,7 +4,7 @@ import Testing
 
 struct ModelsTests {
     private let origin = "https://bao.example.com"
-    // Synthetic format-only input. Never use a real OpenBao share in a test.
+    // Synthetic format-only input. Never use a real Shamir share in a test.
     private let syntheticShare = String(repeating: "a", count: 64)
 
     @Test
@@ -13,9 +13,9 @@ struct ModelsTests {
         #expect(error.errorDescription == "test failure")
     }
 
-    @Test(arguments: ["OpenBao", "Freiburg – Süd", "東京", String(repeating: "🔒", count: 40)])
+    @Test(arguments: ["Server", "Freiburg – Süd", "東京", String(repeating: "🔒", count: 40)])
     func ordinaryNamesRoundTrip(name: String) throws {
-        let profile = try ServerProfile(name: name, address: origin)
+        let profile = try ServerProfile(name: name, address: origin, product: .vault)
         let record = try ShareRecord(profile: profile, input: syntheticShare)
         let encoded = try JSONEncoder().encode(record)
         try StorageLimits.validateEncodedSize(encoded)
@@ -84,11 +84,11 @@ struct ModelsTests {
 
     @Test
     func decodedProfileStillNeedsValidation() throws {
-        let unsafeJSON = #"{"name":"Test","origin":"http://bao.example.com"}"#
+        let unsafeJSON = #"{"name":"Test","origin":"http://bao.example.com","product":"Generic"}"#
         let unsafe = try JSONDecoder().decode(ServerProfile.self, from: Data(unsafeJSON.utf8))
         #expect(throws: AppFailure.self) { try unsafe.validated() }
 
-        let nonCanonicalJSON = #"{"name":"Test","origin":"https://BAO.example.com:443/"}"#
+        let nonCanonicalJSON = #"{"name":"Test","origin":"https://BAO.example.com:443/","product":"Generic"}"#
         let nonCanonical = try JSONDecoder().decode(ServerProfile.self, from: Data(nonCanonicalJSON.utf8))
         #expect(throws: AppFailure.self) { try nonCanonical.validated() }
     }
@@ -104,7 +104,7 @@ struct ModelsTests {
         let record = try ShareRecord(profile: profile, input: " \(syntheticShare)\n")
         #expect(record.share == syntheticShare)
         let json = """
-        {"version":2,"profile":{"name":"Test","origin":"\(origin)"},"share":"\(syntheticShare)"}
+        {"version":2,"profile":{"name":"Test","origin":"\(origin)","product":"Generic"},"share":"\(syntheticShare)"}
         """
         let decoded = try JSONDecoder().decode(ShareRecord.self, from: Data(json.utf8))
         #expect(throws: AppFailure.self) { try decoded.validated() }

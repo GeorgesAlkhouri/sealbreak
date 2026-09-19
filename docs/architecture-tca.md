@@ -4,7 +4,7 @@ Sealbreak uses The Composable Architecture (TCA) for application and feature sta
 
 ## Why TCA
 
-Sealbreak has a small UI surface but a security-sensitive state machine: OpenBao status checks, Face ID, device-bound Keychain access, target binding, share submission, post-submit verification, privacy interruption, setup, recovery, and destructive local-data removal. Centralizing these transitions in reducers prevents views from becoming orchestration objects and makes effects explicit and testable.
+Sealbreak has a small UI surface but a security-sensitive state machine: seal-server status checks, Face ID, device-bound Keychain access, target binding, share submission, post-submit verification, privacy interruption, setup, recovery, and destructive local-data removal. Centralizing these transitions in reducers prevents views from becoming orchestration objects and makes effects explicit and testable.
 
 ## Feature hierarchy
 
@@ -23,7 +23,7 @@ AppFeature
 
 Reducers depend only on `SealbreakClient`, registered through TCA `DependencyValues`. The live dependency adapts the existing infrastructure:
 
-- `OpenBaoClient` for bounded HTTPS requests with redirects/cookies/cache disabled.
+- `SealServerClient` for bounded HTTPS requests with redirects/cookies/cache disabled.
 - `KeychainStore` for device-only biometric protected Shamir-share storage.
 - `ProfileStore` for non-secret display metadata.
 - `LAContext` and foreground/protected-data/screen-capture checks for authorization.
@@ -57,4 +57,4 @@ TCA is pinned to **1.26.1**, whose package manifest uses Swift tools 6.1 and sup
 
 ## Views
 
-SwiftUI views render scoped stores and send actions. They do not call OpenBao, Keychain, Face ID, or persistence APIs directly. Reusable visual components and the Papercut design system remain framework-independent SwiftUI views.
+SwiftUI views render scoped stores and send actions. They do not call the configured seal server, Keychain, Face ID, or persistence APIs directly. Reusable visual components and the Papercut design system remain framework-independent SwiftUI views.

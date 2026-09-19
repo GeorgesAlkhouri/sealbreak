@@ -5,6 +5,7 @@ struct SealbreakClient: Sendable {
     var loadProfile: @Sendable () async throws -> ServerProfile?
     var saveProfile: @Sendable (ServerProfile) async throws -> Void
     var deleteProfile: @Sendable () async throws -> Void
+    var detectProduct: @Sendable (ServerProfile) async throws -> ServerProduct
     var status: @Sendable (ServerProfile) async throws -> SealStatus
     var submit: @Sendable (ShareRecord) async throws -> Void
     var readShare: @Sendable (_ reason: String) async throws -> ShareRecord
@@ -32,6 +33,9 @@ extension SealbreakClient: DependencyKey {
             },
             deleteProfile: {
                 try await LiveSealbreakClientController.shared.deleteProfile()
+            },
+            detectProduct: { profile in
+                try await LiveSealbreakClientController.shared.detectProduct(profile)
             },
             status: { profile in
                 try await LiveSealbreakClientController.shared.status(profile)
@@ -85,6 +89,7 @@ extension SealbreakClient {
         loadProfile: { throw AppFailure("Unimplemented profile load dependency.") },
         saveProfile: { _ in throw AppFailure("Unimplemented profile save dependency.") },
         deleteProfile: { throw AppFailure("Unimplemented profile delete dependency.") },
+        detectProduct: { _ in throw AppFailure("Unimplemented server-product detection dependency.") },
         status: { _ in throw AppFailure("Unimplemented seal-status dependency.") },
         submit: { _ in throw AppFailure("Unimplemented share submission dependency.") },
         readShare: { _ in throw AppFailure("Unimplemented protected-share dependency.") },
@@ -133,7 +138,7 @@ private final class LiveSealbreakClientController {
 
     private let keychain = KeychainStore()
     private let profiles = ProfileStore()
-    private let client = OpenBaoClient()
+    private let client = SealServerClient()
     private var activeContext: LAContext?
 
     func loadProfile() throws -> ServerProfile? {
@@ -146,6 +151,10 @@ private final class LiveSealbreakClientController {
 
     func deleteProfile() throws {
         try profiles.delete()
+    }
+
+    func detectProduct(_ profile: ServerProfile) async throws -> ServerProduct {
+        try await client.detectProduct(profile)
     }
 
     func status(_ profile: ServerProfile) async throws -> SealStatus {
