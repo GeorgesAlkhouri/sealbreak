@@ -67,6 +67,31 @@ struct SealbreakClientTests {
     }
 
     @Test
+    func biometricFailuresPreserveDraftOnlyForRetryableOutcomes() {
+        #expect(!BiometricAuthorizationFailure.userCancelled.discardsSensitiveDraft)
+        #expect(!BiometricAuthorizationFailure.authenticationFailed.discardsSensitiveDraft)
+        #expect(BiometricAuthorizationFailure.systemCancelled.discardsSensitiveDraft)
+        #expect(BiometricAuthorizationFailure.appCancelled.discardsSensitiveDraft)
+
+        #expect(
+            normalizedAppFailure(BiometricAuthorizationFailure.userCancelled).message
+                == "Face ID was cancelled. The share remains ready to retry."
+        )
+        #expect(
+            normalizedAppFailure(BiometricAuthorizationFailure.authenticationFailed).message
+                == "Face ID did not authorize this action. The share remains ready to retry."
+        )
+        #expect(
+            normalizedAppFailure(BiometricAuthorizationFailure.systemCancelled).message
+                == "Face ID was interrupted because Sealbreak left the active foreground."
+        )
+        #expect(
+            normalizedAppFailure(BiometricAuthorizationFailure.appCancelled).message
+                == "Face ID was interrupted because Sealbreak left the active foreground."
+        )
+    }
+
+    @Test
     func unknownErrorsAreNormalizedWithoutSensitiveDetails() {
         let failure = normalizedAppFailure(ForeignError())
 
