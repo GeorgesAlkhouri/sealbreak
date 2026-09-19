@@ -1,6 +1,15 @@
 import ComposableArchitecture
 import Foundation
 
+enum DNSSECStatus: Equatable, Sendable {
+    case secure
+    case insecure
+    case bogus
+    case indeterminate
+    case notApplicable
+    case unavailable
+}
+
 struct SealbreakClient: Sendable {
     var loadProfile: @Sendable () async throws -> ServerProfile?
     var saveProfile: @Sendable (ServerProfile) async throws -> Void
