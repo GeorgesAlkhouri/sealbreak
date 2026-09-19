@@ -66,11 +66,14 @@ struct AppFeature {
                 return .none
 
             case .privacy(.delegate(.interrupted)):
+                let interruption: SensitiveInterruption =
+                    state.privacy.isCaptured ? .screenCapture : .background
+
                 if state.home != nil {
                     return .send(.home(.privacyInterrupted))
                 }
                 if state.setup != nil {
-                    return .send(.setup(.privacyInterrupted))
+                    return .send(.setup(.privacyInterrupted(interruption)))
                 }
                 if state.welcome != nil {
                     return .none
