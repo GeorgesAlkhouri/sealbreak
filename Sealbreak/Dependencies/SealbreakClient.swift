@@ -6,6 +6,7 @@ struct SealbreakClient: Sendable {
     var saveProfile: @Sendable (ServerProfile) async throws -> Void
     var deleteProfile: @Sendable () async throws -> Void
     var detectProduct: @Sendable (ServerProfile) async throws -> ServerProduct
+    var dnssecStatus: @Sendable (String) async -> DNSSECStatus
     var status: @Sendable (ServerProfile) async throws -> SealStatus
     var submit: @Sendable (ShareRecord) async throws -> Void
     var readShare: @Sendable (_ reason: String) async throws -> ShareRecord
@@ -38,6 +39,7 @@ extension SealbreakClient {
         saveProfile: { _ in throw AppFailure("Unimplemented profile save dependency.") },
         deleteProfile: { throw AppFailure("Unimplemented profile delete dependency.") },
         detectProduct: { _ in throw AppFailure("Unimplemented server-product detection dependency.") },
+        dnssecStatus: { _ in .unavailable },
         status: { _ in throw AppFailure("Unimplemented seal-status dependency.") },
         submit: { _ in throw AppFailure("Unimplemented share submission dependency.") },
         readShare: { _ in throw AppFailure("Unimplemented protected-share dependency.") },
