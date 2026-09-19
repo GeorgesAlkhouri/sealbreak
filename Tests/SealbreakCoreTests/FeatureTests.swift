@@ -947,11 +947,80 @@ struct FeatureTests {
         }
         interruptionStore.exhaustivity = .off(showSkippedAssertions: false)
 
-        await interruptionStore.send(.privacyInterrupted).finish()
+        await interruptionStore.send(.privacyInterrupted(.screenCapture)).finish()
         await interruptionStore.skipReceivedActions()
         #expect(interruptionStore.state.share?.operation == nil)
+        #expect(interruptionStore.state.share?.draftClearGeneration == 1)
         #expect(await spy.cancelCalls == 1)
     }
+
+    @Test
+    func setupFaceIDUserCancellationPreservesDraftAfterLifecycleBackground() async throws {
+        let target = try profile()
+        var state = ShareSetupFeature.State(profile: target)
+        state.operation = .protecting
+
+        let store = TestStore(initialState: state) {
+            ShareSetupFeature()
+        }
+        store.exhaustivity = .off(showSkippedAssertions: false)
+
+        await store.send(.privacyInterrupted(.background))
+        #expect(store.state.operation == .protecting)
+        #expect(store.state.backgroundedDuringProtection)
+        #expect(store.state.draftClearGeneration == 0)
+
+        await store.send(.biometricFailure(.userCancelled))
+        #expect(store.state.operation == nil)
+        #expect(!store.state.backgroundedDuringProtection)
+        #expect(store.state.draftClearGeneration == 0)
+        #expect(store.state.notice.contains("remains ready to retry"))
+    }
+
+    @Test
+    func setupSystemCancellationAfterBackgroundDiscardsDraft() async throws {
+        let target = try profile()
+        var state = ShareSetupFeature.State(profile: target)
+        state.operation = .protecting
+
+        let store = TestStore(initialState: state) {
+            ShareSetupFeature()
+        }
+        store.exhaustivity = .off(showSkippedAssertions: false)
+
+        await store.send(.privacyInterrupted(.background))
+        #expect(store.state.backgroundedDuringProtection)
+        #expect(store.state.draftClearGeneration == 0)
+
+        await store.send(.biometricFailure(.systemCancelled))
+        #expect(store.state.operation == nil)
+        #expect(!store.state.backgroundedDuringProtection)
+        #expect(store.state.draftClearGeneration == 1)
+    }
+
+    @Test
+    func setupBiometricUserCancelFromDependencyKeepsDraft() async throws {
+        let target = try profile()
+        let spy = ClientSpy()
+        await spy.setInsertBiometricFailure(.userCancelled)
+
+        let store = TestStore(
+            initialState: ShareSetupFeature.State(profile: target)
+        ) {
+            ShareSetupFeature()
+        } withDependencies: {
+            $0.sealbreakClient = client(spy)
+        }
+        store.exhaustivity = .off(showSkippedAssertions: false)
+
+        await store.send(.saveTapped(share: share)).finish()
+        await store.skipReceivedActions()
+
+        #expect(store.state.operation == nil)
+        #expect(store.state.draftClearGeneration == 0)
+        #expect(store.state.notice.contains("remains ready to retry"))
+    }
+
     @Test
     func replaceShareRejectsInvalidInputAndSurfacesDependencyFailure() async throws {
         let target = try profile()
