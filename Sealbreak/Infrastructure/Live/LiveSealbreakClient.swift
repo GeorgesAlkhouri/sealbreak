@@ -18,6 +18,9 @@ extension SealbreakClient: DependencyKey {
             detectProduct: { profile in
                 try await LiveSealbreakClientController.shared.detectProduct(profile)
             },
+            dnssecStatus: { host in
+                await LiveSealbreakClientController.shared.dnssecStatus(host)
+            },
             status: { profile in
                 try await LiveSealbreakClientController.shared.status(profile)
             },
@@ -76,6 +79,10 @@ private final class LiveSealbreakClientController {
 
     func detectProduct(_ profile: ServerProfile) async throws -> ServerProduct {
         try await client.detectProduct(profile)
+    }
+
+    func dnssecStatus(_ host: String) async -> DNSSECStatus {
+        await SealServerClient.dnssecStatus(for: host)
     }
 
     func status(_ profile: ServerProfile) async throws -> SealStatus {
