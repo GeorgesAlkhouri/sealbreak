@@ -83,6 +83,10 @@ struct AppFeature {
                 }
 
             case .privacy(.delegate(.becameActive)):
+                if state.setup != nil {
+                    return .send(.setup(.becameActive))
+                }
+
                 guard state.home?.isBusy == false else { return .none }
                 return state.home == nil ? .none : .send(.home(.refreshRequested))
 
