@@ -434,12 +434,25 @@ struct FeatureTests {
     }
 
     @Test
-    func shareImportPreviewShowsOnlyBoundedFragments() {
-        let input = String(repeating: "0123456789abcdef", count: 4)
+    func shareImportPreviewRequiresThirtyTwoCharactersAndShowsOnlySuffix() {
+        let minimumHex = "0123456789abcdef"
+        let minimumBase64 = String(repeating: "G", count: 16)
+        let previewHex = String(repeating: "0123456789abcdef", count: 2)
+        let previewBase64 = String(repeating: "G", count: 32)
 
-        #expect(ShareImportPreview.masked(input) == "0123 •••• •••• cdef")
+        #expect(ShareImportPreview.isValid(minimumHex))
+        #expect(ShareImportPreview.isValid(minimumBase64))
+        #expect(ShareImportPreview.masked(minimumHex) == nil)
+        #expect(ShareImportPreview.masked(minimumBase64) == nil)
+
+        let expectedHex =
+            String(repeating: "•", count: 29) + "def"
+        let expectedBase64 =
+            String(repeating: "•", count: 29) + "GGG"
+
+        #expect(ShareImportPreview.masked(previewHex) == expectedHex)
+        #expect(ShareImportPreview.masked(previewBase64) == expectedBase64)
         #expect(ShareImportPreview.masked("short") == nil)
-        #expect(ShareImportPreview.masked(input) != input)
     }
 
     @Test
