@@ -165,7 +165,16 @@ struct SetupFeature {
 
                     do {
                         try Task.checkCancellation()
-                        let product = try await client.detectProduct(profile)
+
+                        let product: ServerProduct
+                        do {
+                            product = try await client.detectProduct(profile)
+                        } catch let detectionFailure as AppFailure {
+                            _ = try await client.status(profile)
+                            _ = detectionFailure
+                            product = .generic
+                        }
+
                         let checkedProfile = try ServerProfile(
                             name: profile.name,
                             address: profile.origin,
