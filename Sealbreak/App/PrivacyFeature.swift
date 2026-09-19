@@ -1,5 +1,10 @@
 import ComposableArchitecture
 
+enum SensitiveInterruption: Equatable, Sendable {
+    case background
+    case screenCapture
+}
+
 @Reducer
 struct PrivacyFeature {
     @ObservableState
