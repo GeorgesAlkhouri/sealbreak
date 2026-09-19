@@ -5,6 +5,7 @@ struct AppFeature {
     @ObservableState
     struct State: Equatable {
         var privacy = PrivacyFeature.State()
+        var welcome: WelcomeFeature.State?
         var home: HomeFeature.State?
         var setup: SetupFeature.State?
         var isLoading = true
@@ -15,6 +16,7 @@ struct AppFeature {
         case task
         case profileLoaded(Result<ServerProfile?, AppFailure>)
         case privacy(PrivacyFeature.Action)
+        case welcome(WelcomeFeature.Action)
         case home(HomeFeature.Action)
         case setup(SetupFeature.Action)
     }
@@ -44,18 +46,21 @@ struct AppFeature {
             case .profileLoaded(.success(let profile)):
                 state.isLoading = false
                 if let profile {
+                    state.welcome = nil
                     state.setup = nil
                     state.home = HomeFeature.State(profile: profile)
                     return .send(.home(.refreshRequested))
                 }
                 state.home = nil
-                state.setup = SetupFeature.State()
+                state.setup = nil
+                state.welcome = WelcomeFeature.State()
                 return .none
 
             case .profileLoaded(.failure):
                 state.isLoading = false
                 state.home = nil
-                state.setup = SetupFeature.State(
+                state.setup = nil
+                state.welcome = WelcomeFeature.State(
                     notice: "The display profile could not be read. Restore its protected copy from Keychain."
                 )
                 return .none
@@ -67,6 +72,9 @@ struct AppFeature {
                 if state.setup != nil {
                     return .send(.setup(.privacyInterrupted))
                 }
+                if state.welcome != nil {
+                    return .none
+                }
                 return .run { _ in
                     await client.cancelSensitiveOperation()
                 }
@@ -77,17 +85,32 @@ struct AppFeature {
 
             case .home(.delegate(.localDataRemoved(let notice))):
                 state.home = nil
-                state.setup = SetupFeature.State(notice: notice)
+                state.setup = nil
+                state.welcome = WelcomeFeature.State(notice: notice)
                 return .none
 
+            case .welcome(.delegate(.setUp)):
+                state.welcome = nil
+                state.setup = SetupFeature.State()
+                return .none
+
+            case .welcome(.delegate(.restore)):
+                state.welcome = nil
+                state.setup = SetupFeature.State()
+                return .send(.setup(.restoreProfileTapped))
+
             case .setup(.delegate(.profileReady(let profile, let notice))):
+                state.welcome = nil
                 state.setup = nil
                 state.home = HomeFeature.State(profile: profile, notice: notice)
                 return .send(.home(.refreshRequested))
 
-            case .privacy, .home, .setup:
+            case .privacy, .welcome, .home, .setup:
                 return .none
             }
+        }
+        .ifLet(\.welcome, action: \.welcome) {
+            WelcomeFeature()
         }
         .ifLet(\.home, action: \.home) {
             HomeFeature()

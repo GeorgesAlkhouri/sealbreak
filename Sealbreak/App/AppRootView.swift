@@ -11,6 +11,8 @@ struct AppRootView: View {
                     HomeView(store: homeStore, privacyStore: privacyStore)
                 } else if let setupStore = store.scope(state: \.setup, action: \.setup) {
                     SetupView(store: setupStore)
+                } else if let welcomeStore = store.scope(state: \.welcome, action: \.welcome) {
+                    WelcomeView(store: welcomeStore)
                 } else {
                     ZStack {
                         PapercutPalette.sky.ignoresSafeArea()

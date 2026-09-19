@@ -11,13 +11,14 @@ Sealbreak has a small UI surface but a security-sensitive state machine: seal-se
 ```text
 AppFeature
 ├── PrivacyFeature
+├── WelcomeFeature?
 ├── SetupFeature?
 └── HomeFeature?
     ├── ServerDetailsFeature?
     └── ReplaceShareFeature?
 ```
 
-`AppFeature` is the composition root. It loads the non-secret display profile and selects Setup or Home. `PrivacyFeature` translates scene/capture changes into explicit reducer actions. Home owns operational state and TCA presentation state. Setup and share replacement own their respective workflows.
+`AppFeature` is the composition root. It loads the non-secret display profile and selects Welcome, Setup, or Home. `PrivacyFeature` translates scene/capture changes into explicit reducer actions. Home owns operational state and TCA presentation state. Setup and share replacement own their respective workflows.
 
 ## Dependency boundary
 

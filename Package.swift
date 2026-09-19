@@ -30,11 +30,13 @@ let package = Package(
                 "App/SensitiveDraftGuard.swift",
                 "Features/Home/HomeView.swift",
                 "Features/Home/Components",
+                "Features/Welcome/WelcomeView.swift",
                 "Features/Setup/SetupView.swift",
                 "Features/ServerDetails/ServerDetailsView.swift",
                 "Features/ShareManagement/ReplaceShareView.swift",
                 "Features/ShareManagement/Components",
                 "DesignSystem",
+                "Resources",
                 "Info.plist",
                 "PrivacyInfo.xcprivacy"
             ]
