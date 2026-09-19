@@ -99,6 +99,12 @@ struct AppFeature {
                 state.setup = SetupFeature.State()
                 return .send(.setup(.restoreProfileTapped))
 
+            case .setup(.delegate(.cancelled)):
+                state.home = nil
+                state.setup = nil
+                state.welcome = WelcomeFeature.State()
+                return .none
+
             case .setup(.delegate(.profileReady(let profile, let notice))):
                 state.welcome = nil
                 state.setup = nil

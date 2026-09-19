@@ -4,15 +4,17 @@ import ComposableArchitecture
 struct SetupFeature {
     @ObservableState
     struct State: Equatable {
+        enum Step: Equatable {
+            case instance
+            case share
+        }
+
         enum Operation: Equatable {
-            case importing
             case restoring
             case removingLocalData
 
             var activity: String {
                 switch self {
-                case .importing:
-                    return "Importing share…"
                 case .restoring:
                     return "Restoring local profile…"
                 case .removingLocalData:
@@ -21,6 +23,9 @@ struct SetupFeature {
             }
         }
 
+        var step: Step = .instance
+        var instance = InstanceSetupFeature.State()
+        var share: ShareSetupFeature.State?
         var operation: Operation?
         var notice: String
         var confirmDelete = false
@@ -31,8 +36,19 @@ struct SetupFeature {
             self.notice = notice
         }
 
-        var isBusy: Bool { operation != nil }
-        var activity: String { operation?.activity ?? "" }
+        var isBusy: Bool {
+            instance.isCheckingConnection || share?.isBusy == true || operation != nil
+        }
+
+        var activity: String {
+            if instance.isCheckingConnection {
+                return "Checking connection…"
+            }
+            if let share, share.isBusy {
+                return share.activity
+            }
+            return operation?.activity ?? ""
+        }
     }
 
     struct ProfileResult: Equatable, Sendable {
@@ -42,11 +58,14 @@ struct SetupFeature {
 
     enum Action: Equatable {
         enum Delegate: Equatable {
+            case cancelled
             case profileReady(ServerProfile, notice: String)
         }
 
-        case saveTapped(name: String, address: String, share: String, recoveryConfirmed: Bool)
-        case importResponse(Result<ProfileResult, AppFailure>)
+        case instance(InstanceSetupFeature.Action)
+        case share(ShareSetupFeature.Action)
+        case backTapped
+        case cancelTapped
         case restoreProfileTapped
         case restoreResponse(Result<ProfileResult, AppFailure>)
         case removeLocalDataTapped
@@ -65,71 +84,40 @@ struct SetupFeature {
     @Dependency(\.sealbreakClient) private var client
 
     var body: some ReducerOf<Self> {
+        Scope(state: \.instance, action: \.instance) {
+            InstanceSetupFeature()
+        }
+
         Reduce { state, action in
             switch action {
-            case .saveTapped(let name, let address, let input, let recoveryConfirmed):
-                guard !state.isBusy else { return .none }
-                guard recoveryConfirmed else {
-                    state.notice = "Confirm an independent recovery copy before importing."
-                    return .none
-                }
+            case .instance(.delegate(.continueWithProfile(let profile))):
+                state.step = .share
+                state.share = ShareSetupFeature.State(
+                    profile: profile,
+                    notice: state.notice
+                )
+                return .none
 
-                let record: ShareRecord
-                do {
-                    record = try ShareRecord(
-                        profile: ServerProfile(name: name, address: address),
-                        input: input
-                    )
-                } catch {
-                    state.notice = normalizedAppFailure(error).message
-                    return .none
-                }
+            case .share(.delegate(.profileReady(let profile, let notice))):
+                state.notice = notice
+                return .send(.delegate(.profileReady(profile, notice: notice)))
 
-                state.operation = .importing
+            case .backTapped:
+                guard state.share?.isBusy != true else { return .none }
+                state.share = nil
+                state.step = .instance
+                return .none
+
+            case .cancelTapped:
+                state.operation = nil
+                state.confirmDelete = false
+                state.share = nil
                 let client = self.client
-                return .run { send in
-                    var record = record
-                    defer { record.share.removeAll(keepingCapacity: false) }
-                    do {
-                        try await client.waitForForeground()
-
-                        let product: ServerProduct
-                        do {
-                            product = try await client.detectProduct(record.profile)
-                        } catch is AppFailure {
-                            product = .generic
-                        }
-
-                        record = try ShareRecord(
-                            profile: ServerProfile(
-                                name: record.profile.name,
-                                address: record.profile.origin,
-                                product: product
-                            ),
-                            input: record.share
-                        )
-
-                        try await client.insertShare(
-                            record,
-                            "Protect this share for \(record.profile.origin)"
-                        )
-
-                        let profile = record.profile
-                        let notice: String
-                        do {
-                            try await client.saveProfile(profile)
-                            notice = "Share saved with device-bound biometric protection. Check status to begin."
-                        } catch {
-                            notice = "Protected share exists, but display metadata could not be saved. Use Restore profile from Keychain on the next launch."
-                        }
-                        await send(.importResponse(.success(ProfileResult(profile: profile, notice: notice))))
-                    } catch is CancellationError {
-                        await send(.operationCancelled)
-                    } catch {
-                        await send(.importResponse(.failure(normalizedAppFailure(error))))
-                    }
-                }
-                .cancellable(id: CancelID.operation)
+                return .merge(
+                    .cancel(id: CancelID.operation),
+                    .run { _ in await client.cancelSensitiveOperation() },
+                    .send(.delegate(.cancelled))
+                )
 
             case .restoreProfileTapped:
                 guard !state.isBusy else { return .none }
@@ -150,7 +138,11 @@ struct SetupFeature {
                         } catch {
                             notice = "Protected share exists, but display metadata could not be saved. Use Restore profile from Keychain on the next launch."
                         }
-                        await send(.restoreResponse(.success(ProfileResult(profile: profile, notice: notice))))
+                        await send(
+                            .restoreResponse(
+                                .success(ProfileResult(profile: profile, notice: notice))
+                            )
+                        )
                     } catch is CancellationError {
                         await send(.operationCancelled)
                     } catch {
@@ -159,11 +151,12 @@ struct SetupFeature {
                 }
                 .cancellable(id: CancelID.operation)
 
-            case .importResponse(.success(let result)),
-                 .restoreResponse(.success(let result)):
+            case .restoreResponse(.success(let result)):
                 state.operation = nil
                 state.notice = result.notice
-                return .send(.delegate(.profileReady(result.profile, notice: result.notice)))
+                return .send(
+                    .delegate(.profileReady(result.profile, notice: result.notice))
+                )
 
             case .removeLocalDataTapped:
                 guard !state.isBusy else { return .none }
@@ -206,8 +199,7 @@ struct SetupFeature {
                 state.notice = notice
                 return .none
 
-            case .importResponse(.failure(let failure)),
-                 .restoreResponse(.failure(let failure)),
+            case .restoreResponse(.failure(let failure)),
                  .removeResponse(.failure(let failure)):
                 state.operation = nil
                 state.notice = failure.message
@@ -219,21 +211,33 @@ struct SetupFeature {
                 return .none
 
             case .privacyInterrupted:
-                let wasBusy = state.isBusy
+                if state.step == .share, state.share != nil {
+                    return .send(.share(.privacyInterrupted))
+                }
+
+                if state.instance.isCheckingConnection {
+                    return .send(.instance(.privacyInterrupted))
+                }
+
+                let wasBusy = state.operation != nil
                 state.operation = nil
                 state.confirmDelete = false
                 if wasBusy {
                     state.notice = "Operation interrupted. Check status on return; an already submitted request cannot be recalled."
                 }
+
                 let client = self.client
                 return .merge(
                     .cancel(id: CancelID.operation),
                     .run { _ in await client.cancelSensitiveOperation() }
                 )
 
-            case .delegate:
+            case .instance, .share, .delegate:
                 return .none
             }
+        }
+        .ifLet(\.share, action: \.share) {
+            ShareSetupFeature()
         }
     }
 }

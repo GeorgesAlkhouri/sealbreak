@@ -28,6 +28,10 @@ struct SealbreakClientTests {
                 == "Unimplemented server-product detection dependency."
         )
         #expect(
+            await failureMessage { try await dependency.dnssecStatus("server.example.com") }
+                == "Unimplemented DNSSEC status dependency."
+        )
+        #expect(
             await failureMessage { try await dependency.status(profile) }
                 == "Unimplemented seal-status dependency."
         )

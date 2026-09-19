@@ -4,102 +4,167 @@ import SwiftUI
 struct SetupView: View {
     let store: StoreOf<SetupFeature>
 
-    @State private var name = "Server"
-    @State private var address = ""
-    @State private var share = ""
-    @State private var recoveryConfirmed = false
+    @State private var confirmCancel = false
 
     var body: some View {
-        Form {
-            Section("Add one server node") {
-                TextField("Server name", text: $name)
-                TextField("Server HTTPS origin", text: $address)
-                    .keyboardType(.URL)
-                    .textInputAutocapitalization(.never)
-                    .autocorrectionDisabled()
+        GeometryReader { proxy in
+            ZStack {
+                PapercutBackground()
 
-                ShareEditor(
-                    share: $share,
-                    recoveryConfirmed: $recoveryConfirmed,
-                    saveTitle: "Save share with Face ID",
-                    busy: store.isBusy,
-                    onSave: save
-                )
+                VStack(spacing: 0) {
+                    header
+                        .padding(.top, max(8, proxy.safeAreaInsets.top + 2))
+                        .padding(.horizontal, 24)
 
-                Text("Configure the direct HTTPS origin of one node, not a load balancer distributing requests among nodes. The server must be initialized separately.")
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
-            }
+                    progressIndicator
+                        .padding(.top, 20)
+                        .padding(.horizontal, 30)
 
-            Section("Recovery and local data") {
-                Button("Restore profile from Keychain") {
-                    store.send(.restoreProfileTapped)
+                    switch store.step {
+                    case .instance:
+                        InstanceSetupView(
+                            store: store.scope(
+                                state: \.instance,
+                                action: \.instance
+                            )
+                        )
+
+                    case .share:
+                        if let shareStore = store.scope(
+                            state: \.share,
+                            action: \.share
+                        ) {
+                            ShareSetupView(store: shareStore)
+                        }
+                    }
                 }
-                .disabled(store.isBusy)
-
-                Button("Remove local data", role: .destructive) {
-                    store.send(.removeLocalDataTapped)
-                }
-                .disabled(store.isBusy)
-
-                Text("Keep an independent recovery copy. Face ID changes, device loss, or passcode removal can make the saved share inaccessible. Deleting the app is not a reliable Keychain wipe.")
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
-            }
-
-            Section("Result") {
-                if store.isBusy {
-                    ProgressView(store.activity)
-                }
-                Text(store.notice)
-                    .font(.callout)
             }
         }
-        .navigationTitle("Sealbreak")
+        .background(PapercutPalette.sky)
+        .toolbar(.hidden, for: .navigationBar)
         .confirmationDialog(
-            "Remove the local share?",
-            isPresented: confirmationBinding,
+            "Discard setup?",
+            isPresented: $confirmCancel,
             titleVisibility: .visible
         ) {
-            Button("I have recovery — remove local data", role: .destructive) {
-                clearDraft()
-                store.send(.confirmRemoveLocalDataTapped)
+            Button("Discard setup", role: .destructive) {
+                store.send(.cancelTapped)
+            }
+
+            Button("Keep setting up", role: .cancel) {
+                // The cancel role dismisses the confirmation dialog without changing setup state.
             }
         } message: {
-            Text("Requires fresh Face ID. This cannot be undone and does not revoke copies elsewhere.")
+            Text("Your current setup entries will not be saved.")
         }
-        .clearSensitiveDraftOnPrivacyChange(clearDraft)
     }
 
-    private var confirmationBinding: Binding<Bool> {
-        Binding(
-            get: { store.confirmDelete },
-            set: { presented in
-                if !presented {
-                    store.send(.confirmationDismissed)
+    private var header: some View {
+        HStack {
+            Group {
+                if store.step == .share {
+                    Button {
+                        store.send(.backTapped)
+                    } label: {
+                        Image(systemName: "chevron.left")
+                            .font(.system(size: 17, weight: .bold))
+                            .frame(width: 44, height: 44)
+                    }
+                    .accessibilityLabel("Back")
+                    .disabled(store.share?.isBusy == true)
+                } else {
+                    Color.clear
+                        .frame(width: 44, height: 44)
                 }
             }
-        )
+            .foregroundStyle(PapercutPalette.cream)
+
+            Spacer()
+
+            Text("Setup")
+                .font(.system(size: 19, weight: .bold, design: .rounded))
+                .foregroundStyle(PapercutPalette.cream)
+
+            Spacer()
+
+            Button("Cancel") {
+                if hasDraft {
+                    confirmCancel = true
+                } else {
+                    store.send(.cancelTapped)
+                }
+            }
+            .font(.system(size: 16, weight: .semibold))
+            .foregroundStyle(PapercutPalette.secondaryText)
+            .frame(minWidth: 44, minHeight: 44)
+        }
     }
 
-    private func save() {
-        let name = name
-        let address = address
-        let value = share
-        let recovery = recoveryConfirmed
-        clearDraft()
-        store.send(
-            .saveTapped(
-                name: name,
-                address: address,
-                share: value,
-                recoveryConfirmed: recovery
+    private var progressIndicator: some View {
+        HStack(spacing: 10) {
+            progressStep(
+                number: 1,
+                title: "Instance",
+                active: store.step == .instance,
+                complete: store.step == .share
             )
-        )
+
+            Capsule()
+                .fill(
+                    store.step == .share
+                        ? PapercutPalette.button
+                        : PapercutPalette.ring
+                )
+                .frame(height: 2)
+
+            progressStep(
+                number: 2,
+                title: "Share",
+                active: store.step == .share,
+                complete: false
+            )
+        }
+        .frame(maxWidth: 335)
     }
 
-    private func clearDraft() {
-        share.removeAll(keepingCapacity: false)
-        recoveryConfirmed = false
+    private func progressStep(
+        number: Int,
+        title: String,
+        active: Bool,
+        complete: Bool
+    ) -> some View {
+        HStack(spacing: 7) {
+            ZStack {
+                Circle()
+                    .fill(
+                        active || complete
+                            ? PapercutPalette.button
+                            : PapercutPalette.card
+                    )
+
+                if complete {
+                    Image(systemName: "checkmark")
+                        .font(.system(size: 11, weight: .bold))
+                } else {
+                    Text(String(number))
+                        .font(.system(size: 12, weight: .bold, design: .rounded))
+                }
+            }
+            .foregroundStyle(PapercutPalette.cream)
+            .frame(width: 24, height: 24)
+
+            Text(title)
+                .font(.system(size: 13, weight: active ? .bold : .semibold))
+                .foregroundStyle(
+                    active || complete
+                        ? PapercutPalette.cream
+                        : PapercutPalette.secondaryText
+                )
+        }
+        .fixedSize()
+    }
+
+    private var hasDraft: Bool {
+        store.step == .share || store.instance.hasDraft
     }
 }

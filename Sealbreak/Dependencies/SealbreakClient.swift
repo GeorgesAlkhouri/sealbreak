@@ -1,11 +1,21 @@
 import ComposableArchitecture
 import Foundation
 
+enum DNSSECStatus: Equatable, Sendable {
+    case secure
+    case insecure
+    case bogus
+    case indeterminate
+    case notApplicable
+    case unavailable
+}
+
 struct SealbreakClient: Sendable {
     var loadProfile: @Sendable () async throws -> ServerProfile?
     var saveProfile: @Sendable (ServerProfile) async throws -> Void
     var deleteProfile: @Sendable () async throws -> Void
     var detectProduct: @Sendable (ServerProfile) async throws -> ServerProduct
+    var dnssecStatus: @Sendable (String) async throws -> DNSSECStatus
     var status: @Sendable (ServerProfile) async throws -> SealStatus
     var submit: @Sendable (ShareRecord) async throws -> Void
     var readShare: @Sendable (_ reason: String) async throws -> ShareRecord
@@ -38,6 +48,7 @@ extension SealbreakClient {
         saveProfile: { _ in throw AppFailure("Unimplemented profile save dependency.") },
         deleteProfile: { throw AppFailure("Unimplemented profile delete dependency.") },
         detectProduct: { _ in throw AppFailure("Unimplemented server-product detection dependency.") },
+        dnssecStatus: { _ in throw AppFailure("Unimplemented DNSSEC status dependency.") },
         status: { _ in throw AppFailure("Unimplemented seal-status dependency.") },
         submit: { _ in throw AppFailure("Unimplemented share submission dependency.") },
         readShare: { _ in throw AppFailure("Unimplemented protected-share dependency.") },

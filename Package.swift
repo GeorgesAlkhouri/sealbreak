@@ -32,6 +32,8 @@ let package = Package(
                 "Features/Home/Components",
                 "Features/Welcome/WelcomeView.swift",
                 "Features/Setup/SetupView.swift",
+                "Features/Setup/Instance/InstanceSetupView.swift",
+                "Features/Setup/Share/ShareSetupView.swift",
                 "Features/ServerDetails/ServerDetailsView.swift",
                 "Features/ShareManagement/ReplaceShareView.swift",
                 "Features/ShareManagement/Components",
