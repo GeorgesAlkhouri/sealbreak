@@ -51,7 +51,9 @@ struct SetupView: View {
                 store.send(.cancelTapped)
             }
 
-            Button("Keep setting up", role: .cancel) {}
+            Button("Keep setting up", role: .cancel) {
+                // The cancel role dismisses the confirmation dialog without changing setup state.
+            }
         } message: {
             Text("Your current setup entries will not be saved.")
         }
