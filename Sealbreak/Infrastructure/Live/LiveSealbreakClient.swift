@@ -202,13 +202,30 @@ private final class LiveSealbreakClientController {
                 .deviceOwnerAuthenticationWithBiometrics,
                 localizedReason: reason
             ) else {
-                throw AppFailure("Face ID did not authorize this action.")
+                throw BiometricAuthorizationFailure.authenticationFailed
             }
         } catch is CancellationError {
             throw CancellationError()
+        } catch let error as BiometricAuthorizationFailure {
+            throw error
+        } catch let error as LAError {
+            switch error.code {
+            case .userCancel:
+                throw BiometricAuthorizationFailure.userCancelled
+            case .systemCancel:
+                throw BiometricAuthorizationFailure.systemCancelled
+            case .appCancel:
+                throw BiometricAuthorizationFailure.appCancelled
+            case .authenticationFailed:
+                throw BiometricAuthorizationFailure.authenticationFailed
+            default:
+                throw AppFailure(
+                    "Face ID could not authorize this action. No sensitive diagnostic data was recorded."
+                )
+            }
         } catch {
             throw AppFailure(
-                "Face ID was cancelled or denied. No new share submission was started."
+                "Face ID could not authorize this action. No sensitive diagnostic data was recorded."
             )
         }
 
