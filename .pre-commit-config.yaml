@@ -9,6 +9,27 @@ repos:
       - id: check-symlinks
       - id: check-yaml
       - id: end-of-file-fixer
+        # Keep the vendored Vault SVG byte-identical to its upstream MPL-2.0 source.
+        exclude: '^Sealbreak/Resources/Brand\.xcassets/VaultMark\.imageset/VaultMark\.svg
+
+  - repo: local
+    hooks:
+      - id: swiftformat
+        name: SwiftFormat
+        entry: bash -c 'swiftformat "$@" --lint' --
+        language: unsupported
+        types: [swift]
+      - id: swiftlint
+        name: SwiftLint
+        entry: swiftlint --quiet --strict
+        language: unsupported
+        types: [swift]
+      - id: plutil
+        name: Validate Apple property files
+        entry: plutil -lint
+        language: unsupported
+        files: '\.(plist|xcprivacy|pbxproj)$'
+
       - id: trailing-whitespace
 
   - repo: local
