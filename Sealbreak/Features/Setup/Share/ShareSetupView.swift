@@ -421,4 +421,3 @@ private struct MaskedShareTextField: UIViewRepresentable {
         }
     }
 }
-
