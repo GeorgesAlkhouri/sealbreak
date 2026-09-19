@@ -34,7 +34,6 @@ struct WelcomeView: View {
 
                         compatibilityCopy
                             .font(.system(size: 15, weight: .medium))
-                            .foregroundStyle(PapercutPalette.secondaryText)
                             .multilineTextAlignment(.center)
                             .lineSpacing(4)
                             .padding(.top, 12)
@@ -134,10 +133,18 @@ struct WelcomeView: View {
 
     private var compatibilityCopy: Text {
         Text("Works with ")
+            .foregroundColor(PapercutPalette.secondaryText)
             + Text(Image("OpenBaoMark"))
             + Text(" OpenBao, ")
+                .foregroundColor(PapercutPalette.secondaryText)
             + Text(Image("VaultMark"))
+                .foregroundColor(vaultBrand)
             + Text(" Vault, and compatible Shamir seal servers.")
+                .foregroundColor(PapercutPalette.secondaryText)
+    }
+
+    private var vaultBrand: Color {
+        Color(red: 1, green: 207 / 255, blue: 37 / 255)
     }
 }
 
