@@ -209,7 +209,7 @@ struct FeatureTests {
 
         #expect(store.state.home == nil)
         #expect(store.state.setup == nil)
-        #expect(store.state.welcome?.notice.contains("could not be read") == true)
+        #expect(store.state.welcome?.notice?.contains("could not be read") == true)
     }
 
     @Test
