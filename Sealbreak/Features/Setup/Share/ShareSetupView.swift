@@ -185,8 +185,8 @@ struct ShareSetupView: View {
             .shadow(color: .black.opacity(0.30), radius: 8, y: 8)
         }
         .buttonStyle(.plain)
-        .disabled(store.isBusy || share.isEmpty)
-        .opacity(store.isBusy || !share.isEmpty ? 1 : 0.5)
+        .disabled(store.isBusy || !isShareLocallyValid)
+        .opacity(store.isBusy || isShareLocallyValid ? 1 : 0.5)
     }
 
     @ViewBuilder
@@ -207,6 +207,10 @@ struct ShareSetupView: View {
                 .multilineTextAlignment(.center)
                 .fixedSize(horizontal: false, vertical: true)
         }
+    }
+
+    private var isShareLocallyValid: Bool {
+        (try? ShareRecord.validateShare(share)) != nil
     }
 
     private var hostLabel: String {
