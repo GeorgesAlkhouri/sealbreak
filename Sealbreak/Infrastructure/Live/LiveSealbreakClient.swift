@@ -63,6 +63,7 @@ private final class LiveSealbreakClientController {
     private let keychain = KeychainStore()
     private let profiles = ProfileStore()
     private let client = SealServerClient()
+    private let dnssecResolver = DNSSECResolver()
     private var activeContext: LAContext?
 
     func loadProfile() throws -> ServerProfile? {
@@ -82,7 +83,7 @@ private final class LiveSealbreakClientController {
     }
 
     func dnssecStatus(_ host: String) async -> DNSSECStatus {
-        await SealServerClient.dnssecStatus(for: host)
+        await dnssecResolver.status(for: host)
     }
 
     func status(_ profile: ServerProfile) async throws -> SealStatus {
