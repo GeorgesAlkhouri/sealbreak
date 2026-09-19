@@ -12,6 +12,11 @@
 		000000000000000000000252 /* ShareBinding.swift in Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000151 /* ShareBinding.swift */; };
 		000000000000000000000204 /* KeychainStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000104 /* KeychainStore.swift */; };
 		000000000000000000000205 /* SealServerClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000105 /* SealServerClient.swift */; };
+		000000000000000000000253 /* DNSSECResolver.swift in Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000152 /* DNSSECResolver.swift */; };
+		000000000000000000000254 /* InstanceSetupFeature.swift in Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000153 /* InstanceSetupFeature.swift */; };
+		000000000000000000000255 /* InstanceSetupView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000154 /* InstanceSetupView.swift */; };
+		000000000000000000000256 /* ShareSetupFeature.swift in Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000155 /* ShareSetupFeature.swift */; };
+		000000000000000000000257 /* ShareSetupView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000156 /* ShareSetupView.swift */; };
 		000000000000000000000206 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000107 /* PrivacyInfo.xcprivacy */; };
 		000000000000000000000210 /* SealbreakApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000110 /* SealbreakApp.swift */; };
 		000000000000000000000211 /* AppRootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000111 /* AppRootView.swift */; };
@@ -54,6 +59,11 @@
 		000000000000000000000151 /* ShareBinding.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareBinding.swift; sourceTree = "<group>"; };
 		000000000000000000000104 /* KeychainStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainStore.swift; sourceTree = "<group>"; };
 		000000000000000000000105 /* SealServerClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SealServerClient.swift; sourceTree = "<group>"; };
+		000000000000000000000152 /* DNSSECResolver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DNSSECResolver.swift; sourceTree = "<group>"; };
+		000000000000000000000153 /* InstanceSetupFeature.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InstanceSetupFeature.swift; sourceTree = "<group>"; };
+		000000000000000000000154 /* InstanceSetupView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InstanceSetupView.swift; sourceTree = "<group>"; };
+		000000000000000000000155 /* ShareSetupFeature.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareSetupFeature.swift; sourceTree = "<group>"; };
+		000000000000000000000156 /* ShareSetupView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareSetupView.swift; sourceTree = "<group>"; };
 		000000000000000000000106 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		000000000000000000000107 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		000000000000000000000110 /* SealbreakApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SealbreakApp.swift; sourceTree = "<group>"; };
@@ -195,8 +205,28 @@
 			children = (
 				000000000000000000000134 /* SetupFeature.swift */,
 				000000000000000000000130 /* SetupView.swift */,
+				000000000000000000000315 /* Instance */,
+				000000000000000000000316 /* Share */,
 			);
 			path = Setup;
+			sourceTree = "<group>";
+		};
+		000000000000000000000315 /* Instance */ = {
+			isa = PBXGroup;
+			children = (
+				000000000000000000000153 /* InstanceSetupFeature.swift */,
+				000000000000000000000154 /* InstanceSetupView.swift */,
+			);
+			path = Instance;
+			sourceTree = "<group>";
+		};
+		000000000000000000000316 /* Share */ = {
+			isa = PBXGroup;
+			children = (
+				000000000000000000000155 /* ShareSetupFeature.swift */,
+				000000000000000000000156 /* ShareSetupView.swift */,
+			);
+			path = Share;
 			sourceTree = "<group>";
 		};
 		000000000000000000000305 /* ServerDetails */ = {
@@ -269,6 +299,7 @@
 			children = (
 				000000000000000000000104 /* KeychainStore.swift */,
 				000000000000000000000105 /* SealServerClient.swift */,
+				000000000000000000000152 /* DNSSECResolver.swift */,
 				000000000000000000000313 /* Live */,
 			);
 			path = Infrastructure;
@@ -363,6 +394,7 @@
 				000000000000000000000252 /* ShareBinding.swift in Sources */,
 				000000000000000000000204 /* KeychainStore.swift in Sources */,
 				000000000000000000000205 /* SealServerClient.swift in Sources */,
+				000000000000000000000253 /* DNSSECResolver.swift in Sources */,
 				000000000000000000000245 /* SealbreakClient.swift in Sources */,
 				000000000000000000000249 /* LiveSealbreakClient.swift in Sources */,
 				000000000000000000000210 /* SealbreakApp.swift in Sources */,
@@ -383,6 +415,10 @@
 				000000000000000000000228 /* UnsealButton.swift in Sources */,
 				000000000000000000000234 /* SetupFeature.swift in Sources */,
 				000000000000000000000230 /* SetupView.swift in Sources */,
+				000000000000000000000254 /* InstanceSetupFeature.swift in Sources */,
+				000000000000000000000255 /* InstanceSetupView.swift in Sources */,
+				000000000000000000000256 /* ShareSetupFeature.swift in Sources */,
+				000000000000000000000257 /* ShareSetupView.swift in Sources */,
 				000000000000000000000235 /* ServerDetailsFeature.swift in Sources */,
 				000000000000000000000231 /* ServerDetailsView.swift in Sources */,
 				000000000000000000000236 /* ReplaceShareFeature.swift in Sources */,
