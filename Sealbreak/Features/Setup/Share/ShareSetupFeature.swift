@@ -1,29 +1,5 @@
 import ComposableArchitecture
 
-struct ShareImportPreview: Equatable, Sendable {
-    static let minimumCharacterCount = 32
-    static let visibleSuffixCharacterCount = 3
-    static let displayedMaskCharacterCount = 21
-
-    static func isValid(_ input: String) -> Bool {
-        (try? ShareRecord.validateShare(input)) != nil
-    }
-
-    static func masked(_ input: String) -> String? {
-        guard let share = try? ShareRecord.validateShare(input),
-              share.count >= minimumCharacterCount else {
-            return nil
-        }
-
-        let hidden = String(
-            repeating: "•",
-            count: displayedMaskCharacterCount
-        )
-        let suffix = share.suffix(visibleSuffixCharacterCount)
-        return "\(hidden)\(suffix)"
-    }
-}
-
 @Reducer
 struct ShareSetupFeature {
     @ObservableState
