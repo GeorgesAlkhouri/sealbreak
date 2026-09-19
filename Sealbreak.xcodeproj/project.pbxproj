@@ -49,6 +49,7 @@
 		000000000000000000000247 /* WelcomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000147 /* WelcomeView.swift */; };
 		000000000000000000000248 /* Brand.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000148 /* Brand.xcassets */; };
 		000000000000000000000249 /* LiveSealbreakClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000149 /* LiveSealbreakClient.swift */; };
+		000000000000000000000258 /* LiveDNSSECResolver.swift in Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000157 /* LiveDNSSECResolver.swift */; };
 		000000000000000000000250 /* ComposableArchitecture in Frameworks */ = {isa = PBXBuildFile; productRef = 000000000000000000000401 /* ComposableArchitecture */; };
 /* End PBXBuildFile section */
 
@@ -97,6 +98,7 @@
 		000000000000000000000147 /* WelcomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WelcomeView.swift; sourceTree = "<group>"; };
 		000000000000000000000148 /* Brand.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Resources/Brand.xcassets; sourceTree = "<group>"; };
 		000000000000000000000149 /* LiveSealbreakClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveSealbreakClient.swift; sourceTree = "<group>"; };
+		000000000000000000000157 /* LiveDNSSECResolver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveDNSSECResolver.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -309,6 +311,7 @@
 			isa = PBXGroup;
 			children = (
 				000000000000000000000149 /* LiveSealbreakClient.swift */,
+				000000000000000000000157 /* LiveDNSSECResolver.swift */,
 			);
 			path = Live;
 			sourceTree = "<group>";
@@ -397,6 +400,7 @@
 				000000000000000000000253 /* DNSSECResolver.swift in Sources */,
 				000000000000000000000245 /* SealbreakClient.swift in Sources */,
 				000000000000000000000249 /* LiveSealbreakClient.swift in Sources */,
+				000000000000000000000258 /* LiveDNSSECResolver.swift in Sources */,
 				000000000000000000000210 /* SealbreakApp.swift in Sources */,
 				000000000000000000000211 /* AppRootView.swift in Sources */,
 				000000000000000000000212 /* PrivacyGate.swift in Sources */,
