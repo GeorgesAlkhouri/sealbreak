@@ -15,6 +15,7 @@ private actor ClientSpy {
     var readRecord: ShareRecord?
     var readError: AppFailure?
     var insertError: AppFailure?
+    var insertBiometricFailure: BiometricAuthorizationFailure?
     var replaceError: AppFailure?
     var deleteShareError: AppFailure?
     var submitError: AppFailure?
@@ -73,6 +74,7 @@ private actor ClientSpy {
     }
 
     func insert(_ record: ShareRecord) throws {
+        if let insertBiometricFailure { throw insertBiometricFailure }
         if let insertError { throw insertError }
         insertedRecords.append(record)
         readRecord = record
@@ -1280,6 +1282,9 @@ private extension ClientSpy {
     func setReadRecord(_ value: ShareRecord?) { readRecord = value }
     func setReadError(_ value: AppFailure?) { readError = value }
     func setInsertError(_ value: AppFailure?) { insertError = value }
+    func setInsertBiometricFailure(_ value: BiometricAuthorizationFailure?) {
+        insertBiometricFailure = value
+    }
     func setReplaceError(_ value: AppFailure?) { replaceError = value }
     func setDeleteShareError(_ value: AppFailure?) { deleteShareError = value }
     func setSubmitError(_ value: AppFailure?) { submitError = value }
