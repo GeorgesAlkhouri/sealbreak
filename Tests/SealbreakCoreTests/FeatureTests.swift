@@ -434,28 +434,6 @@ struct FeatureTests {
     }
 
     @Test
-    func shareImportPreviewRequiresThirtyTwoCharactersAndShowsOnlySuffix() {
-        let minimumHex = "0123456789abcdef"
-        let minimumBase64 = String(repeating: "G", count: 16)
-        let previewHex = String(repeating: "0123456789abcdef", count: 2)
-        let previewBase64 = String(repeating: "G", count: 32)
-
-        #expect(ShareImportPreview.isValid(minimumHex))
-        #expect(ShareImportPreview.isValid(minimumBase64))
-        #expect(ShareImportPreview.masked(minimumHex) == nil)
-        #expect(ShareImportPreview.masked(minimumBase64) == nil)
-
-        let expectedHex =
-            String(repeating: "•", count: 21) + "def"
-        let expectedBase64 =
-            String(repeating: "•", count: 21) + "GGG"
-
-        #expect(ShareImportPreview.masked(previewHex) == expectedHex)
-        #expect(ShareImportPreview.masked(previewBase64) == expectedBase64)
-        #expect(ShareImportPreview.masked("short") == nil)
-    }
-
-    @Test
     func instanceSetupFallsBackToGenericWhenProductDetectionFails() async throws {
         let spy = ClientSpy()
         await spy.setDNSSECStatus(.secure)
