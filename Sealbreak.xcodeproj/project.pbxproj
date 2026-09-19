@@ -112,6 +112,7 @@
 				000000000000000000000301 /* Features */,
 				000000000000000000000308 /* DesignSystem */,
 				000000000000000000000310 /* Domain */,
+				000000000000000000000314 /* Dependencies */,
 				000000000000000000000311 /* Infrastructure */,
 				000000000000000000000148 /* Brand.xcassets */,
 				000000000000000000000106 /* Info.plist */,
@@ -249,12 +250,19 @@
 			path = Domain;
 			sourceTree = "<group>";
 		};
+		000000000000000000000314 /* Dependencies */ = {
+			isa = PBXGroup;
+			children = (
+				000000000000000000000145 /* SealbreakClient.swift */,
+			);
+			path = Dependencies;
+			sourceTree = "<group>";
+		};
 		000000000000000000000311 /* Infrastructure */ = {
 			isa = PBXGroup;
 			children = (
 				000000000000000000000104 /* KeychainStore.swift */,
 				000000000000000000000105 /* SealServerClient.swift */,
-				000000000000000000000145 /* SealbreakClient.swift */,
 				000000000000000000000313 /* Live */,
 			);
 			path = Infrastructure;
