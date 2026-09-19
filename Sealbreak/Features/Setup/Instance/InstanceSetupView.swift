@@ -32,7 +32,7 @@ struct InstanceSetupView: View {
 
                         setupField(
                             title: "Server address",
-                            prompt: "https://server.example.com:8200",
+                            prompt: "HTTPS origin with optional port",
                             text: addressBinding,
                             keyboardType: .URL
                         )
@@ -179,6 +179,16 @@ struct InstanceSetupView: View {
         }
     }
 
+    private var primaryButtonTitle: String {
+        if store.isCheckingConnection {
+            return "Checking…"
+        }
+        if store.canContinue {
+            return "Continue"
+        }
+        return "Check connection"
+    }
+
     private var primaryButton: some View {
         Button {
             if store.canContinue {
@@ -200,14 +210,8 @@ struct InstanceSetupView: View {
                     .font(.system(size: 20, weight: .semibold))
                 }
 
-                Text(
-                    store.isCheckingConnection
-                        ? "Checking…"
-                        : store.canContinue
-                            ? "Continue"
-                            : "Check connection"
-                )
-                .font(.system(size: 18, weight: .bold))
+                Text(primaryButtonTitle)
+                    .font(.system(size: 18, weight: .bold))
             }
             .foregroundStyle(PapercutPalette.cream)
             .frame(maxWidth: .infinity)
