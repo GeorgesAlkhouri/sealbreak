@@ -8,6 +8,8 @@
 
 /* Begin PBXBuildFile section */
 		000000000000000000000203 /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000103 /* Models.swift */; };
+		000000000000000000000251 /* AppFailure.swift in Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000150 /* AppFailure.swift */; };
+		000000000000000000000252 /* ShareBinding.swift in Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000151 /* ShareBinding.swift */; };
 		000000000000000000000204 /* KeychainStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000104 /* KeychainStore.swift */; };
 		000000000000000000000205 /* SealServerClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000105 /* SealServerClient.swift */; };
 		000000000000000000000206 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000107 /* PrivacyInfo.xcprivacy */; };
@@ -48,6 +50,8 @@
 /* Begin PBXFileReference section */
 		000000000000000000000006 /* Sealbreak.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Sealbreak.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		000000000000000000000103 /* Models.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models.swift; sourceTree = "<group>"; };
+		000000000000000000000150 /* AppFailure.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppFailure.swift; sourceTree = "<group>"; };
+		000000000000000000000151 /* ShareBinding.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareBinding.swift; sourceTree = "<group>"; };
 		000000000000000000000104 /* KeychainStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainStore.swift; sourceTree = "<group>"; };
 		000000000000000000000105 /* SealServerClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SealServerClient.swift; sourceTree = "<group>"; };
 		000000000000000000000106 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
@@ -245,7 +249,9 @@
 		000000000000000000000310 /* Domain */ = {
 			isa = PBXGroup;
 			children = (
+				000000000000000000000150 /* AppFailure.swift */,
 				000000000000000000000103 /* Models.swift */,
+				000000000000000000000151 /* ShareBinding.swift */,
 			);
 			path = Domain;
 			sourceTree = "<group>";
@@ -352,7 +358,9 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				000000000000000000000251 /* AppFailure.swift in Sources */,
 				000000000000000000000203 /* Models.swift in Sources */,
+				000000000000000000000252 /* ShareBinding.swift in Sources */,
 				000000000000000000000204 /* KeychainStore.swift in Sources */,
 				000000000000000000000205 /* SealServerClient.swift in Sources */,
 				000000000000000000000245 /* SealbreakClient.swift in Sources */,
