@@ -409,7 +409,7 @@ struct FeatureTests {
     }
 
     @Test
-    func setupImportRequiresRecoveryAndDelegatesProfile() async throws {
+    func setupImportProtectsShareAndDelegatesProfile() async throws {
         let target = try profile(product: .vault)
         let spy = ClientSpy()
         let store = TestStore(
@@ -421,24 +421,25 @@ struct FeatureTests {
         }
         store.exhaustivity = .off(showSkippedAssertions: false)
 
-        await store.send(
-            .saveTapped(share: share, recoveryConfirmed: false)
-        )
-        #expect(store.state.notice.contains("Confirm an independent recovery copy"))
-        #expect(await spy.insertedCount == 0)
-
-        await store.send(
-            .saveTapped(share: share, recoveryConfirmed: true)
-        ).finish()
-        let savedNotice = "Share saved with device-bound biometric protection. Check status to begin."
+        await store.send(.saveTapped(share: share)).finish()
+        let savedNotice = "Share protected on this iPhone. Check status to begin."
         await store.receive(.importResponse(.success(.init(profile: target, notice: savedNotice))))
         await store.receive(.delegate(.profileReady(target, notice: savedNotice)))
 
         #expect(store.state.operation == nil)
-        #expect(store.state.notice.contains("Share saved"))
+        #expect(store.state.notice.contains("Share protected"))
         #expect(await spy.insertedCount == 1)
         #expect(await spy.insertedProducts == [.vault])
         #expect(await spy.savedProfilesCount == 1)
+    }
+
+    @Test
+    func shareImportPreviewShowsOnlyBoundedFragments() {
+        let input = String(repeating: "0123456789abcdef", count: 4)
+
+        #expect(ShareImportPreview.masked(input) == "0123 •••• •••• cdef")
+        #expect(ShareImportPreview.masked("short") == nil)
+        #expect(ShareImportPreview.masked(input) != input)
     }
 
     @Test
@@ -479,7 +480,7 @@ struct FeatureTests {
         store.exhaustivity = .off(showSkippedAssertions: false)
 
         await store.send(
-            .saveTapped(share: share, recoveryConfirmed: true)
+            .saveTapped(share: share)
         ).finish()
         let fallbackNotice =
             "Protected share exists, but display metadata could not be saved. Use Restore profile from Keychain on the next launch."
@@ -531,7 +532,7 @@ struct FeatureTests {
         await store.send(.saveTapped(share: share, recoveryConfirmed: false))
         #expect(store.state.notice.contains("Confirm recovery"))
 
-        await store.send(.saveTapped(share: share, recoveryConfirmed: true)).finish()
+        await store.send(.saveTapped(share: share)).finish()
         let replacedNotice =
             "Local share replaced. This does not rotate server keys; server-side rekeying is a separate operation."
         await store.receive(.saveResponse(.success(replacedNotice)))
@@ -891,14 +892,14 @@ struct FeatureTests {
         store.exhaustivity = .off(showSkippedAssertions: false)
 
         await store.send(
-            .saveTapped(share: "short", recoveryConfirmed: true)
+            .saveTapped(share: "short")
         )
         #expect(store.state.operation == nil)
         #expect(store.state.notice.contains("share"))
 
         await spy.setInsertError(AppFailure("insert failed"))
         await store.send(
-            .saveTapped(share: share, recoveryConfirmed: true)
+            .saveTapped(share: share)
         ).finish()
         await store.skipReceivedActions()
         #expect(store.state.operation == nil)
@@ -949,12 +950,12 @@ struct FeatureTests {
         }
         store.exhaustivity = .off(showSkippedAssertions: false)
 
-        await store.send(.saveTapped(share: "short", recoveryConfirmed: true))
+        await store.send(.saveTapped(share: "short"))
         #expect(!store.state.isBusy)
         #expect(store.state.notice.contains("share"))
 
         await spy.setReplaceError(AppFailure("replace failed"))
-        await store.send(.saveTapped(share: share, recoveryConfirmed: true)).finish()
+        await store.send(.saveTapped(share: share)).finish()
         await store.skipReceivedActions()
         #expect(!store.state.isBusy)
         #expect(store.state.activity.isEmpty)
@@ -973,7 +974,7 @@ struct FeatureTests {
         }
         cancellationStore.exhaustivity = .off(showSkippedAssertions: false)
 
-        await cancellationStore.send(.saveTapped(share: share, recoveryConfirmed: true)).finish()
+        await cancellationStore.send(.saveTapped(share: share)).finish()
         await cancellationStore.skipReceivedActions()
         #expect(!cancellationStore.state.isBusy)
         #expect(cancellationStore.state.activity.isEmpty)
@@ -1156,8 +1157,8 @@ struct FeatureTests {
         state.instance.isCheckingConnection = false
         state.step = .share
         state.share = ShareSetupFeature.State(profile: try profile())
-        state.share?.operation = .importing
-        #expect(state.activity == "Importing share…")
+        state.share?.operation = .protecting
+        #expect(state.activity == "Protecting share…")
 
         state.share?.operation = nil
         #expect(state.activity.isEmpty)
@@ -1178,7 +1179,7 @@ struct FeatureTests {
         importStore.exhaustivity = .off(showSkippedAssertions: false)
 
         await importStore.send(
-            .saveTapped(share: share, recoveryConfirmed: true)
+            .saveTapped(share: share)
         ).finish()
         await importStore.skipReceivedActions()
         #expect(importStore.state.operation == nil)
