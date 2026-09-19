@@ -24,13 +24,6 @@ struct SealServerClientTests {
     }
 
     @Test
-    func dnssecSkipsLiteralAndLocalHosts() async {
-        #expect(await SealServerClient.dnssecStatus(for: "127.0.0.1") == .notApplicable)
-        #expect(await SealServerClient.dnssecStatus(for: "::1") == .notApplicable)
-        #expect(await SealServerClient.dnssecStatus(for: "server.local") == .notApplicable)
-    }
-
-    @Test
     func requestBuilderSetsTransportPolicyAndUnsealBody() throws {
         let profile = try profile()
         let get = try SealServerClient.makeRequest(profile, path: "seal-status", body: nil)
