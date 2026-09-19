@@ -426,10 +426,14 @@ struct FeatureTests {
         await store.send(.saveTapped(share: share)).finish()
         let savedNotice = "Share protected on this iPhone. Check status to begin."
         await store.receive(.importResponse(.success(.init(profile: target, notice: savedNotice))))
-        await store.receive(.delegate(.profileReady(target, notice: savedNotice)))
 
         #expect(store.state.operation == nil)
         #expect(store.state.notice.contains("Share protected"))
+        #expect(store.state.draftClearGeneration == 1)
+        #expect(store.state.pendingCompletion?.profile == target)
+
+        await store.send(.draftCleared)
+        await store.receive(.delegate(.profileReady(target, notice: savedNotice)))
         #expect(await spy.insertedCount == 1)
         #expect(await spy.insertedProducts == [.vault])
         #expect(await spy.savedProfilesCount == 1)
@@ -490,6 +494,10 @@ struct FeatureTests {
         let fallbackNotice =
             "Protected share exists, but display metadata could not be saved. Use Restore profile from Keychain on the next launch."
         await store.receive(.importResponse(.success(.init(profile: target, notice: fallbackNotice))))
+        #expect(store.state.draftClearGeneration == 1)
+        #expect(store.state.pendingCompletion?.profile == target)
+
+        await store.send(.draftCleared)
         await store.receive(.delegate(.profileReady(target, notice: fallbackNotice)))
 
         #expect(await spy.insertedCount == 1)
