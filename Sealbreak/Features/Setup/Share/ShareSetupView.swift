@@ -272,6 +272,8 @@ private struct MaskedShareField: View {
                     Text(preview)
                         .font(.system(size: 16, weight: .semibold, design: .monospaced))
                         .foregroundStyle(PapercutPalette.cream)
+                        .lineLimit(1)
+                        .truncationMode(.head)
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .contentShape(Rectangle())
                 }
