@@ -91,14 +91,8 @@ struct InstanceSetupFeature {
 
                 let client = self.client
                 return .run { send in
-                    guard let host = URL(string: profile.origin)?.host else {
-                        await send(
-                            .connectionResponse(
-                                .failure(AppFailure("Unable to determine the server hostname."))
-                            )
-                        )
-                        return
-                    }
+                    // ServerProfile guarantees a canonical HTTPS origin with a host.
+                    let host = URL(string: profile.origin)!.host!
 
                     do {
                         let dnssecStatus = try await client.dnssecStatus(host)
