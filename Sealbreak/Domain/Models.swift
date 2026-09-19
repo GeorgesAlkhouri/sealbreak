@@ -1,15 +1,5 @@
 import Foundation
 
-struct AppFailure: Equatable, LocalizedError, Sendable {
-    let message: String
-
-    init(_ message: String) {
-        self.message = message
-    }
-
-    var errorDescription: String? { message }
-}
-
 // Readers and writers must agree on the size of the complete encoded payload.
 enum StorageLimits {
     static let maxRecordBytes = 4_096
