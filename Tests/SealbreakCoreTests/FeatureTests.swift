@@ -408,27 +408,28 @@ struct FeatureTests {
         #expect(submittedCount == 0)
     }
 
+
     @Test
     func setupImportRequiresRecoveryAndDelegatesProfile() async throws {
         let target = try profile(product: .vault)
         let spy = ClientSpy()
-        await spy.setDetectedProduct(.vault)
-        let store = TestStore(initialState: SetupFeature.State()) {
-            SetupFeature()
+        let store = TestStore(
+            initialState: ShareSetupFeature.State(profile: target)
+        ) {
+            ShareSetupFeature()
         } withDependencies: {
             $0.sealbreakClient = client(spy)
         }
         store.exhaustivity = .off(showSkippedAssertions: false)
 
         await store.send(
-            .saveTapped(name: target.name, address: target.origin, share: share, recoveryConfirmed: false)
+            .saveTapped(share: share, recoveryConfirmed: false)
         )
         #expect(store.state.notice.contains("Confirm an independent recovery copy"))
-        let insertedCountBefore = await spy.insertedCount
-        #expect(insertedCountBefore == 0)
+        #expect(await spy.insertedCount == 0)
 
         await store.send(
-            .saveTapped(name: target.name, address: target.origin, share: share, recoveryConfirmed: true)
+            .saveTapped(share: share, recoveryConfirmed: true)
         ).finish()
         let savedNotice = "Share saved with device-bound biometric protection. Check status to begin."
         await store.receive(.importResponse(.success(.init(profile: target, notice: savedNotice))))
@@ -436,32 +437,31 @@ struct FeatureTests {
 
         #expect(store.state.operation == nil)
         #expect(store.state.notice.contains("Share saved"))
-        let insertedCount = await spy.insertedCount
-        #expect(insertedCount == 1)
+        #expect(await spy.insertedCount == 1)
         #expect(await spy.insertedProducts == [.vault])
-        #expect(await spy.detectProductCalls == 1)
-        let savedProfilesCount = await spy.savedProfilesCount
-        #expect(savedProfilesCount == 1)
+        #expect(await spy.savedProfilesCount == 1)
     }
 
     @Test
-    func setupImportFallsBackToGenericWhenProductDetectionFails() async throws {
-        let target = try profile()
+    func instanceSetupFallsBackToGenericWhenProductDetectionFails() async throws {
         let spy = ClientSpy()
+        await spy.setDNSSECStatus(.secure)
         await spy.setDetectionError(AppFailure("detection failed"))
-        let store = TestStore(initialState: SetupFeature.State()) {
-            SetupFeature()
+        await spy.setStatusQueue([.success(status())])
+
+        let store = TestStore(initialState: InstanceSetupFeature.State()) {
+            InstanceSetupFeature()
         } withDependencies: {
             $0.sealbreakClient = client(spy)
         }
         store.exhaustivity = .off(showSkippedAssertions: false)
 
-        await store.send(
-            .saveTapped(name: target.name, address: target.origin, share: share, recoveryConfirmed: true)
-        ).finish()
+        await store.send(.addressChanged(origin))
+        await store.send(.checkConnectionTapped).finish()
         await store.skipReceivedActions()
 
-        #expect(await spy.insertedProducts == [.generic])
+        #expect(store.state.checkedProfile?.product == .generic)
+        #expect(store.state.canContinue)
         #expect(await spy.detectProductCalls == 1)
     }
 
@@ -470,26 +470,26 @@ struct FeatureTests {
         let target = try profile()
         let spy = ClientSpy()
         await spy.setSaveProfileError(AppFailure("save failed"))
-        let store = TestStore(initialState: SetupFeature.State()) {
-            SetupFeature()
+        let store = TestStore(
+            initialState: ShareSetupFeature.State(profile: target)
+        ) {
+            ShareSetupFeature()
         } withDependencies: {
             $0.sealbreakClient = client(spy)
         }
         store.exhaustivity = .off(showSkippedAssertions: false)
 
         await store.send(
-            .saveTapped(name: target.name, address: target.origin, share: share, recoveryConfirmed: true)
+            .saveTapped(share: share, recoveryConfirmed: true)
         ).finish()
         let fallbackNotice =
             "Protected share exists, but display metadata could not be saved. Use Restore profile from Keychain on the next launch."
         await store.receive(.importResponse(.success(.init(profile: target, notice: fallbackNotice))))
         await store.receive(.delegate(.profileReady(target, notice: fallbackNotice)))
 
-        let insertedCount = await spy.insertedCount
-        #expect(insertedCount == 1)
+        #expect(await spy.insertedCount == 1)
         #expect(store.state.notice.contains("display metadata could not be saved"))
     }
-
     @Test
     func restoreProfileAndRemoveLocalDataCoverPersistenceFailures() async throws {
         let target = try profile()
@@ -797,6 +797,7 @@ struct FeatureTests {
         #expect(store.state.notice == "delete failed")
     }
 
+
     @Test
     func setupChecksInstanceBeforeAdvancingToShare() async throws {
         let spy = ClientSpy()
@@ -810,22 +811,24 @@ struct FeatureTests {
         }
         store.exhaustivity = .off(showSkippedAssertions: false)
 
-        await store.send(.addressChanged(origin))
-        #expect(store.state.checkedProfile == nil)
+        await store.send(.instance(.addressChanged(origin)))
+        #expect(store.state.instance.checkedProfile == nil)
 
-        await store.send(.checkConnectionTapped).finish()
+        await store.send(.instance(.checkConnectionTapped)).finish()
         await store.skipReceivedActions()
 
-        #expect(store.state.operation == nil)
-        #expect(store.state.dnssecStatus == .secure)
-        #expect(store.state.checkedProfile?.origin == origin)
-        #expect(store.state.checkedProfile?.product == .openBao)
-        #expect(store.state.canContinue)
+        #expect(store.state.instance.dnssecStatus == .secure)
+        #expect(store.state.instance.checkedProfile?.origin == origin)
+        #expect(store.state.instance.checkedProfile?.product == .openBao)
+        #expect(store.state.instance.canContinue)
         #expect(await spy.detectProductCalls == 1)
         #expect(await spy.dnssecCount == 1)
 
-        await store.send(.continueTapped)
+        await store.send(.instance(.continueTapped)).finish()
+        await store.skipReceivedActions()
+
         #expect(store.state.step == .share)
+        #expect(store.state.share?.profile.product == .openBao)
     }
 
     @Test
@@ -833,8 +836,8 @@ struct FeatureTests {
         let spy = ClientSpy()
         await spy.setDNSSECStatus(.bogus)
 
-        let store = TestStore(initialState: SetupFeature.State()) {
-            SetupFeature()
+        let store = TestStore(initialState: InstanceSetupFeature.State()) {
+            InstanceSetupFeature()
         } withDependencies: {
             $0.sealbreakClient = client(spy)
         }
@@ -844,10 +847,10 @@ struct FeatureTests {
         await store.send(.checkConnectionTapped).finish()
         await store.skipReceivedActions()
 
-        #expect(store.state.operation == nil)
+        #expect(!store.state.isCheckingConnection)
         #expect(store.state.dnssecStatus == .bogus)
         #expect(store.state.checkedProfile == nil)
-        #expect(store.state.connectionNotice?.contains("DNSSEC validation failed") == true)
+        #expect(store.state.notice?.contains("DNSSEC validation failed") == true)
         #expect(!store.state.canContinue)
         #expect(await spy.detectProductCalls == 0)
     }
@@ -857,8 +860,8 @@ struct FeatureTests {
         let spy = ClientSpy()
         await spy.setDNSSECStatus(.secure)
 
-        let store = TestStore(initialState: SetupFeature.State()) {
-            SetupFeature()
+        let store = TestStore(initialState: InstanceSetupFeature.State()) {
+            InstanceSetupFeature()
         } withDependencies: {
             $0.sealbreakClient = client(spy)
         }
@@ -872,7 +875,7 @@ struct FeatureTests {
         await store.send(.addressChanged("https://other.example.com"))
         #expect(store.state.checkedProfile == nil)
         #expect(store.state.dnssecStatus == nil)
-        #expect(store.state.connectionNotice == nil)
+        #expect(store.state.notice == nil)
         #expect(!store.state.canContinue)
     }
 
@@ -880,22 +883,24 @@ struct FeatureTests {
     func setupRejectsInvalidImportAndSurfacesDependencyFailure() async throws {
         let target = try profile()
         let spy = ClientSpy()
-        let store = TestStore(initialState: SetupFeature.State()) {
-            SetupFeature()
+        let store = TestStore(
+            initialState: ShareSetupFeature.State(profile: target)
+        ) {
+            ShareSetupFeature()
         } withDependencies: {
             $0.sealbreakClient = client(spy)
         }
         store.exhaustivity = .off(showSkippedAssertions: false)
 
         await store.send(
-            .saveTapped(name: target.name, address: target.origin, share: "short", recoveryConfirmed: true)
+            .saveTapped(share: "short", recoveryConfirmed: true)
         )
         #expect(store.state.operation == nil)
         #expect(store.state.notice.contains("share"))
 
         await spy.setInsertError(AppFailure("insert failed"))
         await store.send(
-            .saveTapped(name: target.name, address: target.origin, share: share, recoveryConfirmed: true)
+            .saveTapped(share: share, recoveryConfirmed: true)
         ).finish()
         await store.skipReceivedActions()
         #expect(store.state.operation == nil)
@@ -918,9 +923,11 @@ struct FeatureTests {
         #expect(cancellationStore.state.operation == nil)
         #expect(cancellationStore.state.notice.contains("Operation cancelled"))
 
+        let target = try profile()
         var interruptedState = SetupFeature.State()
-        interruptedState.operation = .importing
-        interruptedState.confirmDelete = true
+        interruptedState.step = .share
+        interruptedState.share = ShareSetupFeature.State(profile: target)
+        interruptedState.share?.operation = .importing
         let interruptionStore = TestStore(initialState: interruptedState) {
             SetupFeature()
         } withDependencies: {
@@ -929,12 +936,10 @@ struct FeatureTests {
         interruptionStore.exhaustivity = .off(showSkippedAssertions: false)
 
         await interruptionStore.send(.privacyInterrupted).finish()
-        #expect(interruptionStore.state.operation == nil)
-        #expect(!interruptionStore.state.confirmDelete)
-        #expect(interruptionStore.state.notice.contains("Operation interrupted"))
+        await interruptionStore.skipReceivedActions()
+        #expect(interruptionStore.state.share?.operation == nil)
         #expect(await spy.cancelCalls == 1)
     }
-
     @Test
     func replaceShareRejectsInvalidInputAndSurfacesDependencyFailure() async throws {
         let target = try profile()
@@ -1136,23 +1141,29 @@ struct FeatureTests {
         #expect(cancellationStore.state.notice.contains("Operation cancelled"))
     }
 
+
     @Test
-    func setupOperationActivityMapsEveryState() {
-        let cases: [(SetupFeature.State.Operation, String)] = [
-            (.checkingConnection, "Checking connection…"),
-            (.importing, "Importing share…"),
-            (.restoring, "Restoring local profile…"),
-            (.removingLocalData, "Removing local data…")
-        ]
+    func setupOperationActivityMapsEveryState() throws {
+        var state = SetupFeature.State()
+        state.operation = .restoring
+        #expect(state.activity == "Restoring local profile…")
+        #expect(state.isBusy)
 
-        for (operation, expectedActivity) in cases {
-            var state = SetupFeature.State()
-            state.operation = operation
-            #expect(state.activity == expectedActivity)
-            #expect(state.isBusy)
-        }
+        state.operation = .removingLocalData
+        #expect(state.activity == "Removing local data…")
 
-        #expect(SetupFeature.State().activity.isEmpty)
+        state.operation = nil
+        state.instance.isCheckingConnection = true
+        #expect(state.activity == "Checking connection…")
+
+        state.instance.isCheckingConnection = false
+        state.step = .share
+        state.share = ShareSetupFeature.State(profile: try profile())
+        state.share?.operation = .importing
+        #expect(state.activity == "Importing share…")
+
+        state.share?.operation = nil
+        #expect(state.activity.isEmpty)
     }
 
     @Test
@@ -1160,15 +1171,17 @@ struct FeatureTests {
         let target = try profile()
         let importSpy = ClientSpy()
         await importSpy.setWaitCancellation(true)
-        let importStore = TestStore(initialState: SetupFeature.State()) {
-            SetupFeature()
+        let importStore = TestStore(
+            initialState: ShareSetupFeature.State(profile: target)
+        ) {
+            ShareSetupFeature()
         } withDependencies: {
             $0.sealbreakClient = client(importSpy)
         }
         importStore.exhaustivity = .off(showSkippedAssertions: false)
 
         await importStore.send(
-            .saveTapped(name: target.name, address: target.origin, share: share, recoveryConfirmed: true)
+            .saveTapped(share: share, recoveryConfirmed: true)
         ).finish()
         await importStore.skipReceivedActions()
         #expect(importStore.state.operation == nil)
@@ -1202,7 +1215,6 @@ struct FeatureTests {
         #expect(failureStore.state.operation == nil)
         #expect(failureStore.state.notice == "restore failed")
     }
-
     @Test
     func setupHandlesConfirmationAndRemoveOutcomes() async throws {
         let successSpy = ClientSpy()
