@@ -672,7 +672,7 @@ struct FeatureTests {
         await store.receive(.delegate(.saved))
         let replacedCount = await spy.replacedCount
         #expect(replacedCount == 1)
-        #expect(store.state.notice.contains("Local share replaced"))
+        #expect(store.state.notice.isEmpty)
     }
 
     @Test
