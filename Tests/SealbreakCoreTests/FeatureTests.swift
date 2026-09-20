@@ -435,7 +435,7 @@ struct FeatureTests {
     }
 
     @Test
-    func setupImportPreservesShareWhenDisplayProfileSaveFails() async throws {
+    func setupImportDoesNotProtectShareWhenProfileSaveFails() async throws {
         let target = try profile()
         let spy = ClientSpy()
         await spy.setSaveProfileError(AppFailure("save failed"))
@@ -451,18 +451,20 @@ struct FeatureTests {
         await store.send(
             .saveTapped(share: share)
         ).finish()
-        let fallbackNotice =
-            "Protected share exists, but display metadata could not be saved. Remove local data and set up Sealbreak again."
-        await store.receive(.importResponse(.success(.init(profile: target, notice: fallbackNotice))))
-        await store.receive(.delegate(.profileReady(target, notice: fallbackNotice)))
+        await store.skipReceivedActions()
 
-        #expect(await spy.insertedCount == 1)
-        #expect(store.state.notice.contains("display metadata could not be saved"))
+        #expect(await spy.insertedCount == 0)
+        #expect(store.state.notice == "save failed")
     }
     @Test
     func removeLocalDataCoversProfileDeletionFailure() async throws {
+        let target = try profile()
+        var state = SetupFeature.State()
+        state.step = .share
+        state.share = ShareSetupFeature.State(profile: target)
+
         let spy = ClientSpy()
-        let store = TestStore(initialState: SetupFeature.State()) {
+        let store = TestStore(initialState: state) {
             SetupFeature()
         } withDependencies: {
             $0.sealbreakClient = client(spy)
@@ -1104,6 +1106,7 @@ struct FeatureTests {
         await importStore.skipReceivedActions()
         #expect(importStore.state.operation == nil)
         #expect(importStore.state.notice.contains("Operation cancelled"))
+        #expect(await importSpy.deleteProfileCalls == 1)
     }
 
     @Test
