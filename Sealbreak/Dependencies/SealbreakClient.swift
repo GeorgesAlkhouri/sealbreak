@@ -12,8 +12,10 @@ enum DNSSECStatus: Equatable, Sendable {
 
 struct SealbreakClient: Sendable {
     var loadProfiles: @Sendable () async throws -> [ServerProfile]
+    var insertProfile: @Sendable (ServerProfile) async throws -> Void
     var saveProfile: @Sendable (ServerProfile) async throws -> Void
     var deleteProfile: @Sendable (UUID) async throws -> Void
+    var resetLocalData: @Sendable () async throws -> Void
     var detectProduct: @Sendable (ServerProfile) async throws -> ServerProduct
     var dnssecStatus: @Sendable (String) async throws -> DNSSECStatus
     var status: @Sendable (ServerProfile) async throws -> SealStatus
@@ -45,8 +47,10 @@ extension DependencyValues {
 extension SealbreakClient {
     static let unimplemented = Self(
         loadProfiles: { throw AppFailure("Unimplemented profile load dependency.") },
+        insertProfile: { _ in throw AppFailure("Unimplemented profile insert dependency.") },
         saveProfile: { _ in throw AppFailure("Unimplemented profile save dependency.") },
         deleteProfile: { _ in throw AppFailure("Unimplemented profile delete dependency.") },
+        resetLocalData: { throw AppFailure("Unimplemented local-data reset dependency.") },
         detectProduct: { _ in throw AppFailure("Unimplemented server-product detection dependency.") },
         dnssecStatus: { _ in throw AppFailure("Unimplemented DNSSEC status dependency.") },
         status: { _ in throw AppFailure("Unimplemented seal-status dependency.") },
