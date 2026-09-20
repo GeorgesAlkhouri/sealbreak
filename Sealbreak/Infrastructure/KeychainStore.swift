@@ -46,10 +46,14 @@ struct KeychainStore {
         self.access = access
     }
 
+    private var service: String {
+        "\(Bundle.main.bundleIdentifier ?? "Sealbreak").unseal"
+    }
+
     private func query(profileID: UUID) -> [String: Any] {
         [
             kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: "\(Bundle.main.bundleIdentifier ?? "Sealbreak").unseal",
+            kSecAttrService as String: service,
             kSecAttrAccount as String: "share.\(profileID.uuidString.lowercased())",
             kSecAttrSynchronizable as String: false
         ]
@@ -127,6 +131,18 @@ struct KeychainStore {
     func delete(profileID: UUID, context: LAContext) throws {
         var request = query(profileID: profileID)
         request[kSecUseAuthenticationContext as String] = context
+        let status = access.delete(request)
+        guard status == errSecSuccess || status == errSecItemNotFound else {
+            throw failure(status)
+        }
+    }
+
+    func deleteAll() throws {
+        let request: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: service,
+            kSecAttrSynchronizable as String: false
+        ]
         let status = access.delete(request)
         guard status == errSecSuccess || status == errSecItemNotFound else {
             throw failure(status)
@@ -216,6 +232,21 @@ struct ProfileStore {
         return validated
     }
 
+    func insert(_ profile: ServerProfile) throws {
+        let profile = try profile.validated()
+        try StorageLimits.validateEncodedSize(JSONEncoder().encode(profile))
+
+        var profiles = try loadAll()
+        guard !profiles.contains(where: { $0.id == profile.id }) else {
+            throw AppFailure("A server profile with this identifier already exists.")
+        }
+        guard !profiles.contains(where: { $0.origin == profile.origin }) else {
+            throw AppFailure("A server profile for this origin already exists.")
+        }
+        profiles.append(profile)
+        try write(profiles)
+    }
+
     func save(_ profile: ServerProfile) throws {
         let profile = try profile.validated()
         try StorageLimits.validateEncodedSize(JSONEncoder().encode(profile))
@@ -250,6 +281,13 @@ struct ProfileStore {
         try write(profiles)
     }
 
+    func reset() throws {
+        guard FileManager.default.fileExists(atPath: file.path) else {
+            return
+        }
+        try FileManager.default.removeItem(at: file)
+    }
+
     private func write(_ profiles: [ServerProfile]) throws {
         let catalog = ProfileCatalog(
             version: ProfileCatalog.currentVersion,
@@ -272,4 +310,12 @@ struct ProfileStore {
             options: [.atomic, .completeFileProtection]
         )
     }
+}
+
+func resetLocalStorage(
+    deleteShares: () throws -> Void,
+    resetProfiles: () throws -> Void
+) throws {
+    try deleteShares()
+    try resetProfiles()
 }
