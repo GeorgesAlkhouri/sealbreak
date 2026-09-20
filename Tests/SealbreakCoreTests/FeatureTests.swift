@@ -6,8 +6,10 @@ import Testing
 private actor ClientSpy {
     var loadedProfiles: [ServerProfile] = []
     var loadError: AppFailure?
+    var insertProfileError: AppFailure?
     var saveProfileError: AppFailure?
     var deleteProfileError: AppFailure?
+    var resetLocalDataError: AppFailure?
     var detectedProduct: ServerProduct = .generic
     var detectionError: AppFailure?
     var configuredDNSSECStatus: DNSSECStatus = .insecure
@@ -30,11 +32,24 @@ private actor ClientSpy {
     var dnssecCalls = 0
     var deleteProfileCalls = 0
     var deleteShareCalls = 0
+    var resetLocalDataCalls = 0
     var cancelCalls = 0
 
     func loadProfiles() throws -> [ServerProfile] {
         if let loadError { throw loadError }
         return loadedProfiles
+    }
+
+    func insertProfile(_ profile: ServerProfile) throws {
+        if let insertProfileError { throw insertProfileError }
+        guard !loadedProfiles.contains(where: { $0.id == profile.id }) else {
+            throw AppFailure("A server profile with this identifier already exists.")
+        }
+        guard !loadedProfiles.contains(where: { $0.origin == profile.origin }) else {
+            throw AppFailure("A server profile for this origin already exists.")
+        }
+        savedProfiles.append(profile)
+        loadedProfiles.append(profile)
     }
 
     func saveProfile(_ profile: ServerProfile) throws {
@@ -48,6 +63,13 @@ private actor ClientSpy {
         deleteProfileCalls += 1
         if let deleteProfileError { throw deleteProfileError }
         loadedProfiles.removeAll { $0.id == profileID }
+    }
+
+    func resetLocalData() throws {
+        resetLocalDataCalls += 1
+        if let resetLocalDataError { throw resetLocalDataError }
+        loadedProfiles = []
+        readRecord = nil
     }
 
     func detectProduct() throws -> ServerProduct {
@@ -114,8 +136,10 @@ private actor ClientSpy {
 private func client(_ spy: ClientSpy) -> SealbreakClient {
     SealbreakClient(
         loadProfiles: { try await spy.loadProfiles() },
+        insertProfile: { try await spy.insertProfile($0) },
         saveProfile: { try await spy.saveProfile($0) },
         deleteProfile: { try await spy.deleteProfile($0) },
+        resetLocalData: { try await spy.resetLocalData() },
         detectProduct: { _ in try await spy.detectProduct() },
         dnssecStatus: { _ in await spy.dnssecStatus() },
         status: { _ in try await spy.status() },
@@ -253,7 +277,69 @@ struct FeatureTests {
 
         #expect(store.state.home == nil)
         #expect(store.state.setup == nil)
-        #expect(store.state.welcome?.notice?.contains("could not be read") == true)
+        #expect(store.state.welcome?.requiresLocalReset == true)
+        #expect(store.state.welcome?.notice?.contains("Reset local data") == true)
+    }
+
+    @Test
+    func appLoadFailureRequiresConfirmedLocalResetBeforeSetup() async {
+        let spy = ClientSpy()
+        await spy.setLoadError(AppFailure("broken"))
+        let store = TestStore(initialState: AppFeature.State()) {
+            AppFeature()
+        } withDependencies: {
+            $0.sealbreakClient = client(spy)
+            $0.uuid = .incrementing
+        }
+        store.exhaustivity = .off(showSkippedAssertions: false)
+
+        await store.send(.task).finish()
+        await store.skipReceivedActions()
+        #expect(store.state.welcome?.requiresLocalReset == true)
+
+        await store.send(.welcome(.setUpTapped))
+        #expect(store.state.setup == nil)
+
+        await store.send(.welcome(.resetLocalDataTapped))
+        #expect(store.state.welcome?.confirmReset == true)
+
+        await store.send(.welcome(.resetConfirmationDismissed))
+        #expect(store.state.welcome?.confirmReset == false)
+        #expect(await spy.resetLocalDataCalls == 0)
+
+        await store.send(.welcome(.resetLocalDataTapped))
+        await store.send(.welcome(.confirmResetLocalDataTapped)).finish()
+        await store.skipReceivedActions()
+
+        #expect(await spy.resetLocalDataCalls == 1)
+        #expect(store.state.welcome?.requiresLocalReset == false)
+        #expect(store.state.welcome?.isResetting == false)
+        #expect(store.state.welcome?.notice?.contains("was reset") == true)
+    }
+
+    @Test
+    func welcomeResetFailureKeepsRecoveryRequired() async {
+        let spy = ClientSpy()
+        await spy.setResetLocalDataError(AppFailure("reset failed"))
+        let store = TestStore(
+            initialState: WelcomeFeature.State(
+                notice: "damaged",
+                requiresLocalReset: true
+            )
+        ) {
+            WelcomeFeature()
+        } withDependencies: {
+            $0.sealbreakClient = client(spy)
+        }
+        store.exhaustivity = .off(showSkippedAssertions: false)
+
+        await store.send(.resetLocalDataTapped)
+        await store.send(.confirmResetLocalDataTapped).finish()
+        await store.skipReceivedActions()
+
+        #expect(store.state.requiresLocalReset)
+        #expect(!store.state.isResetting)
+        #expect(store.state.notice == "reset failed")
     }
 
     @Test
@@ -449,6 +535,35 @@ struct FeatureTests {
     }
 
     @Test
+    func setupRetryDoesNotDeleteExistingProfileOrShare() async throws {
+        let target = try profile()
+        let originalRecord = try record(target)
+        let spy = ClientSpy()
+        await spy.setLoadedProfile(target)
+        await spy.setReadRecord(originalRecord)
+
+        let store = TestStore(
+            initialState: ShareSetupFeature.State(profile: target)
+        ) {
+            ShareSetupFeature()
+        } withDependencies: {
+            $0.sealbreakClient = client(spy)
+            $0.uuid = .incrementing
+        }
+        store.exhaustivity = .off(showSkippedAssertions: false)
+
+        await store.send(.saveTapped(share: share)).finish()
+        await store.skipReceivedActions()
+
+        #expect(store.state.operation == nil)
+        #expect(store.state.notice.contains("already exists"))
+        #expect(await spy.deleteProfileCalls == 0)
+        #expect(await spy.insertedCount == 0)
+        #expect(await spy.currentProfiles == [target])
+        #expect(await spy.currentReadRecord == originalRecord)
+    }
+
+    @Test
     func instanceSetupFallsBackToGenericWhenProductDetectionFails() async throws {
         let spy = ClientSpy()
         await spy.setDNSSECStatus(.secure)
@@ -474,10 +589,10 @@ struct FeatureTests {
     }
 
     @Test
-    func setupImportDoesNotProtectShareWhenProfileSaveFails() async throws {
+    func setupImportDoesNotProtectShareWhenProfileInsertFails() async throws {
         let target = try profile()
         let spy = ClientSpy()
-        await spy.setSaveProfileError(AppFailure("save failed"))
+        await spy.setInsertProfileError(AppFailure("insert failed"))
         let store = TestStore(
             initialState: ShareSetupFeature.State(profile: target)
         ) {
@@ -494,7 +609,7 @@ struct FeatureTests {
         await store.skipReceivedActions()
 
         #expect(await spy.insertedCount == 0)
-        #expect(store.state.notice == "save failed")
+        #expect(store.state.notice == "insert failed")
     }
     @Test
     func removeLocalDataCoversProfileDeletionFailure() async throws {
@@ -1238,8 +1353,10 @@ private extension ClientSpy {
     func setLoadedProfile(_ value: ServerProfile?) { loadedProfiles = value.map { [$0] } ?? [] }
     func setLoadedProfiles(_ value: [ServerProfile]) { loadedProfiles = value }
     func setLoadError(_ value: AppFailure?) { loadError = value }
+    func setInsertProfileError(_ value: AppFailure?) { insertProfileError = value }
     func setSaveProfileError(_ value: AppFailure?) { saveProfileError = value }
     func setDeleteProfileError(_ value: AppFailure?) { deleteProfileError = value }
+    func setResetLocalDataError(_ value: AppFailure?) { resetLocalDataError = value }
     func setDetectedProduct(_ value: ServerProduct) { detectedProduct = value }
     func setDetectionError(_ value: AppFailure?) { detectionError = value }
     func setDNSSECStatus(_ value: DNSSECStatus) { configuredDNSSECStatus = value }
@@ -1252,6 +1369,8 @@ private extension ClientSpy {
     func setSubmitError(_ value: AppFailure?) { submitError = value }
     func setWaitCancellation(_ value: Bool) { waitCancellation = value }
 
+    var currentProfiles: [ServerProfile] { loadedProfiles }
+    var currentReadRecord: ShareRecord? { readRecord }
     var submittedCount: Int { submittedRecords.count }
     var insertedCount: Int { insertedRecords.count }
     var insertedBoundOrigins: [String] { insertedRecords.map(\.boundOrigin) }
