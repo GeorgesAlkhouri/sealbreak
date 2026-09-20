@@ -60,9 +60,14 @@ struct HomeFeature {
         }
     }
 
+    struct LocalDataRemovalResult: Equatable, Sendable {
+        let notice: String
+        let requiresLocalReset: Bool
+    }
+
     enum Action: Equatable {
         enum Delegate: Equatable {
-            case localDataRemoved(notice: String)
+            case localDataRemoved(notice: String, requiresLocalReset: Bool)
         }
 
         case refreshTapped
@@ -81,7 +86,7 @@ struct HomeFeature {
         case replaceShareTapped
         case removeLocalDataTapped
         case confirmRemoveLocalDataTapped
-        case removeLocalDataResponse(Result<String, AppFailure>)
+        case removeLocalDataResponse(Result<LocalDataRemovalResult, AppFailure>)
         case privacyInterrupted
         case serverDetails(PresentationAction<ServerDetailsFeature.Action>)
         case replaceShare(PresentationAction<ReplaceShareFeature.Action>)
@@ -276,14 +281,20 @@ struct HomeFeature {
                             profileID,
                             "Permanently remove Sealbreak’s local share; independent recovery will be required"
                         )
-                        let notice: String
+                        let result: LocalDataRemovalResult
                         do {
                             try await client.deleteProfile(profileID)
-                            notice = "Local share removed. Copies elsewhere remain valid; only server-side rekeying replaces the server’s Shamir shares."
+                            result = LocalDataRemovalResult(
+                                notice: "Local share removed. Copies elsewhere remain valid; only server-side rekeying replaces the server’s Shamir shares.",
+                                requiresLocalReset: false
+                            )
                         } catch {
-                            notice = "The Keychain share was removed, but its non-secret display file could not be removed. Restart may show stale metadata."
+                            result = LocalDataRemovalResult(
+                                notice: "The protected share was removed, but the local profile could not be removed. Reset local Sealbreak data before setting up another server.",
+                                requiresLocalReset: true
+                            )
                         }
-                        await send(.removeLocalDataResponse(.success(notice)))
+                        await send(.removeLocalDataResponse(.success(result)))
                     } catch is CancellationError {
                         await send(.operationCancelled)
                     } catch {
@@ -292,13 +303,20 @@ struct HomeFeature {
                 }
                 .cancellable(id: CancelID.operation)
 
-            case .removeLocalDataResponse(.success(let notice)):
+            case .removeLocalDataResponse(.success(let result)):
                 state.operation = nil
                 state.status = nil
-                state.notice = notice
+                state.notice = result.notice
                 state.serverDetails = nil
                 state.replaceShare = nil
-                return .send(.delegate(.localDataRemoved(notice: notice)))
+                return .send(
+                    .delegate(
+                        .localDataRemoved(
+                            notice: result.notice,
+                            requiresLocalReset: result.requiresLocalReset
+                        )
+                    )
+                )
 
             case .unsealFailed(let failure),
                  .removeLocalDataResponse(.failure(let failure)):
