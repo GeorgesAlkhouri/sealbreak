@@ -176,6 +176,31 @@ struct KeychainStoreTests {
     }
 
     @Test
+    func deleteAllTargetsOnlySealbreakServiceNamespace() throws {
+        let access = KeychainStub()
+        let store = KeychainStore(access: access)
+
+        try store.deleteAll()
+
+        let request = try #require(access.lastDeleteRequest)
+        #expect(request[kSecClass as String] as? CFString == kSecClassGenericPassword)
+        #expect(
+            request[kSecAttrService as String] as? String
+                == "\(Bundle.main.bundleIdentifier ?? "Sealbreak").unseal"
+        )
+        #expect(request[kSecAttrAccount as String] == nil)
+        #expect(request[kSecAttrSynchronizable as String] as? Bool == false)
+
+        access.deleteStatus = errSecItemNotFound
+        try store.deleteAll()
+
+        access.deleteStatus = errSecParam
+        #expect(throws: AppFailure.self) {
+            try store.deleteAll()
+        }
+    }
+
+    @Test
     func profileStoreDefaultDirectoryCanBeResolved() {
         _ = ProfileStore()
     }
@@ -215,6 +240,76 @@ struct KeychainStoreTests {
         try store.delete(id: second.id)
         #expect(try store.loadAll().isEmpty)
         try store.delete(id: second.id)
+    }
+
+    @Test
+    func profileStoreInsertIsCreateOnlyAndPreservesExistingCatalog() throws {
+        let root = temporaryRoot()
+        defer { try? FileManager.default.removeItem(at: root) }
+        let store = ProfileStore(baseDirectory: root)
+        let existing = try ServerProfile(
+            id: UUID(),
+            name: "Existing",
+            address: origin
+        )
+        try store.insert(existing)
+
+        #expect(throws: AppFailure.self) {
+            try store.insert(existing)
+        }
+        #expect(try store.loadAll() == [existing])
+
+        let sameOrigin = try ServerProfile(
+            id: UUID(),
+            name: "Same origin",
+            address: existing.origin
+        )
+        #expect(throws: AppFailure.self) {
+            try store.insert(sameOrigin)
+        }
+        #expect(try store.loadAll() == [existing])
+    }
+
+    @Test
+    func profileStoreResetRemovesMalformedCatalogWithoutReadingIt() throws {
+        let root = temporaryRoot()
+        defer { try? FileManager.default.removeItem(at: root) }
+        try writeCatalogData(Data("{}".utf8), to: root)
+
+        let store = ProfileStore(baseDirectory: root)
+        try store.reset()
+        #expect(try store.loadAll().isEmpty)
+
+        try store.reset()
+    }
+
+    @Test
+    func localResetDeletesSharesBeforeProfileCatalog() throws {
+        var events: [String] = []
+
+        try resetLocalStorage(
+            deleteShares: {
+                events.append("shares")
+            },
+            resetProfiles: {
+                events.append("profiles")
+            }
+        )
+        #expect(events == ["shares", "profiles"])
+
+        events = []
+        #expect(throws: AppFailure.self) {
+            try resetLocalStorage(
+                deleteShares: {
+                    events.append("shares")
+                    throw AppFailure("keychain delete failed")
+                },
+                resetProfiles: {
+                    events.append("profiles")
+                }
+            )
+        }
+        #expect(events == ["shares"])
     }
 
     @Test
