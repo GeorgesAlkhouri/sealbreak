@@ -69,7 +69,8 @@ struct AppFeature {
                 state.home = nil
                 state.setup = nil
                 state.welcome = WelcomeFeature.State(
-                    notice: "The display profile could not be read. Set up Sealbreak again using your independent share copy."
+                    notice: "Local Sealbreak configuration could not be read. Reset local data to continue, then set up again using your independent share copy.",
+                    requiresLocalReset: true
                 )
                 return .none
 
