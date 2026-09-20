@@ -257,7 +257,8 @@ struct FeatureTests {
 
         #expect(store.state.home == nil)
         #expect(store.state.setup == nil)
-        #expect(store.state.welcome?.notice == "This Sealbreak version supports one configured server profile.")
+        #expect(store.state.welcome?.requiresLocalReset == true)
+        #expect(store.state.welcome?.notice?.contains("multiple server profiles") == true)
     }
 
     @Test
@@ -779,7 +780,16 @@ struct FeatureTests {
         #expect(store.state.home?.profile == target)
         #expect(store.state.home?.status == checked)
 
-        await store.send(.home(.delegate(.localDataRemoved(notice: "Local data removed"))))
+        await store.send(
+            .home(
+                .delegate(
+                    .localDataRemoved(
+                        notice: "Local data removed",
+                        requiresLocalReset: false
+                    )
+                )
+            )
+        )
         #expect(store.state.home == nil)
         #expect(store.state.setup == nil)
         #expect(store.state.welcome?.notice == "Local data removed")
@@ -1241,7 +1251,7 @@ struct FeatureTests {
         await persistenceStore.send(.removeLocalDataTapped)
         await persistenceStore.send(.confirmRemoveLocalDataTapped).finish()
         await persistenceStore.skipReceivedActions()
-        #expect(persistenceStore.state.notice.contains("display file could not be removed"))
+        #expect(persistenceStore.state.notice.contains("Reset local Sealbreak data"))
 
         let cancellationSpy = ClientSpy()
         await cancellationSpy.setWaitCancellation(true)
@@ -1251,6 +1261,66 @@ struct FeatureTests {
         await cancellationStore.send(.confirmRemoveLocalDataTapped).finish()
         await cancellationStore.skipReceivedActions()
         #expect(cancellationStore.state.notice.contains("Operation cancelled"))
+    }
+
+    @Test
+    func partialHomeRemovalRequiresResetAndPreventsSecondProfile() async throws {
+        let first = try profile("First")
+        let second = try ServerProfile(
+            id: UUID(),
+            name: "Second",
+            address: "https://second.example.com"
+        )
+        let spy = ClientSpy()
+        await spy.setLoadedProfile(first)
+        await spy.setReadRecord(try record(first))
+        await spy.setDeleteProfileError(AppFailure("delete profile failed"))
+
+        var initialState = AppFeature.State()
+        initialState.isLoading = false
+        initialState.didLoad = true
+        initialState.home = HomeFeature.State(profile: first, status: status())
+
+        let appStore = TestStore(initialState: initialState) {
+            AppFeature()
+        } withDependencies: {
+            $0.sealbreakClient = client(spy)
+            $0.uuid = .incrementing
+        }
+        appStore.exhaustivity = .off(showSkippedAssertions: false)
+
+        await appStore.send(.home(.removeLocalDataTapped))
+        await appStore.send(.home(.confirmRemoveLocalDataTapped)).finish()
+        await appStore.skipReceivedActions()
+
+        #expect(appStore.state.home == nil)
+        #expect(appStore.state.setup == nil)
+        #expect(appStore.state.welcome?.requiresLocalReset == true)
+        #expect(appStore.state.welcome?.notice?.contains("Reset local Sealbreak data") == true)
+        #expect(await spy.currentProfiles == [first])
+        #expect(await spy.currentReadRecord == nil)
+
+        await appStore.send(.welcome(.setUpTapped))
+        #expect(appStore.state.setup == nil)
+        #expect(appStore.state.welcome?.requiresLocalReset == true)
+
+        let setupStore = TestStore(
+            initialState: ShareSetupFeature.State(profile: second)
+        ) {
+            ShareSetupFeature()
+        } withDependencies: {
+            $0.sealbreakClient = client(spy)
+            $0.uuid = .incrementing
+        }
+        setupStore.exhaustivity = .off(showSkippedAssertions: false)
+
+        await setupStore.send(.saveTapped(share: share)).finish()
+        await setupStore.skipReceivedActions()
+
+        #expect(setupStore.state.operation == nil)
+        #expect(setupStore.state.notice.contains("already exists"))
+        #expect(await spy.currentProfiles == [first])
+        #expect(await spy.insertedCount == 0)
     }
 
     @Test
