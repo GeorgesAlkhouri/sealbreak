@@ -4,7 +4,6 @@ enum HomeMenuAction {
     case refresh
     case serverDetails
     case replaceShare
-    case restoreProfile
     case removeLocalData
 }
 
