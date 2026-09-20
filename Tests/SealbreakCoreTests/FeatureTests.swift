@@ -267,7 +267,6 @@ struct FeatureTests {
         #expect(store.state.welcome != nil)
     }
 
-
     @Test
     func refreshUpdatesStatusAndUnsupportedNotice() async throws {
         let target = try profile()
