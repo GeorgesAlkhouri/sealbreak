@@ -122,6 +122,7 @@ struct InstanceSetupFeature {
                         }
 
                         let checkedProfile = try ServerProfile(
+                            id: profile.id,
                             name: profile.name,
                             address: profile.origin,
                             product: product
