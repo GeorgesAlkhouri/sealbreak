@@ -76,10 +76,14 @@ struct ServerProfile: Codable, Equatable, Sendable {
         if parts.port == 443 {
             parts.port = nil
         }
-        guard let canonicalURL = parts.url else {
+        return try url(from: parts).absoluteString
+    }
+
+    static func url(from components: URLComponents) throws -> URL {
+        guard let url = components.url else {
             throw AppFailure("Unable to construct a canonical HTTPS server origin.")
         }
-        return canonicalURL.absoluteString
+        return url
     }
 
     static func url(fromCanonicalOrigin origin: String) throws -> URL {
