@@ -177,7 +177,7 @@ struct FeatureTests {
             HomeFeature()
         } withDependencies: {
             $0.sealbreakClient = client(spy)
-        $0.uuid = .incrementing
+            $0.uuid = .incrementing
         }
         store.exhaustivity = .off(showSkippedAssertions: false)
         return store
@@ -195,7 +195,7 @@ struct FeatureTests {
             AppFeature()
         } withDependencies: {
             $0.sealbreakClient = client(spy)
-        $0.uuid = .incrementing
+            $0.uuid = .incrementing
         }
         store.exhaustivity = .off(showSkippedAssertions: false)
 
@@ -244,7 +244,7 @@ struct FeatureTests {
             AppFeature()
         } withDependencies: {
             $0.sealbreakClient = client(spy)
-        $0.uuid = .incrementing
+            $0.uuid = .incrementing
         }
         store.exhaustivity = .off(showSkippedAssertions: false)
 
@@ -425,7 +425,7 @@ struct FeatureTests {
             ShareSetupFeature()
         } withDependencies: {
             $0.sealbreakClient = client(spy)
-        $0.uuid = .incrementing
+            $0.uuid = .incrementing
         }
         store.exhaustivity = .off(showSkippedAssertions: false)
 
@@ -452,7 +452,7 @@ struct FeatureTests {
             InstanceSetupFeature()
         } withDependencies: {
             $0.sealbreakClient = client(spy)
-        $0.uuid = .incrementing
+            $0.uuid = .incrementing
         }
         store.exhaustivity = .off(showSkippedAssertions: false)
 
@@ -461,6 +461,7 @@ struct FeatureTests {
         await store.skipReceivedActions()
 
         #expect(store.state.checkedProfile?.product == .generic)
+        #expect(store.state.checkedProfile?.id.uuidString == "00000000-0000-0000-0000-000000000000")
         #expect(store.state.canContinue)
         #expect(await spy.detectProductCalls == 1)
     }
@@ -476,7 +477,7 @@ struct FeatureTests {
             ShareSetupFeature()
         } withDependencies: {
             $0.sealbreakClient = client(spy)
-        $0.uuid = .incrementing
+            $0.uuid = .incrementing
         }
         store.exhaustivity = .off(showSkippedAssertions: false)
 
@@ -500,7 +501,7 @@ struct FeatureTests {
             SetupFeature()
         } withDependencies: {
             $0.sealbreakClient = client(spy)
-        $0.uuid = .incrementing
+            $0.uuid = .incrementing
         }
         store.exhaustivity = .off(showSkippedAssertions: false)
 
@@ -521,7 +522,7 @@ struct FeatureTests {
             ReplaceShareFeature()
         } withDependencies: {
             $0.sealbreakClient = client(spy)
-        $0.uuid = .incrementing
+            $0.uuid = .incrementing
         }
         store.exhaustivity = .off(showSkippedAssertions: false)
 
@@ -557,7 +558,7 @@ struct FeatureTests {
             HomeFeature()
         } withDependencies: {
             $0.sealbreakClient = client(spy)
-        $0.uuid = .incrementing
+            $0.uuid = .incrementing
         }
         store.exhaustivity = .off(showSkippedAssertions: false)
 
@@ -602,7 +603,7 @@ struct FeatureTests {
             AppFeature()
         } withDependencies: {
             $0.sealbreakClient = client(spy)
-        $0.uuid = .incrementing
+            $0.uuid = .incrementing
         }
         store.exhaustivity = .off(showSkippedAssertions: false)
 
@@ -629,7 +630,7 @@ struct FeatureTests {
             AppFeature()
         } withDependencies: {
             $0.sealbreakClient = client(spy)
-        $0.uuid = .incrementing
+            $0.uuid = .incrementing
         }
         store.exhaustivity = .off(showSkippedAssertions: false)
 
@@ -661,7 +662,7 @@ struct FeatureTests {
             AppFeature()
         } withDependencies: {
             $0.sealbreakClient = client(homeSpy)
-        $0.uuid = .incrementing
+            $0.uuid = .incrementing
         }
         homeStore.exhaustivity = .off(showSkippedAssertions: false)
 
@@ -683,7 +684,7 @@ struct FeatureTests {
             AppFeature()
         } withDependencies: {
             $0.sealbreakClient = client(setupSpy)
-        $0.uuid = .incrementing
+            $0.uuid = .incrementing
         }
         setupStore.exhaustivity = .off(showSkippedAssertions: false)
 
@@ -747,7 +748,7 @@ struct FeatureTests {
             HomeFeature()
         } withDependencies: {
             $0.sealbreakClient = client(spy)
-        $0.uuid = .incrementing
+            $0.uuid = .incrementing
         }
         store.exhaustivity = .off(showSkippedAssertions: false)
 
@@ -794,7 +795,7 @@ struct FeatureTests {
             SetupFeature()
         } withDependencies: {
             $0.sealbreakClient = client(spy)
-        $0.uuid = .incrementing
+            $0.uuid = .incrementing
         }
         store.exhaustivity = .off(showSkippedAssertions: false)
 
@@ -827,7 +828,7 @@ struct FeatureTests {
             InstanceSetupFeature()
         } withDependencies: {
             $0.sealbreakClient = client(spy)
-        $0.uuid = .incrementing
+            $0.uuid = .incrementing
         }
         store.exhaustivity = .off(showSkippedAssertions: false)
 
@@ -852,7 +853,7 @@ struct FeatureTests {
             InstanceSetupFeature()
         } withDependencies: {
             $0.sealbreakClient = client(spy)
-        $0.uuid = .incrementing
+            $0.uuid = .incrementing
         }
         store.exhaustivity = .off(showSkippedAssertions: false)
 
@@ -878,7 +879,7 @@ struct FeatureTests {
             ShareSetupFeature()
         } withDependencies: {
             $0.sealbreakClient = client(spy)
-        $0.uuid = .incrementing
+            $0.uuid = .incrementing
         }
         store.exhaustivity = .off(showSkippedAssertions: false)
 
@@ -909,7 +910,7 @@ struct FeatureTests {
             SetupFeature()
         } withDependencies: {
             $0.sealbreakClient = client(spy)
-        $0.uuid = .incrementing
+            $0.uuid = .incrementing
         }
         interruptionStore.exhaustivity = .off(showSkippedAssertions: false)
 
@@ -927,7 +928,7 @@ struct FeatureTests {
             ReplaceShareFeature()
         } withDependencies: {
             $0.sealbreakClient = client(spy)
-        $0.uuid = .incrementing
+            $0.uuid = .incrementing
         }
         store.exhaustivity = .off(showSkippedAssertions: false)
 
@@ -952,7 +953,7 @@ struct FeatureTests {
             ReplaceShareFeature()
         } withDependencies: {
             $0.sealbreakClient = client(spy)
-        $0.uuid = .incrementing
+            $0.uuid = .incrementing
         }
         cancellationStore.exhaustivity = .off(showSkippedAssertions: false)
 
@@ -972,7 +973,7 @@ struct FeatureTests {
             ReplaceShareFeature()
         } withDependencies: {
             $0.sealbreakClient = client(spy)
-        $0.uuid = .incrementing
+            $0.uuid = .incrementing
         }
         interruptionStore.exhaustivity = .off(showSkippedAssertions: false)
 
@@ -994,7 +995,7 @@ struct FeatureTests {
             AppFeature()
         } withDependencies: {
             $0.sealbreakClient = client(spy)
-        $0.uuid = .incrementing
+            $0.uuid = .incrementing
         }
         store.exhaustivity = .off(showSkippedAssertions: false)
 
@@ -1011,7 +1012,7 @@ struct FeatureTests {
             AppFeature()
         } withDependencies: {
             $0.sealbreakClient = client(spy)
-        $0.uuid = .incrementing
+            $0.uuid = .incrementing
         }
         store.exhaustivity = .off(showSkippedAssertions: false)
 
@@ -1147,7 +1148,7 @@ struct FeatureTests {
             ShareSetupFeature()
         } withDependencies: {
             $0.sealbreakClient = client(importSpy)
-        $0.uuid = .incrementing
+            $0.uuid = .incrementing
         }
         importStore.exhaustivity = .off(showSkippedAssertions: false)
 
@@ -1172,7 +1173,7 @@ struct FeatureTests {
             SetupFeature()
         } withDependencies: {
             $0.sealbreakClient = client(successSpy)
-        $0.uuid = .incrementing
+            $0.uuid = .incrementing
         }
         successStore.exhaustivity = .off(showSkippedAssertions: false)
 
@@ -1195,7 +1196,7 @@ struct FeatureTests {
             SetupFeature()
         } withDependencies: {
             $0.sealbreakClient = client(cancellationSpy)
-        $0.uuid = .incrementing
+            $0.uuid = .incrementing
         }
         cancellationStore.exhaustivity = .off(showSkippedAssertions: false)
 
@@ -1214,7 +1215,7 @@ struct FeatureTests {
             SetupFeature()
         } withDependencies: {
             $0.sealbreakClient = client(failureSpy)
-        $0.uuid = .incrementing
+            $0.uuid = .incrementing
         }
         failureStore.exhaustivity = .off(showSkippedAssertions: false)
 
