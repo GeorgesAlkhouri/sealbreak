@@ -668,13 +668,11 @@ struct FeatureTests {
         #expect(store.state.notice.contains("Confirm recovery"))
 
         await store.send(.saveTapped(share: share, recoveryConfirmed: true)).finish()
-        let replacedNotice =
-            "Local share replaced. This does not rotate server keys; server-side rekeying is a separate operation."
-        await store.receive(.saveResponse(.success(replacedNotice)))
-        await store.receive(.delegate(.saved(notice: replacedNotice)))
+        await store.receive(.saveSucceeded)
+        await store.receive(.delegate(.saved))
         let replacedCount = await spy.replacedCount
         #expect(replacedCount == 1)
-        #expect(store.state.notice.contains("Local share replaced"))
+        #expect(store.state.notice.isEmpty)
     }
 
     @Test
@@ -877,10 +875,10 @@ struct FeatureTests {
 
         await store.send(.replaceShareTapped)
         #expect(store.state.replaceShare?.profile == target)
-        await store.send(.replaceShare(.presented(.delegate(.saved(notice: "Share replaced")))))
+        await store.send(.replaceShare(.presented(.delegate(.saved))))
         #expect(store.state.replaceShare == nil)
-        #expect(store.state.status == nil)
-        #expect(store.state.notice == "Share replaced")
+        #expect(store.state.status == refreshed)
+        #expect(store.state.notice == "Status checked. Nothing is sent automatically.")
 
         await store.send(.replaceShareTapped)
         await store.send(.replaceShare(.presented(.delegate(.dismissRequested))))

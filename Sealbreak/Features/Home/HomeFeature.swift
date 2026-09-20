@@ -349,11 +349,8 @@ struct HomeFeature {
                 state.serverDetails = nil
                 return .none
 
-            case .replaceShare(.presented(.delegate(.saved(let notice)))):
+            case .replaceShare(.presented(.delegate(.saved))):
                 state.replaceShare = nil
-                state.status = nil
-                state.notice = notice
-                synchronizeServerDetails(&state)
                 return .none
 
             case .replaceShare(.presented(.delegate(.dismissRequested))):

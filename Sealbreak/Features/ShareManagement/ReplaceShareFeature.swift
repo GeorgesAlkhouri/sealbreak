@@ -12,12 +12,13 @@ struct ReplaceShareFeature {
 
     enum Action: Equatable {
         enum Delegate: Equatable {
-            case saved(notice: String)
+            case saved
             case dismissRequested
         }
 
         case saveTapped(share: String, recoveryConfirmed: Bool)
-        case saveResponse(Result<String, AppFailure>)
+        case saveSucceeded
+        case saveFailed(AppFailure)
         case operationCancelled
         case cancelTapped
         case privacyInterrupted
@@ -62,28 +63,22 @@ struct ReplaceShareFeature {
                             replacement,
                             "Replace the local share for \(profile.origin)"
                         )
-                        await send(
-                            .saveResponse(
-                                .success(
-                                    "Local share replaced. This does not rotate server keys; server-side rekeying is a separate operation."
-                                )
-                            )
-                        )
+                        await send(.saveSucceeded)
                     } catch is CancellationError {
                         await send(.operationCancelled)
                     } catch {
-                        await send(.saveResponse(.failure(normalizedAppFailure(error))))
+                        await send(.saveFailed(normalizedAppFailure(error)))
                     }
                 }
                 .cancellable(id: CancelID.operation)
 
-            case .saveResponse(.success(let notice)):
+            case .saveSucceeded:
                 state.isBusy = false
                 state.activity = ""
-                state.notice = notice
-                return .send(.delegate(.saved(notice: notice)))
+                state.notice = ""
+                return .send(.delegate(.saved))
 
-            case .saveResponse(.failure(let failure)):
+            case .saveFailed(let failure):
                 state.isBusy = false
                 state.activity = ""
                 state.notice = failure.message
