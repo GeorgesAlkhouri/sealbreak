@@ -60,6 +60,15 @@ struct ModelsTests {
         }
     }
 
+    @Test
+    func rejectsProfileCatalogStorageOverflow() {
+        #expect(throws: AppFailure.self) {
+            try StorageLimits.validateProfileCatalogSize(
+                Data(repeating: 0, count: StorageLimits.maxProfileCatalogBytes + 1)
+            )
+        }
+    }
+
     @Test(arguments: ["", "a\nb", String(repeating: "a", count: 41)])
     func rejectsInvalidName(name: String) {
         #expect(throws: AppFailure.self) { try ServerProfile(id: UUID(), name: name, address: origin) }
