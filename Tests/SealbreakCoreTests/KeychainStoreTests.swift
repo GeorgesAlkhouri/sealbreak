@@ -256,6 +256,110 @@ struct KeychainStoreTests {
         }
     }
 
+    @Test
+    func profileStoreRejectsMalformedAndUnsupportedCatalogs() throws {
+        let malformedRoot = temporaryRoot()
+        defer { try? FileManager.default.removeItem(at: malformedRoot) }
+        try writeCatalogData(Data("{}".utf8), to: malformedRoot)
+
+        #expect(throws: AppFailure.self) {
+            try ProfileStore(baseDirectory: malformedRoot).loadAll()
+        }
+
+        let versionRoot = temporaryRoot()
+        defer { try? FileManager.default.removeItem(at: versionRoot) }
+        try writeCatalog(
+            TestProfileCatalog(version: 2, profiles: []),
+            to: versionRoot
+        )
+
+        #expect(throws: AppFailure.self) {
+            try ProfileStore(baseDirectory: versionRoot).loadAll()
+        }
+    }
+
+    @Test
+    func profileStoreRejectsInvalidCollectionInvariants() throws {
+        let sharedID = UUID()
+        let first = try ServerProfile(
+            id: sharedID,
+            name: "First",
+            address: "https://first.example.com"
+        )
+        let duplicateID = try ServerProfile(
+            id: sharedID,
+            name: "Second",
+            address: "https://second.example.com"
+        )
+
+        let duplicateIDRoot = temporaryRoot()
+        defer { try? FileManager.default.removeItem(at: duplicateIDRoot) }
+        try writeCatalog(
+            TestProfileCatalog(version: 1, profiles: [first, duplicateID]),
+            to: duplicateIDRoot
+        )
+
+        #expect(throws: AppFailure.self) {
+            try ProfileStore(baseDirectory: duplicateIDRoot).loadAll()
+        }
+
+        let duplicateOrigin = try ServerProfile(
+            id: UUID(),
+            name: "Duplicate origin",
+            address: first.origin
+        )
+        let duplicateOriginRoot = temporaryRoot()
+        defer { try? FileManager.default.removeItem(at: duplicateOriginRoot) }
+        try writeCatalog(
+            TestProfileCatalog(version: 1, profiles: [first, duplicateOrigin]),
+            to: duplicateOriginRoot
+        )
+
+        #expect(throws: AppFailure.self) {
+            try ProfileStore(baseDirectory: duplicateOriginRoot).loadAll()
+        }
+    }
+
+    @Test
+    func profileStoreRejectsOversizedProfileInsideCatalog() throws {
+        let name = "é" + String(repeating: "\u{0301}", count: 2_047)
+        let profile = try ServerProfile(
+            id: UUID(),
+            name: name,
+            address: origin
+        )
+        #expect(try JSONEncoder().encode(profile).count > StorageLimits.maxRecordBytes)
+
+        let root = temporaryRoot()
+        defer { try? FileManager.default.removeItem(at: root) }
+        try writeCatalog(
+            TestProfileCatalog(version: 1, profiles: [profile]),
+            to: root
+        )
+
+        #expect(throws: AppFailure.self) {
+            try ProfileStore(baseDirectory: root).loadAll()
+        }
+    }
+
+    private struct TestProfileCatalog: Codable {
+        let version: Int
+        let profiles: [ServerProfile]
+    }
+
+    private func writeCatalog(_ catalog: TestProfileCatalog, to root: URL) throws {
+        try writeCatalogData(try JSONEncoder().encode(catalog), to: root)
+    }
+
+    private func writeCatalogData(_ data: Data, to root: URL) throws {
+        let folder = root.appendingPathComponent("Sealbreak", isDirectory: true)
+        try FileManager.default.createDirectory(
+            at: folder,
+            withIntermediateDirectories: true
+        )
+        try data.write(to: folder.appendingPathComponent("profiles.json"))
+    }
+
     private func makeRecord() throws -> ShareRecord {
         let profile = try ServerProfile(id: UUID(), name: "Test", address: origin, product: .vault)
         return try ShareRecord(profile: profile, input: syntheticShare)
