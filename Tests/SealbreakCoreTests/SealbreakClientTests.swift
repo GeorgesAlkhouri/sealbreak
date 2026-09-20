@@ -20,7 +20,7 @@ struct SealbreakClientTests {
                 == "Unimplemented profile save dependency."
         )
         #expect(
-            await failureMessage { try await dependency.deleteProfile() }
+            await failureMessage { try await dependency.deleteProfile(profile.id) }
                 == "Unimplemented profile delete dependency."
         )
         #expect(
@@ -40,7 +40,7 @@ struct SealbreakClientTests {
                 == "Unimplemented share submission dependency."
         )
         #expect(
-            await failureMessage { try await dependency.readShare("Test") }
+            await failureMessage { try await dependency.readShare(profile.id, "Test") }
                 == "Unimplemented protected-share dependency."
         )
         #expect(
@@ -52,7 +52,7 @@ struct SealbreakClientTests {
                 == "Unimplemented protected-share dependency."
         )
         #expect(
-            await failureMessage { try await dependency.deleteShare("Test") }
+            await failureMessage { try await dependency.deleteShare(profile.id, "Test") }
                 == "Unimplemented protected-share dependency."
         )
         #expect(
