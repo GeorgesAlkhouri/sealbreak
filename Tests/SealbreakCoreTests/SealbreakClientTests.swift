@@ -12,7 +12,7 @@ struct SealbreakClientTests {
         let record = try ShareRecord(profile: profile, input: String(repeating: "a", count: 64))
 
         #expect(
-            await failureMessage { try await dependency.loadProfile() }
+            await failureMessage { try await dependency.loadProfiles() }
                 == "Unimplemented profile load dependency."
         )
         #expect(
