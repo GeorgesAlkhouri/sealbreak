@@ -166,10 +166,12 @@ struct HomeFeature {
 
                         await send(.operationActivity(.waitingForFaceID))
                         var record = try await client.readShare(
+                            target.id,
                             "Send one Shamir share to \(target.origin)"
                         )
                         defer { record.share.removeAll(keepingCapacity: false) }
-                        guard record.boundOrigin == target.origin else {
+                        guard record.profileID == target.id,
+                              record.boundOrigin == target.origin else {
                             throw AppFailure("Target binding mismatch. Nothing was sent. Reconfigure the local share for this server before retrying.")
                         }
 
@@ -265,16 +267,18 @@ struct HomeFeature {
                 state.confirmation = nil
                 state.operation = .removingLocalData
                 synchronizeServerDetails(&state)
+                let profileID = state.profile.id
                 let client = self.client
                 return .run { send in
                     do {
                         try await client.waitForForeground()
                         try await client.deleteShare(
+                            profileID,
                             "Permanently remove Sealbreak’s local share; independent recovery will be required"
                         )
                         let notice: String
                         do {
-                            try await client.deleteProfile()
+                            try await client.deleteProfile(profileID)
                             notice = "Local share removed. Copies elsewhere remain valid; only server-side rekeying replaces the server’s Shamir shares."
                         } catch {
                             notice = "The Keychain share was removed, but its non-secret display file could not be removed. Restart may show stale metadata."
