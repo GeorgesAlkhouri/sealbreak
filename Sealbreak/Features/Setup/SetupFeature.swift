@@ -10,16 +10,10 @@ struct SetupFeature {
         }
 
         enum Operation: Equatable {
-            case restoring
             case removingLocalData
 
             var activity: String {
-                switch self {
-                case .restoring:
-                    return "Restoring local profile…"
-                case .removingLocalData:
-                    return "Removing local data…"
-                }
+                "Removing local data…"
             }
         }
 
@@ -51,11 +45,6 @@ struct SetupFeature {
         }
     }
 
-    struct ProfileResult: Equatable, Sendable {
-        let profile: ServerProfile
-        let notice: String
-    }
-
     enum Action: Equatable {
         enum Delegate: Equatable {
             case cancelled
@@ -66,8 +55,6 @@ struct SetupFeature {
         case share(ShareSetupFeature.Action)
         case backTapped
         case cancelTapped
-        case restoreProfileTapped
-        case restoreResponse(Result<ProfileResult, AppFailure>)
         case removeLocalDataTapped
         case confirmRemoveLocalDataTapped
         case confirmationDismissed
@@ -119,45 +106,6 @@ struct SetupFeature {
                     .send(.delegate(.cancelled))
                 )
 
-            case .restoreProfileTapped:
-                guard !state.isBusy else { return .none }
-                state.operation = .restoring
-                let client = self.client
-                return .run { send in
-                    do {
-                        try await client.waitForForeground()
-                        var record = try await client.readShare(
-                            "Restore the server profile from the protected Keychain record"
-                        )
-                        defer { record.share.removeAll(keepingCapacity: false) }
-                        let profile = record.profile
-                        let notice: String
-                        do {
-                            try await client.saveProfile(profile)
-                            notice = "Protected target restored. No share was transmitted or exported."
-                        } catch {
-                            notice = "Protected share exists, but display metadata could not be saved. Use Restore profile from Keychain on the next launch."
-                        }
-                        await send(
-                            .restoreResponse(
-                                .success(ProfileResult(profile: profile, notice: notice))
-                            )
-                        )
-                    } catch is CancellationError {
-                        await send(.operationCancelled)
-                    } catch {
-                        await send(.restoreResponse(.failure(normalizedAppFailure(error))))
-                    }
-                }
-                .cancellable(id: CancelID.operation)
-
-            case .restoreResponse(.success(let result)):
-                state.operation = nil
-                state.notice = result.notice
-                return .send(
-                    .delegate(.profileReady(result.profile, notice: result.notice))
-                )
-
             case .removeLocalDataTapped:
                 guard !state.isBusy else { return .none }
                 state.confirmDelete = true
@@ -199,8 +147,7 @@ struct SetupFeature {
                 state.notice = notice
                 return .none
 
-            case .restoreResponse(.failure(let failure)),
-                 .removeResponse(.failure(let failure)):
+            case .removeResponse(.failure(let failure)):
                 state.operation = nil
                 state.notice = failure.message
                 return .none
