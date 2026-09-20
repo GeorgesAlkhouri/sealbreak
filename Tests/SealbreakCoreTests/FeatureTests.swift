@@ -4,7 +4,7 @@ import Testing
 @testable import SealbreakCore
 
 private actor ClientSpy {
-    var loadedProfile: ServerProfile?
+    var loadedProfiles: [ServerProfile] = []
     var loadError: AppFailure?
     var saveProfileError: AppFailure?
     var deleteProfileError: AppFailure?
@@ -32,23 +32,22 @@ private actor ClientSpy {
     var deleteShareCalls = 0
     var cancelCalls = 0
 
-    func loadProfile() throws -> ServerProfile? {
+    func loadProfiles() throws -> [ServerProfile] {
         if let loadError { throw loadError }
-        return loadedProfile
+        return loadedProfiles
     }
 
     func saveProfile(_ profile: ServerProfile) throws {
         if let saveProfileError { throw saveProfileError }
         savedProfiles.append(profile)
-        loadedProfile = profile
+        loadedProfiles.removeAll { $0.id == profile.id }
+        loadedProfiles.append(profile)
     }
 
     func deleteProfile(_ profileID: UUID) throws {
         deleteProfileCalls += 1
         if let deleteProfileError { throw deleteProfileError }
-        if loadedProfile?.id == profileID {
-            loadedProfile = nil
-        }
+        loadedProfiles.removeAll { $0.id == profileID }
     }
 
     func detectProduct() throws -> ServerProduct {
@@ -114,7 +113,7 @@ private actor ClientSpy {
 
 private func client(_ spy: ClientSpy) -> SealbreakClient {
     SealbreakClient(
-        loadProfile: { try await spy.loadProfile() },
+        loadProfiles: { try await spy.loadProfiles() },
         saveProfile: { try await spy.saveProfile($0) },
         deleteProfile: { try await spy.deleteProfile($0) },
         detectProduct: { _ in try await spy.detectProduct() },
@@ -178,6 +177,7 @@ struct FeatureTests {
             HomeFeature()
         } withDependencies: {
             $0.sealbreakClient = client(spy)
+        $0.uuid = .incrementing
         }
         store.exhaustivity = .off(showSkippedAssertions: false)
         return store
@@ -195,6 +195,7 @@ struct FeatureTests {
             AppFeature()
         } withDependencies: {
             $0.sealbreakClient = client(spy)
+        $0.uuid = .incrementing
         }
         store.exhaustivity = .off(showSkippedAssertions: false)
 
@@ -209,6 +210,33 @@ struct FeatureTests {
     }
 
     @Test
+    func appRejectsMultiplePersistedProfilesUntilMultiServerUIExists() async throws {
+        let first = try profile("First")
+        let second = try ServerProfile(
+            id: UUID(),
+            name: "Second",
+            address: "https://second.example.com"
+        )
+        let spy = ClientSpy()
+        await spy.setLoadedProfiles([first, second])
+
+        let store = TestStore(initialState: AppFeature.State()) {
+            AppFeature()
+        } withDependencies: {
+            $0.sealbreakClient = client(spy)
+            $0.uuid = .incrementing
+        }
+        store.exhaustivity = .off(showSkippedAssertions: false)
+
+        await store.send(.task).finish()
+        await store.skipReceivedActions()
+
+        #expect(store.state.home == nil)
+        #expect(store.state.setup == nil)
+        #expect(store.state.welcome?.notice == "This Sealbreak version supports one configured server profile.")
+    }
+
+    @Test
     func appLoadFailureEntersWelcome() async {
         let spy = ClientSpy()
         await spy.setLoadError(AppFailure("broken"))
@@ -216,6 +244,7 @@ struct FeatureTests {
             AppFeature()
         } withDependencies: {
             $0.sealbreakClient = client(spy)
+        $0.uuid = .incrementing
         }
         store.exhaustivity = .off(showSkippedAssertions: false)
 
@@ -396,6 +425,7 @@ struct FeatureTests {
             ShareSetupFeature()
         } withDependencies: {
             $0.sealbreakClient = client(spy)
+        $0.uuid = .incrementing
         }
         store.exhaustivity = .off(showSkippedAssertions: false)
 
@@ -422,6 +452,7 @@ struct FeatureTests {
             InstanceSetupFeature()
         } withDependencies: {
             $0.sealbreakClient = client(spy)
+        $0.uuid = .incrementing
         }
         store.exhaustivity = .off(showSkippedAssertions: false)
 
@@ -445,6 +476,7 @@ struct FeatureTests {
             ShareSetupFeature()
         } withDependencies: {
             $0.sealbreakClient = client(spy)
+        $0.uuid = .incrementing
         }
         store.exhaustivity = .off(showSkippedAssertions: false)
 
@@ -468,6 +500,7 @@ struct FeatureTests {
             SetupFeature()
         } withDependencies: {
             $0.sealbreakClient = client(spy)
+        $0.uuid = .incrementing
         }
         store.exhaustivity = .off(showSkippedAssertions: false)
 
@@ -488,6 +521,7 @@ struct FeatureTests {
             ReplaceShareFeature()
         } withDependencies: {
             $0.sealbreakClient = client(spy)
+        $0.uuid = .incrementing
         }
         store.exhaustivity = .off(showSkippedAssertions: false)
 
@@ -523,6 +557,7 @@ struct FeatureTests {
             HomeFeature()
         } withDependencies: {
             $0.sealbreakClient = client(spy)
+        $0.uuid = .incrementing
         }
         store.exhaustivity = .off(showSkippedAssertions: false)
 
@@ -567,6 +602,7 @@ struct FeatureTests {
             AppFeature()
         } withDependencies: {
             $0.sealbreakClient = client(spy)
+        $0.uuid = .incrementing
         }
         store.exhaustivity = .off(showSkippedAssertions: false)
 
@@ -593,6 +629,7 @@ struct FeatureTests {
             AppFeature()
         } withDependencies: {
             $0.sealbreakClient = client(spy)
+        $0.uuid = .incrementing
         }
         store.exhaustivity = .off(showSkippedAssertions: false)
 
@@ -624,6 +661,7 @@ struct FeatureTests {
             AppFeature()
         } withDependencies: {
             $0.sealbreakClient = client(homeSpy)
+        $0.uuid = .incrementing
         }
         homeStore.exhaustivity = .off(showSkippedAssertions: false)
 
@@ -645,6 +683,7 @@ struct FeatureTests {
             AppFeature()
         } withDependencies: {
             $0.sealbreakClient = client(setupSpy)
+        $0.uuid = .incrementing
         }
         setupStore.exhaustivity = .off(showSkippedAssertions: false)
 
@@ -708,6 +747,7 @@ struct FeatureTests {
             HomeFeature()
         } withDependencies: {
             $0.sealbreakClient = client(spy)
+        $0.uuid = .incrementing
         }
         store.exhaustivity = .off(showSkippedAssertions: false)
 
@@ -754,6 +794,7 @@ struct FeatureTests {
             SetupFeature()
         } withDependencies: {
             $0.sealbreakClient = client(spy)
+        $0.uuid = .incrementing
         }
         store.exhaustivity = .off(showSkippedAssertions: false)
 
@@ -786,6 +827,7 @@ struct FeatureTests {
             InstanceSetupFeature()
         } withDependencies: {
             $0.sealbreakClient = client(spy)
+        $0.uuid = .incrementing
         }
         store.exhaustivity = .off(showSkippedAssertions: false)
 
@@ -810,6 +852,7 @@ struct FeatureTests {
             InstanceSetupFeature()
         } withDependencies: {
             $0.sealbreakClient = client(spy)
+        $0.uuid = .incrementing
         }
         store.exhaustivity = .off(showSkippedAssertions: false)
 
@@ -835,6 +878,7 @@ struct FeatureTests {
             ShareSetupFeature()
         } withDependencies: {
             $0.sealbreakClient = client(spy)
+        $0.uuid = .incrementing
         }
         store.exhaustivity = .off(showSkippedAssertions: false)
 
@@ -865,6 +909,7 @@ struct FeatureTests {
             SetupFeature()
         } withDependencies: {
             $0.sealbreakClient = client(spy)
+        $0.uuid = .incrementing
         }
         interruptionStore.exhaustivity = .off(showSkippedAssertions: false)
 
@@ -882,6 +927,7 @@ struct FeatureTests {
             ReplaceShareFeature()
         } withDependencies: {
             $0.sealbreakClient = client(spy)
+        $0.uuid = .incrementing
         }
         store.exhaustivity = .off(showSkippedAssertions: false)
 
@@ -906,6 +952,7 @@ struct FeatureTests {
             ReplaceShareFeature()
         } withDependencies: {
             $0.sealbreakClient = client(spy)
+        $0.uuid = .incrementing
         }
         cancellationStore.exhaustivity = .off(showSkippedAssertions: false)
 
@@ -925,6 +972,7 @@ struct FeatureTests {
             ReplaceShareFeature()
         } withDependencies: {
             $0.sealbreakClient = client(spy)
+        $0.uuid = .incrementing
         }
         interruptionStore.exhaustivity = .off(showSkippedAssertions: false)
 
@@ -946,6 +994,7 @@ struct FeatureTests {
             AppFeature()
         } withDependencies: {
             $0.sealbreakClient = client(spy)
+        $0.uuid = .incrementing
         }
         store.exhaustivity = .off(showSkippedAssertions: false)
 
@@ -962,6 +1011,7 @@ struct FeatureTests {
             AppFeature()
         } withDependencies: {
             $0.sealbreakClient = client(spy)
+        $0.uuid = .incrementing
         }
         store.exhaustivity = .off(showSkippedAssertions: false)
 
@@ -1097,6 +1147,7 @@ struct FeatureTests {
             ShareSetupFeature()
         } withDependencies: {
             $0.sealbreakClient = client(importSpy)
+        $0.uuid = .incrementing
         }
         importStore.exhaustivity = .off(showSkippedAssertions: false)
 
@@ -1121,6 +1172,7 @@ struct FeatureTests {
             SetupFeature()
         } withDependencies: {
             $0.sealbreakClient = client(successSpy)
+        $0.uuid = .incrementing
         }
         successStore.exhaustivity = .off(showSkippedAssertions: false)
 
@@ -1143,6 +1195,7 @@ struct FeatureTests {
             SetupFeature()
         } withDependencies: {
             $0.sealbreakClient = client(cancellationSpy)
+        $0.uuid = .incrementing
         }
         cancellationStore.exhaustivity = .off(showSkippedAssertions: false)
 
@@ -1161,6 +1214,7 @@ struct FeatureTests {
             SetupFeature()
         } withDependencies: {
             $0.sealbreakClient = client(failureSpy)
+        $0.uuid = .incrementing
         }
         failureStore.exhaustivity = .off(showSkippedAssertions: false)
 
@@ -1173,7 +1227,8 @@ struct FeatureTests {
 }
 
 private extension ClientSpy {
-    func setLoadedProfile(_ value: ServerProfile?) { loadedProfile = value }
+    func setLoadedProfile(_ value: ServerProfile?) { loadedProfiles = value.map { [$0] } ?? [] }
+    func setLoadedProfiles(_ value: [ServerProfile]) { loadedProfiles = value }
     func setLoadError(_ value: AppFailure?) { loadError = value }
     func setSaveProfileError(_ value: AppFailure?) { saveProfileError = value }
     func setDeleteProfileError(_ value: AppFailure?) { deleteProfileError = value }
