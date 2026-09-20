@@ -66,6 +66,7 @@ struct ShareSetupFeature {
                 }
 
                 state.operation = .protecting
+                let profile = state.profile
                 let client = self.client
                 return .run { send in
                     var record = record
@@ -75,16 +76,15 @@ struct ShareSetupFeature {
                         try await client.waitForForeground()
                         try await client.insertShare(
                             record,
-                            "Protect this share for \(record.profile.origin)"
+                            "Protect this share for \(record.boundOrigin)"
                         )
 
-                        let profile = record.profile
                         let notice: String
                         do {
                             try await client.saveProfile(profile)
                             notice = "Share protected on this iPhone. Check status to begin."
                         } catch {
-                            notice = "Protected share exists, but display metadata could not be saved. Use Restore profile from Keychain on the next launch."
+                            notice = "Protected share exists, but display metadata could not be saved. Remove local data and set up Sealbreak again."
                         }
 
                         await send(
