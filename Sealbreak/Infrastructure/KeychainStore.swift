@@ -46,17 +46,17 @@ struct KeychainStore {
         self.access = access
     }
 
-    private var query: [String: Any] {
+    private func query(profileID: UUID) -> [String: Any] {
         [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: "\(Bundle.main.bundleIdentifier ?? "Sealbreak").unseal",
-            kSecAttrAccount as String: "single-share-v1",
+            kSecAttrAccount as String: "share.\(profileID.uuidString.lowercased())",
             kSecAttrSynchronizable as String: false
         ]
     }
 
-    func read(context: LAContext) throws -> ShareRecord {
-        var request = query
+    func read(profileID: UUID, context: LAContext) throws -> ShareRecord {
+        var request = query(profileID: profileID)
         request[kSecReturnData as String] = true
         request[kSecMatchLimit as String] = kSecMatchLimitOne
         request[kSecUseAuthenticationContext as String] = context
@@ -72,11 +72,17 @@ struct KeychainStore {
             throw AppFailure("The protected record is larger than expected. Use independent recovery.")
         }
 
+        let record: ShareRecord
         do {
-            return try JSONDecoder().decode(ShareRecord.self, from: data).validated()
+            record = try JSONDecoder().decode(ShareRecord.self, from: data).validated()
         } catch {
             throw AppFailure("The protected record is unreadable. Use independent recovery; do not overwrite your only copy.")
         }
+
+        guard record.profileID == profileID else {
+            throw AppFailure("The protected profile binding does not match this Keychain entry. Use independent recovery.")
+        }
+        return record
     }
 
     func insert(_ record: ShareRecord, context: LAContext) throws {
@@ -89,7 +95,7 @@ struct KeychainStore {
             data.resetBytes(in: data.startIndex..<data.endIndex)
         }
         try StorageLimits.validateEncodedSize(data)
-        var request = query
+        var request = query(profileID: record.profileID)
         request[kSecAttrAccessControl as String] = accessControl
         request[kSecValueData as String] = data
         request[kSecUseAuthenticationContext as String] = context
@@ -106,7 +112,7 @@ struct KeychainStore {
             data.resetBytes(in: data.startIndex..<data.endIndex)
         }
         try StorageLimits.validateEncodedSize(data)
-        var request = query
+        var request = query(profileID: record.profileID)
         request[kSecUseAuthenticationContext as String] = context
 
         let status = access.update(
@@ -118,8 +124,8 @@ struct KeychainStore {
         }
     }
 
-    func delete(context: LAContext) throws {
-        var request = query
+    func delete(profileID: UUID, context: LAContext) throws {
+        var request = query(profileID: profileID)
         request[kSecUseAuthenticationContext as String] = context
         let status = access.delete(request)
         guard status == errSecSuccess || status == errSecItemNotFound else {
@@ -130,7 +136,7 @@ struct KeychainStore {
     private func failure(_ status: OSStatus) -> AppFailure {
         switch status {
         case errSecDuplicateItem:
-            return AppFailure("A protected share already exists. Remove local data before importing another share.")
+            return AppFailure("A protected share already exists for this server profile.")
         case errSecItemNotFound:
             return AppFailure("No accessible share was found. Face ID or the device passcode may have changed. Recover from your independent copy.")
         case errSecAuthFailed, errSecInteractionNotAllowed, errSecUserCanceled:
@@ -138,6 +144,17 @@ struct KeychainStore {
         default:
             return AppFailure("The Keychain operation failed (status \(status)). Existing data was not deliberately deleted.")
         }
+    }
+}
+
+private struct ProfileCatalog: Codable {
+    static let currentVersion = 1
+
+    let version: Int
+    var profiles: [ServerProfile]
+
+    static var empty: Self {
+        Self(version: currentVersion, profiles: [])
     }
 }
 
@@ -156,27 +173,102 @@ struct ProfileStore {
     }
 
     private var file: URL {
-        directory.appendingPathComponent("profile.json")
+        directory.appendingPathComponent("profiles.json")
     }
 
-    func load() throws -> ServerProfile? {
+    func loadAll() throws -> [ServerProfile] {
         guard FileManager.default.fileExists(atPath: file.path) else {
-            return nil
+            return []
         }
+
         let handle = try FileHandle(forReadingFrom: file)
         defer {
             try? handle.close()
         }
-        let data = try handle.read(upToCount: StorageLimits.maxRecordBytes + 1) ?? Data()
-        guard data.count <= StorageLimits.maxRecordBytes else {
-            throw AppFailure("Invalid display profile. Set up this server profile again.")
+        let data = try handle.read(upToCount: StorageLimits.maxProfileCatalogBytes + 1) ?? Data()
+        guard data.count <= StorageLimits.maxProfileCatalogBytes else {
+            throw AppFailure("Invalid profile catalog. Set up Sealbreak again using your independent share copies.")
         }
-        return try JSONDecoder().decode(ServerProfile.self, from: data).validated()
+
+        let catalog: ProfileCatalog
+        do {
+            catalog = try JSONDecoder().decode(ProfileCatalog.self, from: data)
+        } catch {
+            throw AppFailure("Invalid profile catalog. Set up Sealbreak again using your independent share copies.")
+        }
+        guard catalog.version == ProfileCatalog.currentVersion else {
+            throw AppFailure("Unsupported profile catalog version.")
+        }
+
+        var ids = Set<UUID>()
+        var origins = Set<String>()
+        var validated: [ServerProfile] = []
+        validated.reserveCapacity(catalog.profiles.count)
+
+        for profile in catalog.profiles {
+            let profile = try profile.validated()
+            try StorageLimits.validateEncodedSize(JSONEncoder().encode(profile))
+            guard ids.insert(profile.id).inserted else {
+                throw AppFailure("The profile catalog contains a duplicate profile identifier.")
+            }
+            guard origins.insert(profile.origin).inserted else {
+                throw AppFailure("The profile catalog contains the same server origin more than once.")
+            }
+            validated.append(profile)
+        }
+
+        return validated
+    }
+
+    func load() throws -> ServerProfile? {
+        let profiles = try loadAll()
+        guard profiles.count <= 1 else {
+            throw AppFailure("This Sealbreak version supports one configured server profile.")
+        }
+        return profiles.first
     }
 
     func save(_ profile: ServerProfile) throws {
-        let data = try JSONEncoder().encode(profile.validated())
-        try StorageLimits.validateEncodedSize(data)
+        let profile = try profile.validated()
+        try StorageLimits.validateEncodedSize(JSONEncoder().encode(profile))
+
+        var profiles = try loadAll()
+        if let index = profiles.firstIndex(where: { $0.id == profile.id }) {
+            guard profiles[index].origin == profile.origin else {
+                throw AppFailure("A server profile cannot be retargeted. Create a new profile for a different origin.")
+            }
+            profiles[index] = profile
+        } else {
+            guard !profiles.contains(where: { $0.origin == profile.origin }) else {
+                throw AppFailure("A server profile for this origin already exists.")
+            }
+            profiles.append(profile)
+        }
+
+        try write(profiles)
+    }
+
+    func delete(id: UUID) throws {
+        var profiles = try loadAll()
+        profiles.removeAll { $0.id == id }
+
+        if profiles.isEmpty {
+            if FileManager.default.fileExists(atPath: file.path) {
+                try FileManager.default.removeItem(at: file)
+            }
+            return
+        }
+
+        try write(profiles)
+    }
+
+    private func write(_ profiles: [ServerProfile]) throws {
+        let catalog = ProfileCatalog(
+            version: ProfileCatalog.currentVersion,
+            profiles: profiles
+        )
+        let data = try JSONEncoder().encode(catalog)
+        try StorageLimits.validateProfileCatalogSize(data)
 
         var folder = directory
         try FileManager.default.createDirectory(
@@ -191,11 +283,5 @@ struct ProfileStore {
             to: file,
             options: [.atomic, .completeFileProtection]
         )
-    }
-
-    func delete() throws {
-        if FileManager.default.fileExists(atPath: file.path) {
-            try FileManager.default.removeItem(at: file)
-        }
     }
 }
