@@ -21,14 +21,14 @@ struct HomeHeader: View {
 
             VStack(alignment: .leading, spacing: -1) {
                 Text("Sealbreak")
-                    .font(.system(size: 31, weight: .bold))
+                    .font(.title.bold())
                     .foregroundStyle(PapercutPalette.cream)
 
                 Text("S E C U R E   A C C E S S")
-                    .font(.system(size: 11, weight: .medium))
+                    .font(.caption2.weight(.medium))
                     .foregroundStyle(PapercutPalette.secondaryText)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.8)
+                    .lineLimit(2)
+                    .fixedSize(horizontal: false, vertical: true)
             }
 
             Spacer(minLength: 8)

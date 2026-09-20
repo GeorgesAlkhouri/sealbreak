@@ -10,53 +10,55 @@ struct HomeView: View {
             ZStack {
                 PapercutBackground()
 
-                VStack(spacing: 0) {
-                    HomeHeader(isBusy: viewState.isBusy) { action in
-                        switch action {
-                        case .refresh:
-                            store.send(.refreshTapped)
-                        case .serverDetails:
-                            store.send(.serverDetailsTapped)
-                        case .replaceShare:
-                            store.send(.replaceShareTapped)
-                        case .removeLocalData:
-                            store.send(.removeLocalDataTapped)
+                ScrollView(.vertical, showsIndicators: false) {
+                    VStack(spacing: 0) {
+                        HomeHeader(isBusy: viewState.isBusy) { action in
+                            switch action {
+                            case .refresh:
+                                store.send(.refreshTapped)
+                            case .serverDetails:
+                                store.send(.serverDetailsTapped)
+                            case .replaceShare:
+                                store.send(.replaceShareTapped)
+                            case .removeLocalData:
+                                store.send(.removeLocalDataTapped)
+                            }
                         }
-                    }
-                    .padding(.horizontal, 24)
+                        .padding(.horizontal, 24)
 
-                    Spacer(minLength: 28)
+                        Spacer(minLength: 28)
 
-                    ServerStatusCard(state: viewState)
+                        ServerStatusCard(state: viewState)
+                            .frame(maxWidth: 335)
+                            .padding(.horizontal, 29)
+
+                        Spacer(minLength: 26)
+
+                        UnsealButton(state: viewState.primaryAction) {
+                            switch viewState.primaryAction {
+                            case .unseal:
+                                store.send(.unsealTapped)
+                            case .checkStatus, .working:
+                                store.send(.refreshTapped)
+                            }
+                        }
                         .frame(maxWidth: 335)
                         .padding(.horizontal, 29)
 
-                    Spacer(minLength: 26)
-
-                    UnsealButton(state: viewState.primaryAction) {
-                        switch viewState.primaryAction {
-                        case .unseal:
-                            store.send(.unsealTapped)
-                        case .checkStatus, .working:
-                            store.send(.refreshTapped)
+                        if let notice = viewState.notice {
+                            Text(notice)
+                                .font(.caption)
+                                .foregroundStyle(PapercutPalette.cream.opacity(0.86))
+                                .multilineTextAlignment(.center)
+                                .padding(.horizontal, 38)
+                                .padding(.top, 10)
                         }
-                    }
-                    .frame(maxWidth: 335)
-                    .padding(.horizontal, 29)
 
-                    if let notice = viewState.notice {
-                        Text(notice)
-                            .font(.caption)
-                            .foregroundStyle(PapercutPalette.cream.opacity(0.86))
-                            .multilineTextAlignment(.center)
-                            .lineLimit(2)
-                            .padding(.horizontal, 38)
-                            .padding(.top, 10)
+                        Spacer(minLength: max(118, proxy.safeAreaInsets.bottom + 90))
                     }
-
-                    Spacer(minLength: max(118, proxy.safeAreaInsets.bottom + 90))
+                    .frame(minHeight: proxy.size.height)
+                    .padding(.top, 10)
                 }
-                .padding(.top, 10)
             }
         }
         .toolbar(.hidden, for: .navigationBar)
