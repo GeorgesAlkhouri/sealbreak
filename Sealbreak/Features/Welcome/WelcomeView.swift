@@ -63,58 +63,32 @@ struct WelcomeView: View {
 
                         Spacer(minLength: 34)
 
-                        VStack(spacing: 14) {
-                            Button {
-                                store.send(.setUpTapped)
-                            } label: {
-                                HStack(spacing: 12) {
-                                    Image(systemName: "plus.circle.fill")
-                                        .font(.system(size: 22, weight: .semibold))
+                        Button {
+                            store.send(.setUpTapped)
+                        } label: {
+                            HStack(spacing: 12) {
+                                Image(systemName: "plus.circle.fill")
+                                    .font(.system(size: 22, weight: .semibold))
 
-                                    Text("Set up Sealbreak")
-                                        .font(.system(size: 19, weight: .bold))
-                                }
-                                .foregroundStyle(PapercutPalette.cream)
-                                .frame(maxWidth: .infinity)
-                                .frame(height: 68)
-                                .background {
-                                    ZStack {
-                                        RoundedRectangle(cornerRadius: 22, style: .continuous)
-                                            .fill(PapercutPalette.buttonBack)
-                                            .offset(x: 2, y: 6)
-
-                                        RoundedRectangle(cornerRadius: 22, style: .continuous)
-                                            .fill(PapercutPalette.button)
-                                    }
-                                }
-                                .shadow(color: .black.opacity(0.34), radius: 9, y: 9)
+                                Text("Set up Sealbreak")
+                                    .font(.system(size: 19, weight: .bold))
                             }
-                            .buttonStyle(.plain)
+                            .foregroundStyle(PapercutPalette.cream)
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 68)
+                            .background {
+                                ZStack {
+                                    RoundedRectangle(cornerRadius: 22, style: .continuous)
+                                        .fill(PapercutPalette.buttonBack)
+                                        .offset(x: 2, y: 6)
 
-                            Button {
-                                store.send(.restoreTapped)
-                            } label: {
-                                HStack(spacing: 10) {
-                                    Image(systemName: "key.fill")
-                                    Text("Restore existing setup")
-                                        .fontWeight(.semibold)
+                                    RoundedRectangle(cornerRadius: 22, style: .continuous)
+                                        .fill(PapercutPalette.button)
                                 }
-                                .font(.system(size: 17))
-                                .foregroundStyle(PapercutPalette.cream)
-                                .frame(maxWidth: .infinity)
-                                .frame(height: 54)
-                                .background {
-                                    RoundedRectangle(cornerRadius: 20, style: .continuous)
-                                        .fill(PapercutPalette.card)
-                                        .overlay {
-                                            RoundedRectangle(cornerRadius: 20, style: .continuous)
-                                                .stroke(PapercutPalette.ring, lineWidth: 1)
-                                        }
-                                }
-                                .shadow(color: .black.opacity(0.24), radius: 6, y: 6)
                             }
-                            .buttonStyle(.plain)
+                            .shadow(color: .black.opacity(0.34), radius: 9, y: 9)
                         }
+                        .buttonStyle(.plain)
                         .frame(maxWidth: 335)
 
                         Spacer()
