@@ -11,6 +11,8 @@ struct SetupCoverageTests {
     func instanceStateAndValidationBranches() async {
         let store = TestStore(initialState: InstanceSetupFeature.State()) {
             InstanceSetupFeature()
+        } withDependencies: {
+            $0.uuid = .incrementing
         }
         store.exhaustivity = .off(showSkippedAssertions: false)
 
@@ -286,6 +288,7 @@ struct SetupCoverageTests {
             InstanceSetupFeature()
         } withDependencies: {
             $0.sealbreakClient = dependency
+            $0.uuid = .incrementing
         }
         store.exhaustivity = .off(showSkippedAssertions: false)
         return store
