@@ -63,33 +63,32 @@ struct WelcomeView: View {
 
                         Spacer(minLength: 34)
 
-                        Button {
-                            store.send(.setUpTapped)
-                        } label: {
-                            HStack(spacing: 12) {
-                                Image(systemName: "plus.circle.fill")
-                                    .font(.system(size: 22, weight: .semibold))
-
-                                Text("Set up Sealbreak")
-                                    .font(.system(size: 19, weight: .bold))
+                        if store.requiresLocalReset {
+                            Button {
+                                store.send(.resetLocalDataTapped)
+                            } label: {
+                                primaryActionLabel(
+                                    icon: "trash.fill",
+                                    title: store.isResetting
+                                        ? "Resetting…"
+                                        : "Reset local Sealbreak data"
+                                )
                             }
-                            .foregroundStyle(PapercutPalette.cream)
-                            .frame(maxWidth: .infinity)
-                            .frame(height: 68)
-                            .background {
-                                ZStack {
-                                    RoundedRectangle(cornerRadius: 22, style: .continuous)
-                                        .fill(PapercutPalette.buttonBack)
-                                        .offset(x: 2, y: 6)
-
-                                    RoundedRectangle(cornerRadius: 22, style: .continuous)
-                                        .fill(PapercutPalette.button)
-                                }
+                            .buttonStyle(.plain)
+                            .frame(maxWidth: 335)
+                            .disabled(store.isResetting)
+                        } else {
+                            Button {
+                                store.send(.setUpTapped)
+                            } label: {
+                                primaryActionLabel(
+                                    icon: "plus.circle.fill",
+                                    title: "Set up Sealbreak"
+                                )
                             }
-                            .shadow(color: .black.opacity(0.34), radius: 9, y: 9)
+                            .buttonStyle(.plain)
+                            .frame(maxWidth: 335)
                         }
-                        .buttonStyle(.plain)
-                        .frame(maxWidth: 335)
 
                         Spacer()
                             .frame(height: max(156, proxy.safeAreaInsets.bottom + 130))
@@ -103,6 +102,54 @@ struct WelcomeView: View {
         }
         .background(PapercutPalette.sky)
         .toolbar(.hidden, for: .navigationBar)
+        .confirmationDialog(
+            "Reset local Sealbreak data?",
+            isPresented: Binding(
+                get: { store.confirmReset },
+                set: { isPresented in
+                    if !isPresented {
+                        store.send(.resetConfirmationDismissed)
+                    }
+                }
+            ),
+            titleVisibility: .visible
+        ) {
+            Button("Reset local data", role: .destructive) {
+                store.send(.confirmResetLocalDataTapped)
+            }
+
+            Button("Cancel", role: .cancel) {
+                // The cancel role dismisses the confirmation without deleting data.
+            }
+        } message: {
+            Text(
+                "This removes every protected share stored by Sealbreak on this iPhone and the local profile catalog. You need an independent share copy to set up again."
+            )
+        }
+    }
+
+    private func primaryActionLabel(icon: String, title: String) -> some View {
+        HStack(spacing: 12) {
+            Image(systemName: icon)
+                .font(.system(size: 22, weight: .semibold))
+
+            Text(title)
+                .font(.system(size: 19, weight: .bold))
+        }
+        .foregroundStyle(PapercutPalette.cream)
+        .frame(maxWidth: .infinity)
+        .frame(height: 68)
+        .background {
+            ZStack {
+                RoundedRectangle(cornerRadius: 22, style: .continuous)
+                    .fill(PapercutPalette.buttonBack)
+                    .offset(x: 2, y: 6)
+
+                RoundedRectangle(cornerRadius: 22, style: .continuous)
+                    .fill(PapercutPalette.button)
+            }
+        }
+        .shadow(color: .black.opacity(0.34), radius: 9, y: 9)
     }
 
     private var compatibilityCopy: some View {
