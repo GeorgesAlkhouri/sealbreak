@@ -188,7 +188,7 @@ struct SetupCoverageTests {
         }
 
         var state = SetupFeature.State()
-        state.operation = .restoring
+        state.operation = .removingLocalData
         state.confirmDelete = true
         state.step = .share
         state.share = ShareSetupFeature.State(profile: try profile())
@@ -267,13 +267,10 @@ struct SetupCoverageTests {
     }
 
     @Test
-    func setupBusyStateBlocksRestoreAndRemove() async {
+    func setupBusyStateBlocksRemove() async {
         var state = SetupFeature.State()
         state.instance.isCheckingConnection = true
         let store = setupStore(state, dependency: .testValue)
-
-        await store.send(.restoreProfileTapped)
-        #expect(store.state.operation == nil)
 
         await store.send(.removeLocalDataTapped)
         #expect(!store.state.confirmDelete)

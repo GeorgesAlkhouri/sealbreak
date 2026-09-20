@@ -14,11 +14,9 @@ struct WelcomeFeature {
     enum Action: Equatable {
         enum Delegate: Equatable {
             case setUp
-            case restore
         }
 
         case setUpTapped
-        case restoreTapped
         case delegate(Delegate)
     }
 
@@ -27,9 +25,6 @@ struct WelcomeFeature {
             switch action {
             case .setUpTapped:
                 return .send(.delegate(.setUp))
-
-            case .restoreTapped:
-                return .send(.delegate(.restore))
 
             case .delegate:
                 return .none

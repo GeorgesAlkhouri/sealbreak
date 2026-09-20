@@ -20,11 +20,6 @@ struct HomeMenu: View {
             }
             .disabled(isBusy)
 
-            Button("Restore profile from Keychain", systemImage: "arrow.uturn.backward") {
-                onAction(.restoreProfile)
-            }
-            .disabled(isBusy)
-
             Divider()
 
             Button("Remove local data", systemImage: "trash", role: .destructive) {

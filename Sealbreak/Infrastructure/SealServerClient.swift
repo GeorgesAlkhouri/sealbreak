@@ -69,7 +69,23 @@ struct SealServerClient: Sendable {
             URLComponents(url: $0, resolvingAgainstBaseURL: false)
         }
     ) throws -> URLRequest {
-        var url = try profile.endpoint(path)
+        try makeRequest(
+            url: profile.endpoint(path),
+            queryItems: queryItems,
+            body: body,
+            componentsForURL: componentsForURL
+        )
+    }
+
+    private static func makeRequest(
+        url initialURL: URL,
+        queryItems: [URLQueryItem] = [],
+        body: Data?,
+        componentsForURL: (URL) -> URLComponents? = {
+            URLComponents(url: $0, resolvingAgainstBaseURL: false)
+        }
+    ) throws -> URLRequest {
+        var url = initialURL
         if !queryItems.isEmpty {
             guard var components = componentsForURL(url) else {
                 throw AppFailure("Unable to build server request.")
@@ -129,11 +145,12 @@ struct SealServerClient: Sendable {
     }
 
     func submit(_ record: ShareRecord) async throws {
+        let record = try record.validated()
         var body = try Self.encodeUnsealBody(record.share)
         defer {
             body.resetBytes(in: body.startIndex..<body.endIndex)
         }
-        _ = try await request(record.profile, path: "unseal", body: body)
+        _ = try await request(record.endpoint("unseal"), body: body)
     }
 
     private struct HelpResponse: Decodable {
@@ -158,6 +175,18 @@ struct SealServerClient: Sendable {
         queryItems: [URLQueryItem] = [],
         body: Data?
     ) async throws -> Data {
+        try await request(
+            profile.endpoint(path),
+            queryItems: queryItems,
+            body: body
+        )
+    }
+
+    private func request(
+        _ url: URL,
+        queryItems: [URLQueryItem] = [],
+        body: Data?
+    ) async throws -> Data {
         let session = URLSession(
             configuration: configuration,
             delegate: TransportPolicy(),
@@ -168,8 +197,7 @@ struct SealServerClient: Sendable {
         }
 
         let request = try Self.makeRequest(
-            profile,
-            path: path,
+            url: url,
             queryItems: queryItems,
             body: body
         )

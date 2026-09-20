@@ -19,8 +19,6 @@ struct HomeView: View {
                             store.send(.serverDetailsTapped)
                         case .replaceShare:
                             store.send(.replaceShareTapped)
-                        case .restoreProfile:
-                            store.send(.restoreProfileTapped)
                         case .removeLocalData:
                             store.send(.removeLocalDataTapped)
                         }

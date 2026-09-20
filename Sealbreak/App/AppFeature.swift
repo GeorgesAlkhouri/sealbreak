@@ -61,7 +61,7 @@ struct AppFeature {
                 state.home = nil
                 state.setup = nil
                 state.welcome = WelcomeFeature.State(
-                    notice: "The display profile could not be read. Restore its protected copy from Keychain."
+                    notice: "The display profile could not be read. Set up Sealbreak again using your independent share copy."
                 )
                 return .none
 
@@ -93,11 +93,6 @@ struct AppFeature {
                 state.welcome = nil
                 state.setup = SetupFeature.State()
                 return .none
-
-            case .welcome(.delegate(.restore)):
-                state.welcome = nil
-                state.setup = SetupFeature.State()
-                return .send(.setup(.restoreProfileTapped))
 
             case .setup(.delegate(.cancelled)):
                 state.home = nil

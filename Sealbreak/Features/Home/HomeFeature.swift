@@ -10,7 +10,6 @@ struct HomeFeature {
             case waitingForFaceID
             case submittingShare
             case verifyingStatus
-            case restoringProfile
             case removingLocalData
 
             var activity: String {
@@ -25,8 +24,6 @@ struct HomeFeature {
                     return "Submitting one share…"
                 case .verifyingStatus:
                     return "Verifying seal status…"
-                case .restoringProfile:
-                    return "Restoring local profile…"
                 case .removingLocalData:
                     return "Removing local data…"
                 }
@@ -63,11 +60,6 @@ struct HomeFeature {
         }
     }
 
-    struct ProfileResult: Equatable, Sendable {
-        let profile: ServerProfile
-        let notice: String
-    }
-
     enum Action: Equatable {
         enum Delegate: Equatable {
             case localDataRemoved(notice: String)
@@ -87,8 +79,6 @@ struct HomeFeature {
         case operationCancelled
         case serverDetailsTapped
         case replaceShareTapped
-        case restoreProfileTapped
-        case restoreProfileResponse(Result<ProfileResult, AppFailure>)
         case removeLocalDataTapped
         case confirmRemoveLocalDataTapped
         case removeLocalDataResponse(Result<String, AppFailure>)
@@ -179,8 +169,8 @@ struct HomeFeature {
                             "Send one Shamir share to \(target.origin)"
                         )
                         defer { record.share.removeAll(keepingCapacity: false) }
-                        guard record.profile == target else {
-                            throw AppFailure("Target binding mismatch. Nothing was sent. Restore the protected profile; changing the display file cannot retarget a share.")
+                        guard record.boundOrigin == target.origin else {
+                            throw AppFailure("Target binding mismatch. Nothing was sent. Reconfigure the local share for this server before retrying.")
                         }
 
                         try await client.requireForeground()
@@ -265,47 +255,6 @@ struct HomeFeature {
                 state.replaceShare = ReplaceShareFeature.State(profile: state.profile)
                 return .none
 
-            case .restoreProfileTapped:
-                guard !state.isBusy else { return .none }
-                state.operation = .restoringProfile
-                synchronizeServerDetails(&state)
-                let client = self.client
-                return .run { send in
-                    do {
-                        try await client.waitForForeground()
-                        var record = try await client.readShare(
-                            "Restore the server profile from the protected Keychain record"
-                        )
-                        defer { record.share.removeAll(keepingCapacity: false) }
-                        let profile = record.profile
-                        let notice: String
-                        do {
-                            try await client.saveProfile(profile)
-                            notice = "Protected target restored. No share was transmitted or exported."
-                        } catch {
-                            notice = "Protected share exists, but display metadata could not be saved. Use Restore profile from Keychain on the next launch."
-                        }
-                        await send(
-                            .restoreProfileResponse(
-                                .success(ProfileResult(profile: profile, notice: notice))
-                            )
-                        )
-                    } catch is CancellationError {
-                        await send(.operationCancelled)
-                    } catch {
-                        await send(.restoreProfileResponse(.failure(normalizedAppFailure(error))))
-                    }
-                }
-                .cancellable(id: CancelID.operation)
-
-            case .restoreProfileResponse(.success(let result)):
-                state.operation = nil
-                state.profile = result.profile
-                state.status = nil
-                state.notice = result.notice
-                synchronizeServerDetails(&state)
-                return .none
-
             case .removeLocalDataTapped:
                 guard !state.isBusy else { return .none }
                 state.confirmation = .removeLocalData
@@ -348,7 +297,6 @@ struct HomeFeature {
                 return .send(.delegate(.localDataRemoved(notice: notice)))
 
             case .unsealFailed(let failure),
-                 .restoreProfileResponse(.failure(let failure)),
                  .removeLocalDataResponse(.failure(let failure)):
                 state.operation = nil
                 state.status = nil

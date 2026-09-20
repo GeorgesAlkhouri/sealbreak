@@ -40,17 +40,6 @@ struct SecurityRegressionTests {
             ).notice == failure.message
         )
 
-        var restoreState = HomeFeature.State(profile: profile, status: status)
-        restoreState.operation = .restoringProfile
-        let restoreStore = TestStore(initialState: restoreState) {
-            HomeFeature()
-        }
-        await restoreStore.send(.restoreProfileResponse(.failure(failure))) {
-            $0.operation = nil
-            $0.status = nil
-            $0.notice = failure.message
-        }
-
         var removeState = HomeFeature.State(profile: profile, status: status)
         removeState.operation = .removingLocalData
         let removeStore = TestStore(initialState: removeState) {

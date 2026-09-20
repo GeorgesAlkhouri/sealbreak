@@ -18,7 +18,7 @@ struct KeychainStoreTests {
 
         let result = try KeychainStore(access: stub).read(context: context)
 
-        #expect(result.profile == record.profile)
+        #expect(result.boundOrigin == record.boundOrigin)
         #expect(result.share == record.share)
         #expect(stub.lastCopyRequest?[kSecAttrAccount as String] as? String == "single-share-v1")
         #expect(stub.lastCopyRequest?[kSecReturnData as String] as? Bool == true)
@@ -74,8 +74,7 @@ struct KeychainStoreTests {
         try store.insert(record, context: context)
         let data = try #require(stub.lastAddRequest?[kSecValueData as String] as? Data)
         let decoded = try JSONDecoder().decode(ShareRecord.self, from: data)
-        #expect(decoded.profile == record.profile)
-        #expect(decoded.profile.product == .vault)
+        #expect(decoded.boundOrigin == record.boundOrigin)
         #expect(decoded.share == record.share)
         #expect(stub.lastAddRequest?[kSecAttrAccessControl as String] != nil)
         #expect(stub.lastAddRequest?[kSecUseAuthenticationContext as String] as? LAContext === context)

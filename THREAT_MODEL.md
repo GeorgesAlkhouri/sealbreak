@@ -162,7 +162,7 @@ Controls: **M03, M04**
 
 An attacker or corrupted local metadata attempts to associate a stored share with another server.
 
-The authoritative server profile is stored together with the share in the protected Keychain record. Before submission, Sealbreak compares that protected profile with the selected profile and aborts on mismatch. The separate display profile is therefore not sufficient to retarget a share.
+The protected Keychain record stores the canonical bound server origin together with the share, but not the display profile. Before submission, Sealbreak compares that protected origin with the selected profile origin and aborts on mismatch. Network submission is then built from the protected bound origin, so changing the separate display profile cannot retarget a share.
 
 Affected assets: **A01, A02, A05**
 

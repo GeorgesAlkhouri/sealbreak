@@ -123,7 +123,7 @@ struct HomeViewState: Equatable {
             switch operation {
             case .checkingTarget, .waitingForFaceID, .submittingShare, .verifyingStatus:
                 status = .unsealing(activity: activity)
-            case .checkingStatus, .restoringProfile, .removingLocalData:
+            case .checkingStatus, .removingLocalData:
                 status = .checking(activity: activity)
             }
             primaryAction = .working(title: activity)

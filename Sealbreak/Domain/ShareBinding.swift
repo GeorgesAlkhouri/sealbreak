@@ -8,9 +8,9 @@ func replaceShareIfBound(
     var existing = try readExisting()
     defer { existing.share.removeAll(keepingCapacity: false) }
 
-    guard existing.profile == expectedProfile,
-          replacement.profile == expectedProfile else {
-        throw AppFailure("Target binding mismatch. Restore the protected profile first.")
+    guard existing.boundOrigin == expectedProfile.origin,
+          replacement.boundOrigin == expectedProfile.origin else {
+        throw AppFailure("Target binding mismatch. Reconfigure the local share for this server before retrying.")
     }
 
     try beforeReplace()
