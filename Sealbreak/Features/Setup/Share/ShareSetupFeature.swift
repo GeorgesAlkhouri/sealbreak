@@ -72,13 +72,13 @@ struct ShareSetupFeature {
                     var record = record
                     defer { record.share.removeAll(keepingCapacity: false) }
 
-                    var profileSaved = false
+                    var profileInserted = false
                     do {
-                        // Persist the non-secret profile identity before creating its
-                        // profile-scoped Keychain item. A crash can then leave stale
-                        // metadata, but never an unaddressable protected share.
-                        try await client.saveProfile(profile)
-                        profileSaved = true
+                        // Create the non-secret profile identity before the Keychain item.
+                        // Setup is create-only: rollback is safe only for a profile this
+                        // operation inserted itself.
+                        try await client.insertProfile(profile)
+                        profileInserted = true
 
                         try await client.waitForForeground()
                         try await client.insertShare(
@@ -97,12 +97,12 @@ struct ShareSetupFeature {
                             )
                         )
                     } catch is CancellationError {
-                        if profileSaved {
+                        if profileInserted {
                             try? await client.deleteProfile(profile.id)
                         }
                         await send(.operationCancelled)
                     } catch {
-                        if profileSaved {
+                        if profileInserted {
                             try? await client.deleteProfile(profile.id)
                         }
                         await send(
