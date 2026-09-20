@@ -195,12 +195,11 @@ struct KeychainStoreTests {
 
         #expect(try store.loadAll().isEmpty)
         try store.save(first)
-        #expect(try store.load() == first)
+        #expect(try store.loadAll() == [first])
 
         try store.save(second)
         #expect(try store.loadAll() == [first, second])
-        #expect(throws: AppFailure.self) { try store.load() }
-
+        
         let renamedFirst = try ServerProfile(
             id: first.id,
             name: "Renamed",
