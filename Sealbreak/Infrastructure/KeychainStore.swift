@@ -220,14 +220,6 @@ struct ProfileStore {
         return validated
     }
 
-    func load() throws -> ServerProfile? {
-        let profiles = try loadAll()
-        guard profiles.count <= 1 else {
-            throw AppFailure("This Sealbreak version supports one configured server profile.")
-        }
-        return profiles.first
-    }
-
     func save(_ profile: ServerProfile) throws {
         let profile = try profile.validated()
         try StorageLimits.validateEncodedSize(JSONEncoder().encode(profile))
