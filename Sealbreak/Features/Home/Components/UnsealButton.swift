@@ -12,10 +12,12 @@ struct UnsealButton: View {
 
                 Text(state.title)
                     .font(.headline.weight(.bold))
-                    .lineLimit(2)
                     .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
             }
             .foregroundStyle(PapercutPalette.cream)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 14)
             .frame(maxWidth: .infinity)
             .frame(minHeight: 74)
             .background {

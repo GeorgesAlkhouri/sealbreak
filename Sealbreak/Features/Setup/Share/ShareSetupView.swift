@@ -7,97 +7,97 @@ struct ShareSetupView: View {
     @State private var share = ""
 
     var body: some View {
-        ScrollView {
-            VStack(spacing: 24) {
-                VStack(spacing: 10) {
-                    Text("Protect your share")
-                        .font(.system(size: 28, weight: .bold, design: .rounded))
-                        .foregroundStyle(PapercutPalette.cream)
-                        .multilineTextAlignment(.center)
+        VStack(spacing: 24) {
+            VStack(spacing: 10) {
+                Text("Protect your share")
+                    .font(.system(.title, design: .rounded, weight: .bold))
+                    .foregroundStyle(PapercutPalette.cream)
+                    .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
 
-                    Text("Store one Shamir share on this iPhone.")
-                        .font(.system(size: 16, weight: .medium))
+                Text("Store one Shamir share on this iPhone.")
+                    .font(.callout.weight(.medium))
+                    .foregroundStyle(PapercutPalette.secondaryText)
+                    .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            targetCard
+
+            PapercutCard {
+                VStack(alignment: .leading, spacing: 16) {
+                    Text("Unseal share")
+                        .font(.subheadline.weight(.bold))
                         .foregroundStyle(PapercutPalette.secondaryText)
-                        .multilineTextAlignment(.center)
-                }
+                        .fixedSize(horizontal: false, vertical: true)
 
-                targetCard
-
-                PapercutCard {
-                    VStack(alignment: .leading, spacing: 16) {
-                        Text("Unseal share")
-                            .font(.system(size: 14, weight: .bold))
-                            .foregroundStyle(PapercutPalette.secondaryText)
-
-                        SecureField(
-                            "Paste one Shamir share",
-                            text: $share
-                        )
-                        .font(.system(size: 16, weight: .semibold, design: .monospaced))
-                        .foregroundStyle(PapercutPalette.cream)
-                        .textInputAutocapitalization(.never)
-                        .autocorrectionDisabled()
-                        .keyboardType(.asciiCapable)
-                        .privacySensitive()
-                        .disabled(store.isBusy)
-                        .padding(.horizontal, 14)
-                        .frame(height: 52)
-                        .background {
-                            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                                .fill(PapercutPalette.sky.opacity(0.72))
-                                .overlay {
-                                    RoundedRectangle(cornerRadius: 14, style: .continuous)
-                                        .stroke(PapercutPalette.ring, lineWidth: 1)
-                                }
-                        }
-                        .onChange(of: share) { _, value in
-                            if value.utf8.count > 1024 {
-                                share.removeAll(keepingCapacity: false)
+                    SecureField(
+                        "Paste one Shamir share",
+                        text: $share
+                    )
+                    .font(.system(.callout, design: .monospaced, weight: .semibold))
+                    .foregroundStyle(PapercutPalette.cream)
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled()
+                    .keyboardType(.asciiCapable)
+                    .privacySensitive()
+                    .disabled(store.isBusy)
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 12)
+                    .frame(minHeight: 52)
+                    .background {
+                        RoundedRectangle(cornerRadius: 14, style: .continuous)
+                            .fill(PapercutPalette.sky.opacity(0.72))
+                            .overlay {
+                                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                    .stroke(PapercutPalette.ring, lineWidth: 1)
                             }
-                        }
-
-                        Divider()
-                            .overlay(PapercutPalette.ring)
-
-                        securityNote(
-                            icon: "lock.iphone",
-                            title: "Stored only on this iPhone",
-                            detail: "Protected by Face ID and the device-bound Keychain. It is not synchronized through iCloud."
-                        )
-
-                        securityNote(
-                            icon: "externaldrive.badge.checkmark",
-                            title: "Keep an independent recovery copy",
-                            detail: "You will need it if this iPhone is lost or Face ID is re-enrolled."
-                        )
                     }
-                    .padding(24)
+                    .onChange(of: share) { _, value in
+                        if value.utf8.count > 1024 {
+                            share.removeAll(keepingCapacity: false)
+                        }
+                    }
+
+                    Divider()
+                        .overlay(PapercutPalette.ring)
+
+                    securityNote(
+                        icon: "lock.iphone",
+                        title: "Stored only on this iPhone",
+                        detail: "Protected by Face ID and the device-bound Keychain. It is not synchronized through iCloud."
+                    )
+
+                    securityNote(
+                        icon: "externaldrive.badge.checkmark",
+                        title: "Keep an independent recovery copy",
+                        detail: "You will need it if this iPhone is lost or Face ID is re-enrolled."
+                    )
                 }
+                .padding(24)
+            }
+            .frame(maxWidth: 335)
+            .padding(.horizontal, 6)
+
+            protectButton
                 .frame(maxWidth: 335)
                 .padding(.horizontal, 6)
 
-                protectButton
-                    .frame(maxWidth: 335)
-                    .padding(.horizontal, 6)
-
-                if store.isBusy || !store.notice.isEmpty {
-                    statusMessage
-                        .frame(maxWidth: 325)
-                }
+            if store.isBusy || !store.notice.isEmpty {
+                statusMessage
+                    .frame(maxWidth: 325)
             }
-            .frame(maxWidth: .infinity)
-            .padding(.top, 32)
-            .padding(.horizontal, 24)
-            .padding(.bottom, 140)
         }
-        .scrollIndicators(.hidden)
-        .scrollDismissesKeyboard(.interactively)
+        .frame(maxWidth: .infinity)
+        .padding(.top, 32)
+        .padding(.horizontal, 24)
+        .padding(.bottom, 140)
         .clearSensitiveDraftOnPrivacyChange(clearDraft)
     }
 
     private var targetCard: some View {
         PapercutCard {
-            HStack(spacing: 12) {
+            HStack(alignment: .top, spacing: 12) {
                 Image(systemName: "server.rack")
                     .font(.system(size: 18, weight: .semibold))
                     .foregroundStyle(PapercutPalette.unsealed)
@@ -109,16 +109,16 @@ struct ShareSetupView: View {
 
                 VStack(alignment: .leading, spacing: 3) {
                     Text(store.profile.name)
-                        .font(.system(size: 15, weight: .bold))
+                        .font(.subheadline.weight(.bold))
                         .foregroundStyle(PapercutPalette.cream)
+                        .fixedSize(horizontal: false, vertical: true)
 
                     Text("\(productLabel(store.profile.product)) · \(hostLabel)")
-                        .font(.system(size: 13, weight: .medium))
+                        .font(.caption.weight(.medium))
                         .foregroundStyle(PapercutPalette.secondaryText)
-                        .lineLimit(1)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
-
-                Spacer()
+                .frame(maxWidth: .infinity, alignment: .leading)
 
                 Image(systemName: "checkmark.circle.fill")
                     .foregroundStyle(PapercutPalette.unsealed)
@@ -144,8 +144,9 @@ struct ShareSetupView: View {
 
             VStack(alignment: .leading, spacing: 4) {
                 Text(title)
-                    .font(.system(size: 15, weight: .bold))
+                    .font(.subheadline.weight(.bold))
                     .foregroundStyle(PapercutPalette.cream)
+                    .fixedSize(horizontal: false, vertical: true)
 
                 Text(detail)
                     .font(.footnote)
@@ -167,11 +168,15 @@ struct ShareSetupView: View {
                 }
 
                 Text(store.isBusy ? "Protecting…" : "Protect with Face ID")
-                    .font(.system(size: 18, weight: .bold))
+                    .font(.headline)
+                    .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
             }
             .foregroundStyle(PapercutPalette.cream)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 14)
             .frame(maxWidth: .infinity)
-            .frame(height: 62)
+            .frame(minHeight: 62)
             .background {
                 ZStack {
                     RoundedRectangle(cornerRadius: 21, style: .continuous)
@@ -199,6 +204,7 @@ struct ShareSetupView: View {
                 Text(store.activity)
                     .font(.footnote.weight(.semibold))
                     .foregroundStyle(PapercutPalette.secondaryText)
+                    .fixedSize(horizontal: false, vertical: true)
             }
         } else {
             Text(store.notice)

@@ -50,15 +50,18 @@ struct HomeView: View {
                                 .font(.caption)
                                 .foregroundStyle(PapercutPalette.cream.opacity(0.86))
                                 .multilineTextAlignment(.center)
+                                .fixedSize(horizontal: false, vertical: true)
                                 .padding(.horizontal, 38)
                                 .padding(.top, 10)
                         }
 
                         Spacer(minLength: max(118, proxy.safeAreaInsets.bottom + 90))
                     }
-                    .frame(minHeight: proxy.size.height)
                     .padding(.top, 10)
+                    .frame(maxWidth: .infinity)
+                    .frame(minHeight: proxy.size.height)
                 }
+                .scrollBounceBehavior(.basedOnSize)
             }
         }
         .toolbar(.hidden, for: .navigationBar)

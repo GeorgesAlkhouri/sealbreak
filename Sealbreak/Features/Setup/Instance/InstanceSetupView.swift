@@ -6,69 +6,68 @@ struct InstanceSetupView: View {
     let store: StoreOf<InstanceSetupFeature>
 
     var body: some View {
-        ScrollView {
-            VStack(spacing: 24) {
-                VStack(spacing: 10) {
-                    Text("Connect your instance")
-                        .font(.system(size: 28, weight: .bold, design: .rounded))
-                        .foregroundStyle(PapercutPalette.cream)
-                        .multilineTextAlignment(.center)
+        VStack(spacing: 24) {
+            VStack(spacing: 10) {
+                Text("Connect your instance")
+                    .font(.system(.title, design: .rounded, weight: .bold))
+                    .foregroundStyle(PapercutPalette.cream)
+                    .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
 
-                    Text("Enter the direct HTTPS address of one server node.")
-                        .font(.system(size: 16, weight: .medium))
-                        .foregroundStyle(PapercutPalette.secondaryText)
-                        .multilineTextAlignment(.center)
-                        .frame(maxWidth: 310)
-                }
+                Text("Enter the direct HTTPS address of one server node.")
+                    .font(.callout.weight(.medium))
+                    .foregroundStyle(PapercutPalette.secondaryText)
+                    .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .frame(maxWidth: 310)
+            }
 
-                PapercutCard {
-                    VStack(alignment: .leading, spacing: 18) {
-                        setupField(
-                            title: "Name",
-                            prompt: "Server",
-                            text: nameBinding,
-                            keyboardType: .default
-                        )
+            PapercutCard {
+                VStack(alignment: .leading, spacing: 18) {
+                    setupField(
+                        title: "Name",
+                        prompt: "Server",
+                        text: nameBinding,
+                        keyboardType: .default
+                    )
 
-                        setupField(
-                            title: "Server address",
-                            prompt: "HTTPS origin with optional port",
-                            text: addressBinding,
-                            keyboardType: .URL
-                        )
+                    setupField(
+                        title: "Server address",
+                        prompt: "HTTPS origin with optional port",
+                        text: addressBinding,
+                        keyboardType: .URL
+                    )
 
-                        if store.isCheckingConnection
-                            || store.dnssecStatus != nil
-                            || store.checkedProfile != nil
-                            || store.notice != nil {
-                            Divider()
-                                .overlay(PapercutPalette.ring)
+                    if store.isCheckingConnection
+                        || store.dnssecStatus != nil
+                        || store.checkedProfile != nil
+                        || store.notice != nil {
+                        Divider()
+                            .overlay(PapercutPalette.ring)
 
-                            connectionStatus
-                        }
+                        connectionStatus
                     }
-                    .padding(24)
                 }
+                .padding(24)
+            }
+            .frame(maxWidth: 335)
+            .padding(.horizontal, 6)
+
+            primaryButton
                 .frame(maxWidth: 335)
                 .padding(.horizontal, 6)
 
-                primaryButton
-                    .frame(maxWidth: 335)
-                    .padding(.horizontal, 6)
-
-                Text("Sealbreak checks the server using normal iOS certificate validation. DNSSEC is reported separately when the hostname can be validated.")
-                    .font(.caption)
-                    .foregroundStyle(PapercutPalette.secondaryText.opacity(0.9))
-                    .multilineTextAlignment(.center)
-                    .frame(maxWidth: 325)
-            }
-            .frame(maxWidth: .infinity)
-            .padding(.top, 32)
-            .padding(.horizontal, 24)
-            .padding(.bottom, 140)
+            Text("Sealbreak checks the server using normal iOS certificate validation. DNSSEC is reported separately when the hostname can be validated.")
+                .font(.caption)
+                .foregroundStyle(PapercutPalette.secondaryText.opacity(0.9))
+                .multilineTextAlignment(.center)
+                .fixedSize(horizontal: false, vertical: true)
+                .frame(maxWidth: 325)
         }
-        .scrollIndicators(.hidden)
-        .scrollDismissesKeyboard(.interactively)
+        .frame(maxWidth: .infinity)
+        .padding(.top, 32)
+        .padding(.horizontal, 24)
+        .padding(.bottom, 140)
     }
 
     @ViewBuilder
@@ -80,8 +79,9 @@ struct InstanceSetupView: View {
                         .tint(PapercutPalette.cream)
 
                     Text("Checking connection…")
-                        .font(.system(size: 15, weight: .semibold))
+                        .font(.subheadline.weight(.semibold))
                         .foregroundStyle(PapercutPalette.cream)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
             }
 
@@ -168,14 +168,15 @@ struct InstanceSetupView: View {
         text: String,
         color: Color
     ) -> some View {
-        HStack(spacing: 10) {
+        HStack(alignment: .top, spacing: 10) {
             Image(systemName: icon)
                 .foregroundStyle(color)
                 .font(.system(size: 17, weight: .semibold))
 
             Text(text)
-                .font(.system(size: 15, weight: .semibold))
+                .font(.subheadline.weight(.semibold))
                 .foregroundStyle(PapercutPalette.cream)
+                .fixedSize(horizontal: false, vertical: true)
         }
     }
 
@@ -211,11 +212,15 @@ struct InstanceSetupView: View {
                 }
 
                 Text(primaryButtonTitle)
-                    .font(.system(size: 18, weight: .bold))
+                    .font(.headline)
+                    .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
             }
             .foregroundStyle(PapercutPalette.cream)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 14)
             .frame(maxWidth: .infinity)
-            .frame(height: 62)
+            .frame(minHeight: 62)
             .background {
                 ZStack {
                     RoundedRectangle(cornerRadius: 21, style: .continuous)
@@ -250,8 +255,9 @@ struct InstanceSetupView: View {
     ) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             Text(title)
-                .font(.system(size: 14, weight: .bold))
+                .font(.subheadline.weight(.bold))
                 .foregroundStyle(PapercutPalette.secondaryText)
+                .fixedSize(horizontal: false, vertical: true)
 
             TextField(
                 "",
@@ -259,8 +265,9 @@ struct InstanceSetupView: View {
                 prompt: Text(prompt)
                     .foregroundStyle(PapercutPalette.secondaryText.opacity(0.7))
             )
-            .font(.system(size: 16, weight: .medium))
+            .font(.callout.weight(.medium))
             .foregroundStyle(PapercutPalette.cream)
+            .accessibilityLabel(title)
             .keyboardType(keyboardType)
             .textInputAutocapitalization(
                 keyboardType == .URL ? .never : .words
@@ -268,7 +275,8 @@ struct InstanceSetupView: View {
             .autocorrectionDisabled(keyboardType == .URL)
             .disabled(store.isCheckingConnection)
             .padding(.horizontal, 14)
-            .frame(height: 50)
+            .padding(.vertical, 12)
+            .frame(minHeight: 50)
             .background {
                 RoundedRectangle(cornerRadius: 14, style: .continuous)
                     .fill(PapercutPalette.sky.opacity(0.72))
