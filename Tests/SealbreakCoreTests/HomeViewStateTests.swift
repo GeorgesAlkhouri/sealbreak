@@ -1,3 +1,4 @@
+import Foundation
 import ComposableArchitecture
 import Testing
 @testable import SealbreakCore
@@ -57,7 +58,7 @@ struct HomeViewStateTests {
 
     @Test
     func viewStateMapsEveryOperationToVisibleActivity() throws {
-        let profile = try ServerProfile(name: "Server", address: "https://bao.example.com/")
+        let profile = try ServerProfile(id: UUID(), name: "Server", address: "https://bao.example.com/")
         let operations: [(HomeFeature.State.Operation, HomeViewState.Status, String)] = [
             (.checkingStatus, .checking(activity: "Checking seal status…"), "Checking seal status…"),
             (.checkingTarget, .unsealing(activity: "Checking target…"), "Checking target…"),
@@ -86,7 +87,7 @@ struct HomeViewStateTests {
 
     @Test
     func viewStateMapsUnknownSealedAndUnsealedStates() throws {
-        let profile = try ServerProfile(name: "Server", address: "https://bao.example.com")
+        let profile = try ServerProfile(id: UUID(), name: "Server", address: "https://bao.example.com")
 
         let unknown = HomeViewState(
             profile: profile,
@@ -130,7 +131,7 @@ struct HomeViewStateTests {
 
     @Test
     func serverDetailsRoutesUserIntentThroughDelegates() async throws {
-        let profile = try ServerProfile(name: "Server", address: "https://bao.example.com")
+        let profile = try ServerProfile(id: UUID(), name: "Server", address: "https://bao.example.com")
         let store = TestStore(
             initialState: ServerDetailsFeature.State(
                 profile: profile,
