@@ -199,7 +199,7 @@ struct KeychainStoreTests {
 
         try store.save(second)
         #expect(try store.loadAll() == [first, second])
-        
+
         let renamedFirst = try ServerProfile(
             id: first.id,
             name: "Renamed",
