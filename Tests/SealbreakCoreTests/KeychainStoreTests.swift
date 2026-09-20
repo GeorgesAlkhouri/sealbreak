@@ -185,8 +185,9 @@ struct KeychainStoreTests {
         let root = temporaryRoot()
         defer { try? FileManager.default.removeItem(at: root) }
         let store = ProfileStore(baseDirectory: root)
-        let first = try ServerProfile(name: "Test", address: origin, product: .openBao)
+        let first = try ServerProfile(id: UUID(), name: "Test", address: origin, product: .openBao)
         let second = try ServerProfile(
+            id: UUID(),
             name: "Production",
             address: "https://prod.example.com",
             product: .vault
@@ -222,11 +223,11 @@ struct KeychainStoreTests {
         let root = temporaryRoot()
         defer { try? FileManager.default.removeItem(at: root) }
         let store = ProfileStore(baseDirectory: root)
-        let profile = try ServerProfile(name: "Test", address: origin)
+        let profile = try ServerProfile(id: UUID(), name: "Test", address: origin)
 
         try store.save(profile)
 
-        let duplicateOrigin = try ServerProfile(name: "Duplicate", address: origin)
+        let duplicateOrigin = try ServerProfile(id: UUID(), name: "Duplicate", address: origin)
         #expect(throws: AppFailure.self) {
             try store.save(duplicateOrigin)
         }
@@ -257,7 +258,7 @@ struct KeychainStoreTests {
     }
 
     private func makeRecord() throws -> ShareRecord {
-        let profile = try ServerProfile(name: "Test", address: origin, product: .vault)
+        let profile = try ServerProfile(id: UUID(), name: "Test", address: origin, product: .vault)
         return try ShareRecord(profile: profile, input: syntheticShare)
     }
 
