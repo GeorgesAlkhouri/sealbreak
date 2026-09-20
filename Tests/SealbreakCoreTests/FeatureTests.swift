@@ -43,10 +43,12 @@ private actor ClientSpy {
         loadedProfile = profile
     }
 
-    func deleteProfile() throws {
+    func deleteProfile(_ profileID: UUID) throws {
         deleteProfileCalls += 1
         if let deleteProfileError { throw deleteProfileError }
-        loadedProfile = nil
+        if loadedProfile?.id == profileID {
+            loadedProfile = nil
+        }
     }
 
     func detectProduct() throws -> ServerProduct {
@@ -66,9 +68,12 @@ private actor ClientSpy {
         return try statusQueue.removeFirst().get()
     }
 
-    func readShare() throws -> ShareRecord {
+    func readShare(_ profileID: UUID) throws -> ShareRecord {
         if let readError { throw readError }
         guard let readRecord else { throw AppFailure("No protected share configured.") }
+        guard readRecord.profileID == profileID else {
+            throw AppFailure("Protected share belongs to a different profile.")
+        }
         return readRecord
     }
 
@@ -84,10 +89,12 @@ private actor ClientSpy {
         readRecord = record
     }
 
-    func deleteShare() throws {
+    func deleteShare(_ profileID: UUID) throws {
         deleteShareCalls += 1
         if let deleteShareError { throw deleteShareError }
-        readRecord = nil
+        if readRecord?.profileID == profileID {
+            readRecord = nil
+        }
     }
 
     func submit(_ record: ShareRecord) throws {
@@ -109,15 +116,15 @@ private func client(_ spy: ClientSpy) -> SealbreakClient {
     SealbreakClient(
         loadProfile: { try await spy.loadProfile() },
         saveProfile: { try await spy.saveProfile($0) },
-        deleteProfile: { try await spy.deleteProfile() },
+        deleteProfile: { try await spy.deleteProfile($0) },
         detectProduct: { _ in try await spy.detectProduct() },
         dnssecStatus: { _ in await spy.dnssecStatus() },
         status: { _ in try await spy.status() },
         submit: { try await spy.submit($0) },
-        readShare: { _ in try await spy.readShare() },
+        readShare: { profileID, _ in try await spy.readShare(profileID) },
         insertShare: { record, _ in try await spy.insert(record) },
         replaceShare: { _, replacement, _ in try await spy.replace(replacement) },
-        deleteShare: { _ in try await spy.deleteShare() },
+        deleteShare: { profileID, _ in try await spy.deleteShare(profileID) },
         requireForeground: {},
         waitForForeground: { try await spy.waitForForeground() },
         cancelSensitiveOperation: { await spy.cancel() }
@@ -1101,8 +1108,13 @@ struct FeatureTests {
 
     @Test
     func setupHandlesConfirmationAndRemoveOutcomes() async throws {
+        let target = try profile()
+
+        var successState = SetupFeature.State()
+        successState.step = .share
+        successState.share = ShareSetupFeature.State(profile: target)
         let successSpy = ClientSpy()
-        let successStore = TestStore(initialState: SetupFeature.State()) {
+        let successStore = TestStore(initialState: successState) {
             SetupFeature()
         } withDependencies: {
             $0.sealbreakClient = client(successSpy)
@@ -1119,9 +1131,12 @@ struct FeatureTests {
         await successStore.skipReceivedActions()
         #expect(successStore.state.notice.contains("Local share removed"))
 
+        var cancellationState = SetupFeature.State()
+        cancellationState.step = .share
+        cancellationState.share = ShareSetupFeature.State(profile: target)
         let cancellationSpy = ClientSpy()
         await cancellationSpy.setWaitCancellation(true)
-        let cancellationStore = TestStore(initialState: SetupFeature.State()) {
+        let cancellationStore = TestStore(initialState: cancellationState) {
             SetupFeature()
         } withDependencies: {
             $0.sealbreakClient = client(cancellationSpy)
@@ -1134,9 +1149,12 @@ struct FeatureTests {
         #expect(cancellationStore.state.operation == nil)
         #expect(cancellationStore.state.notice.contains("Operation cancelled"))
 
+        var failureState = SetupFeature.State()
+        failureState.step = .share
+        failureState.share = ShareSetupFeature.State(profile: target)
         let failureSpy = ClientSpy()
         await failureSpy.setDeleteShareError(AppFailure("delete failed"))
-        let failureStore = TestStore(initialState: SetupFeature.State()) {
+        let failureStore = TestStore(initialState: failureState) {
             SetupFeature()
         } withDependencies: {
             $0.sealbreakClient = client(failureSpy)
