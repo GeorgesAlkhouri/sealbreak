@@ -49,7 +49,8 @@ struct AppFeature {
                     state.home = nil
                     state.setup = nil
                     state.welcome = WelcomeFeature.State(
-                        notice: "This Sealbreak version supports one configured server profile."
+                        notice: "Local Sealbreak data contains multiple server profiles, but this app version supports one. Reset local data to continue.",
+                        requiresLocalReset: true
                     )
                     return .none
                 }
@@ -92,10 +93,13 @@ struct AppFeature {
                 guard state.home?.isBusy == false else { return .none }
                 return state.home == nil ? .none : .send(.home(.refreshRequested))
 
-            case .home(.delegate(.localDataRemoved(let notice))):
+            case .home(.delegate(.localDataRemoved(let notice, let requiresLocalReset))):
                 state.home = nil
                 state.setup = nil
-                state.welcome = WelcomeFeature.State(notice: notice)
+                state.welcome = WelcomeFeature.State(
+                    notice: notice,
+                    requiresLocalReset: requiresLocalReset
+                )
                 return .none
 
             case .welcome(.delegate(.setUp)):
