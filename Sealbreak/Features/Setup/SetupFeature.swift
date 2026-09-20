@@ -117,6 +117,11 @@ struct SetupFeature {
 
             case .confirmRemoveLocalDataTapped:
                 guard !state.isBusy else { return .none }
+                guard let profileID = state.share?.profile.id else {
+                    state.confirmDelete = false
+                    state.notice = "No protected share is associated with this setup."
+                    return .none
+                }
                 state.confirmDelete = false
                 state.operation = .removingLocalData
                 let client = self.client
@@ -124,11 +129,12 @@ struct SetupFeature {
                     do {
                         try await client.waitForForeground()
                         try await client.deleteShare(
+                            profileID,
                             "Permanently remove Sealbreak’s local share; independent recovery will be required"
                         )
                         let notice: String
                         do {
-                            try await client.deleteProfile()
+                            try await client.deleteProfile(profileID)
                             notice = "Local share removed. Copies elsewhere remain valid; only server-side rekeying replaces the server’s Shamir shares."
                         } catch {
                             notice = "The Keychain share was removed, but its non-secret display file could not be removed. Restart may show stale metadata."
