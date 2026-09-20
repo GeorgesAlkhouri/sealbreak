@@ -183,7 +183,10 @@ struct KeychainStoreTests {
         try store.deleteAll()
 
         let request = try #require(access.lastDeleteRequest)
-        #expect(request[kSecClass as String] as? CFString == kSecClassGenericPassword)
+        #expect(
+            request[kSecClass as String] as? String
+                == kSecClassGenericPassword as String
+        )
         #expect(
             request[kSecAttrService as String] as? String
                 == "\(Bundle.main.bundleIdentifier ?? "Sealbreak").unseal"
