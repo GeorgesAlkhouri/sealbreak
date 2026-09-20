@@ -3,10 +3,17 @@ import Foundation
 // Readers and writers must agree on the size of the complete encoded payload.
 enum StorageLimits {
     static let maxRecordBytes = 4_096
+    static let maxProfileCatalogBytes = 262_144
 
     static func validateEncodedSize(_ data: Data) throws {
         guard data.count <= maxRecordBytes else {
             throw AppFailure("The record exceeds the \(maxRecordBytes)-byte storage limit. Shorten the server name; nothing was saved.")
+        }
+    }
+
+    static func validateProfileCatalogSize(_ data: Data) throws {
+        guard data.count <= maxProfileCatalogBytes else {
+            throw AppFailure("The profile catalog exceeds the supported local storage limit. Nothing was saved.")
         }
     }
 }
@@ -17,12 +24,14 @@ enum ServerProduct: String, Codable, Equatable, Sendable {
     case generic = "Generic"
 }
 
-struct ServerProfile: Codable, Equatable, Sendable {
+struct ServerProfile: Codable, Equatable, Identifiable, Sendable {
+    let id: UUID
     let name: String
     let origin: String
     let product: ServerProduct
 
     init(
+        id: UUID = UUID(),
         name: String,
         address: String,
         product: ServerProduct = .generic
@@ -34,13 +43,14 @@ struct ServerProfile: Codable, Equatable, Sendable {
               !name.unicodeScalars.contains(where: { CharacterSet.controlCharacters.contains($0) }) else {
             throw AppFailure("Use a server name of 1–40 characters without control characters, within \(StorageLimits.maxRecordBytes) UTF-8 bytes.")
         }
+        self.id = id
         self.name = name
         self.origin = try Self.canonicalOrigin(address)
         self.product = product
     }
 
     func validated() throws -> Self {
-        guard try ServerProfile(name: name, address: origin, product: product) == self else {
+        guard try ServerProfile(id: id, name: name, address: origin, product: product) == self else {
             throw AppFailure("The server profile is invalid. Set up this server profile again.")
         }
         return self
@@ -99,12 +109,14 @@ struct ServerProfile: Codable, Equatable, Sendable {
 
 struct ShareRecord: Codable, Equatable, Sendable {
     let version: Int
+    let profileID: UUID
     let boundOrigin: String
     var share: String
 
     init(profile: ServerProfile, input: String) throws {
         let profile = try profile.validated()
         self.version = 1
+        self.profileID = profile.id
         self.boundOrigin = profile.origin
         self.share = try Self.validateShare(input)
     }
