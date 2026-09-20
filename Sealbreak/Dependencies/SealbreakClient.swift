@@ -11,7 +11,7 @@ enum DNSSECStatus: Equatable, Sendable {
 }
 
 struct SealbreakClient: Sendable {
-    var loadProfile: @Sendable () async throws -> ServerProfile?
+    var loadProfiles: @Sendable () async throws -> [ServerProfile]
     var saveProfile: @Sendable (ServerProfile) async throws -> Void
     var deleteProfile: @Sendable (UUID) async throws -> Void
     var detectProduct: @Sendable (ServerProfile) async throws -> ServerProduct
@@ -44,7 +44,7 @@ extension DependencyValues {
 
 extension SealbreakClient {
     static let unimplemented = Self(
-        loadProfile: { throw AppFailure("Unimplemented profile load dependency.") },
+        loadProfiles: { throw AppFailure("Unimplemented profile load dependency.") },
         saveProfile: { _ in throw AppFailure("Unimplemented profile save dependency.") },
         deleteProfile: { _ in throw AppFailure("Unimplemented profile delete dependency.") },
         detectProduct: { _ in throw AppFailure("Unimplemented server-product detection dependency.") },
