@@ -281,6 +281,18 @@ struct SetupCoverageTests {
         #expect(store.state.operation == nil)
     }
 
+    @Test
+    func setupRejectsRemovalWithoutAssociatedProfile() async {
+        var state = SetupFeature.State()
+        state.confirmDelete = true
+        let store = setupStore(state, dependency: .testValue)
+
+        await store.send(.confirmRemoveLocalDataTapped)
+        #expect(!store.state.confirmDelete)
+        #expect(store.state.operation == nil)
+        #expect(store.state.notice == "No protected share is associated with this setup.")
+    }
+
     private func instanceStore(
         _ dependency: SealbreakClient
     ) -> TestStore<InstanceSetupFeature.State, InstanceSetupFeature.Action> {
