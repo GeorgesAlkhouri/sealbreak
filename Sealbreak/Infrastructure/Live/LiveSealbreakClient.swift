@@ -6,8 +6,8 @@ import UIKit
 extension SealbreakClient: DependencyKey {
     static var liveValue: Self {
         Self(
-            loadProfile: {
-                try await LiveSealbreakClientController.shared.loadProfile()
+            loadProfiles: {
+                try await LiveSealbreakClientController.shared.loadProfiles()
             },
             saveProfile: { profile in
                 try await LiveSealbreakClientController.shared.saveProfile(profile)
@@ -72,8 +72,8 @@ private final class LiveSealbreakClientController {
     private let dnssecResolver = DNSSECResolver.live
     private var activeContext: LAContext?
 
-    func loadProfile() throws -> ServerProfile? {
-        try profiles.load()
+    func loadProfiles() throws -> [ServerProfile] {
+        try profiles.loadAll()
     }
 
     func saveProfile(_ profile: ServerProfile) throws {
