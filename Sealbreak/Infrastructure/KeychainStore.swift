@@ -152,10 +152,6 @@ private struct ProfileCatalog: Codable {
 
     let version: Int
     var profiles: [ServerProfile]
-
-    static var empty: Self {
-        Self(version: currentVersion, profiles: [])
-    }
 }
 
 struct ProfileStore {
