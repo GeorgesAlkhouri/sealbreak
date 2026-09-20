@@ -86,6 +86,24 @@ struct ModelsTests {
     }
 
     @Test
+    func rejectsURLComponentsThatCannotConstructURL() {
+        var components = URLComponents()
+        components.scheme = "https"
+        components.host = "["
+
+        #expect(throws: AppFailure.self) {
+            try ServerProfile.url(from: components)
+        }
+    }
+
+    @Test
+    func rejectsInvalidCanonicalOriginURLConversion() {
+        #expect(throws: AppFailure.self) {
+            try ServerProfile.url(fromCanonicalOrigin: "%")
+        }
+    }
+
+    @Test
     func decodedProfileStillNeedsValidation() throws {
         let unsafeJSON = #"{"name":"Test","origin":"http://bao.example.com","product":"Generic"}"#
         let unsafe = try JSONDecoder().decode(ServerProfile.self, from: Data(unsafeJSON.utf8))
