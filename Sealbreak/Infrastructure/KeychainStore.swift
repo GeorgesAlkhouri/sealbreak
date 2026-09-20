@@ -199,17 +199,17 @@ struct ProfileStore {
         }
         let data = try handle.read(upToCount: StorageLimits.maxProfileCatalogBytes + 1) ?? Data()
         guard data.count <= StorageLimits.maxProfileCatalogBytes else {
-            throw AppFailure("Invalid profile catalog. Set up Sealbreak again using your independent share copies.")
+            throw AppFailure("Invalid profile catalog. Reset local Sealbreak data before setting up again using your independent share copies.")
         }
 
         let catalog: ProfileCatalog
         do {
             catalog = try JSONDecoder().decode(ProfileCatalog.self, from: data)
         } catch {
-            throw AppFailure("Invalid profile catalog. Set up Sealbreak again using your independent share copies.")
+            throw AppFailure("Invalid profile catalog. Reset local Sealbreak data before setting up again using your independent share copies.")
         }
         guard catalog.version == ProfileCatalog.currentVersion else {
-            throw AppFailure("Unsupported profile catalog version.")
+            throw AppFailure("Unsupported profile catalog version. Reset local Sealbreak data before setting up again using your independent share copies.")
         }
 
         var ids = Set<UUID>()
