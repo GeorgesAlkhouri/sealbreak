@@ -305,7 +305,7 @@ struct SetupCoverageTests {
     }
 
     private func profile() throws -> ServerProfile {
-        try ServerProfile(name: "Server", address: origin)
+        try ServerProfile(id: UUID(), name: "Server", address: origin)
     }
 }
 
