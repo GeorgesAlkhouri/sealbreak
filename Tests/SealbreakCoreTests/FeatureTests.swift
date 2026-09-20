@@ -1304,6 +1304,10 @@ struct FeatureTests {
         #expect(appStore.state.setup == nil)
         #expect(appStore.state.welcome?.requiresLocalReset == true)
 
+        await appStore.send(.welcome(.delegate(.setUp)))
+        #expect(appStore.state.setup == nil)
+        #expect(appStore.state.welcome?.requiresLocalReset == true)
+
         let setupStore = TestStore(
             initialState: ShareSetupFeature.State(profile: second)
         ) {
