@@ -103,6 +103,9 @@ struct AppFeature {
                 return .none
 
             case .welcome(.delegate(.setUp)):
+                guard state.welcome?.requiresLocalReset != true else {
+                    return .none
+                }
                 state.welcome = nil
                 state.setup = SetupFeature.State()
                 return .none
