@@ -75,6 +75,7 @@ struct ReplaceShareFeature {
             case .saveSucceeded:
                 state.isBusy = false
                 state.activity = ""
+                state.notice = ""
                 return .send(.delegate(.saved))
 
             case .saveFailed(let failure):
