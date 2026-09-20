@@ -97,9 +97,12 @@ struct ModelsTests {
     }
 
     @Test
-    func rejectsInvalidCanonicalOriginURLConversion() {
+    func rejectsCanonicalOriginWhenURLParserFails() {
         #expect(throws: AppFailure.self) {
-            try ServerProfile.url(fromCanonicalOrigin: "%")
+            try ServerProfile.url(
+                fromCanonicalOrigin: origin,
+                parser: { _ in nil }
+            )
         }
     }
 
