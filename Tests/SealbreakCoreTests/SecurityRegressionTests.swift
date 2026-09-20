@@ -76,6 +76,31 @@ struct SecurityRegressionTests {
     }
 
     @Test
+    func replacementRejectsSameOriginWithDifferentProfileIdentity() throws {
+        let expected = try ServerProfile(name: "Expected", address: "https://bao.example.com")
+        let sameOriginDifferentProfile = try ServerProfile(
+            name: "Other profile",
+            address: "https://bao.example.com"
+        )
+        let replacement = try ShareRecord(profile: expected, input: share)
+        let existing = try ShareRecord(profile: sameOriginDifferentProfile, input: share)
+        var replaced = false
+
+        #expect(expected.id != sameOriginDifferentProfile.id)
+        #expect(expected.origin == sameOriginDifferentProfile.origin)
+        #expect(throws: AppFailure.self) {
+            try replaceShareIfBound(
+                expectedProfile: expected,
+                replacement: replacement,
+                readExisting: { existing },
+                beforeReplace: {},
+                replace: { _ in replaced = true }
+            )
+        }
+        #expect(!replaced)
+    }
+
+    @Test
     func replacementRejectsMismatchedReplacementAndWritesOnlyWhenBothBindingsMatch() throws {
         let expected = try ServerProfile(name: "Expected", address: "https://bao.example.com")
         let foreign = try ServerProfile(name: "Foreign", address: "https://other.example.com")
