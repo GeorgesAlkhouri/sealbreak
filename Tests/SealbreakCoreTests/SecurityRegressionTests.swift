@@ -1,3 +1,4 @@
+import Foundation
 import ComposableArchitecture
 import Testing
 @testable import SealbreakCore
@@ -8,7 +9,7 @@ struct SecurityRegressionTests {
 
     @Test
     func homeFailuresDiscardStaleStatusSoTheNoticeRemainsVisible() async throws {
-        let profile = try ServerProfile(name: "Server", address: "https://bao.example.com")
+        let profile = try ServerProfile(id: UUID(), name: "Server", address: "https://bao.example.com")
         let status = SealStatus(
             type: "shamir",
             initialized: true,
@@ -54,8 +55,8 @@ struct SecurityRegressionTests {
 
     @Test
     func replacementRejectsMismatchedStoredTargetBeforeAnyWrite() throws {
-        let expected = try ServerProfile(name: "Expected", address: "https://bao.example.com")
-        let foreign = try ServerProfile(name: "Foreign", address: "https://other.example.com")
+        let expected = try ServerProfile(id: UUID(), name: "Expected", address: "https://bao.example.com")
+        let foreign = try ServerProfile(id: UUID(), name: "Foreign", address: "https://other.example.com")
         let replacement = try ShareRecord(profile: expected, input: share)
         let existing = try ShareRecord(profile: foreign, input: share)
         var checkedForeground = false
@@ -76,9 +77,35 @@ struct SecurityRegressionTests {
     }
 
     @Test
+    func replacementRejectsSameOriginWithDifferentProfileIdentity() throws {
+        let expected = try ServerProfile(id: UUID(), name: "Expected", address: "https://bao.example.com")
+        let sameOriginDifferentProfile = try ServerProfile(
+            id: UUID(),
+            name: "Other profile",
+            address: "https://bao.example.com"
+        )
+        let replacement = try ShareRecord(profile: expected, input: share)
+        let existing = try ShareRecord(profile: sameOriginDifferentProfile, input: share)
+        var replaced = false
+
+        #expect(expected.id != sameOriginDifferentProfile.id)
+        #expect(expected.origin == sameOriginDifferentProfile.origin)
+        #expect(throws: AppFailure.self) {
+            try replaceShareIfBound(
+                expectedProfile: expected,
+                replacement: replacement,
+                readExisting: { existing },
+                beforeReplace: {},
+                replace: { _ in replaced = true }
+            )
+        }
+        #expect(!replaced)
+    }
+
+    @Test
     func replacementRejectsMismatchedReplacementAndWritesOnlyWhenBothBindingsMatch() throws {
-        let expected = try ServerProfile(name: "Expected", address: "https://bao.example.com")
-        let foreign = try ServerProfile(name: "Foreign", address: "https://other.example.com")
+        let expected = try ServerProfile(id: UUID(), name: "Expected", address: "https://bao.example.com")
+        let foreign = try ServerProfile(id: UUID(), name: "Foreign", address: "https://other.example.com")
         let existing = try ShareRecord(profile: expected, input: share)
         let foreignReplacement = try ShareRecord(profile: foreign, input: share)
         var replaced = false

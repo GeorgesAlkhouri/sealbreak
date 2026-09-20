@@ -15,11 +15,12 @@ struct ModelsTests {
 
     @Test(arguments: ["Server", "Freiburg – Süd", "東京", String(repeating: "🔒", count: 40)])
     func ordinaryNamesRoundTrip(name: String) throws {
-        let profile = try ServerProfile(name: name, address: origin, product: .vault)
+        let profile = try ServerProfile(id: UUID(), name: name, address: origin, product: .vault)
         let record = try ShareRecord(profile: profile, input: syntheticShare)
         let encoded = try JSONEncoder().encode(record)
         try StorageLimits.validateEncodedSize(encoded)
         let decoded = try JSONDecoder().decode(ShareRecord.self, from: encoded).validated()
+        #expect(decoded.profileID == profile.id)
         #expect(decoded.boundOrigin == profile.origin)
         #expect(decoded.share == syntheticShare)
     }
@@ -29,14 +30,14 @@ struct ModelsTests {
         let name = "a" + String(repeating: "\u{0301}", count: 3_000)
         #expect(name.count == 1)
         #expect(name.utf8.count == 6_001)
-        #expect(throws: AppFailure.self) { try ServerProfile(name: name, address: origin) }
+        #expect(throws: AppFailure.self) { try ServerProfile(id: UUID(), name: name, address: origin) }
     }
 
     @Test
     func c01CountsEncodedOverhead() throws {
         let name = "é" + String(repeating: "\u{0301}", count: 2_047)
         #expect(name.utf8.count == StorageLimits.maxRecordBytes)
-        let profile = try ServerProfile(name: name, address: origin)
+        let profile = try ServerProfile(id: UUID(), name: name, address: origin)
         let record = try ShareRecord(profile: profile, input: syntheticShare)
         let profileData = try JSONEncoder().encode(profile)
         let recordData = try JSONEncoder().encode(record)
@@ -59,9 +60,18 @@ struct ModelsTests {
         }
     }
 
+    @Test
+    func rejectsProfileCatalogStorageOverflow() {
+        #expect(throws: AppFailure.self) {
+            try StorageLimits.validateProfileCatalogSize(
+                Data(repeating: 0, count: StorageLimits.maxProfileCatalogBytes + 1)
+            )
+        }
+    }
+
     @Test(arguments: ["", "a\nb", String(repeating: "a", count: 41)])
     func rejectsInvalidName(name: String) {
-        #expect(throws: AppFailure.self) { try ServerProfile(name: name, address: origin) }
+        #expect(throws: AppFailure.self) { try ServerProfile(id: UUID(), name: name, address: origin) }
     }
 
     @Test(arguments: [
@@ -72,17 +82,26 @@ struct ModelsTests {
         "https://bao%2eexample.com", "https://bao.example.com\\evil"
     ])
     func rejectsUnsafeOrigin(address: String) {
-        #expect(throws: AppFailure.self) { try ServerProfile(name: "Test", address: address) }
+        #expect(throws: AppFailure.self) { try ServerProfile(id: UUID(), name: "Test", address: address) }
     }
 
     @Test
     func canonicalizesOriginAndBuildsEndpoint() throws {
-        let profile = try ServerProfile(name: " Test ", address: " https://BAO.example.com:443/ ")
+        let profile = try ServerProfile(id: UUID(), name: " Test ", address: " https://BAO.example.com:443/ ")
         #expect(profile.name == "Test")
         #expect(profile.origin == origin)
         #expect(try profile.endpoint("unseal").absoluteString == "\(origin)/v1/sys/unseal")
-        let custom = try ServerProfile(name: "Test", address: "\(origin):8200")
+        let custom = try ServerProfile(id: UUID(), name: "Test", address: "\(origin):8200")
         #expect(custom.origin == "\(origin):8200")
+    }
+
+    @Test
+    func profileValidationPreservesStableIdentity() throws {
+        let id = UUID()
+        let profile = try ServerProfile(id: id, name: "Test", address: origin)
+
+        #expect(try profile.validated().id == id)
+        #expect(try ShareRecord(profile: profile, input: syntheticShare).profileID == id)
     }
 
     @Test
@@ -108,11 +127,11 @@ struct ModelsTests {
 
     @Test
     func decodedProfileStillNeedsValidation() throws {
-        let unsafeJSON = #"{"name":"Test","origin":"http://bao.example.com","product":"Generic"}"#
+        let unsafeJSON = #"{"id":"00000000-0000-0000-0000-000000000001","name":"Test","origin":"http://bao.example.com","product":"Generic"}"#
         let unsafe = try JSONDecoder().decode(ServerProfile.self, from: Data(unsafeJSON.utf8))
         #expect(throws: AppFailure.self) { try unsafe.validated() }
 
-        let nonCanonicalJSON = #"{"name":"Test","origin":"https://BAO.example.com:443/","product":"Generic"}"#
+        let nonCanonicalJSON = #"{"id":"00000000-0000-0000-0000-000000000001","name":"Test","origin":"https://BAO.example.com:443/","product":"Generic"}"#
         let nonCanonical = try JSONDecoder().decode(ServerProfile.self, from: Data(nonCanonicalJSON.utf8))
         #expect(throws: AppFailure.self) { try nonCanonical.validated() }
     }
@@ -124,11 +143,11 @@ struct ModelsTests {
 
     @Test
     func trimsShareAndRejectsUnknownRecordVersion() throws {
-        let profile = try ServerProfile(name: "Test", address: origin)
+        let profile = try ServerProfile(id: UUID(), name: "Test", address: origin)
         let record = try ShareRecord(profile: profile, input: " \(syntheticShare)\n")
         #expect(record.share == syntheticShare)
         let json = """
-        {"version":2,"boundOrigin":"\(origin)","share":"\(syntheticShare)"}
+        {"version":2,"profileID":"\(profile.id.uuidString)","boundOrigin":"\(origin)","share":"\(syntheticShare)"}
         """
         let decoded = try JSONDecoder().decode(ShareRecord.self, from: Data(json.utf8))
         #expect(throws: AppFailure.self) { try decoded.validated() }
@@ -136,8 +155,9 @@ struct ModelsTests {
 
     @Test
     func protectedShareRejectsNonCanonicalBoundOrigin() throws {
+        let profileID = UUID()
         let json = """
-        {"version":1,"boundOrigin":"https://BAO.example.com:443/","share":"\(syntheticShare)"}
+        {"version":1,"profileID":"\(profileID.uuidString)","boundOrigin":"https://BAO.example.com:443/","share":"\(syntheticShare)"}
         """
         let decoded = try JSONDecoder().decode(ShareRecord.self, from: Data(json.utf8))
 

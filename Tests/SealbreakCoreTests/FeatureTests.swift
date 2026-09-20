@@ -4,10 +4,12 @@ import Testing
 @testable import SealbreakCore
 
 private actor ClientSpy {
-    var loadedProfile: ServerProfile?
+    var loadedProfiles: [ServerProfile] = []
     var loadError: AppFailure?
+    var insertProfileError: AppFailure?
     var saveProfileError: AppFailure?
     var deleteProfileError: AppFailure?
+    var resetLocalDataError: AppFailure?
     var detectedProduct: ServerProduct = .generic
     var detectionError: AppFailure?
     var configuredDNSSECStatus: DNSSECStatus = .insecure
@@ -30,23 +32,44 @@ private actor ClientSpy {
     var dnssecCalls = 0
     var deleteProfileCalls = 0
     var deleteShareCalls = 0
+    var resetLocalDataCalls = 0
     var cancelCalls = 0
 
-    func loadProfile() throws -> ServerProfile? {
+    func loadProfiles() throws -> [ServerProfile] {
         if let loadError { throw loadError }
-        return loadedProfile
+        return loadedProfiles
+    }
+
+    func insertProfile(_ profile: ServerProfile) throws {
+        if let insertProfileError { throw insertProfileError }
+        guard !loadedProfiles.contains(where: { $0.id == profile.id }) else {
+            throw AppFailure("A server profile with this identifier already exists.")
+        }
+        guard !loadedProfiles.contains(where: { $0.origin == profile.origin }) else {
+            throw AppFailure("A server profile for this origin already exists.")
+        }
+        savedProfiles.append(profile)
+        loadedProfiles.append(profile)
     }
 
     func saveProfile(_ profile: ServerProfile) throws {
         if let saveProfileError { throw saveProfileError }
         savedProfiles.append(profile)
-        loadedProfile = profile
+        loadedProfiles.removeAll { $0.id == profile.id }
+        loadedProfiles.append(profile)
     }
 
-    func deleteProfile() throws {
+    func deleteProfile(_ profileID: UUID) throws {
         deleteProfileCalls += 1
         if let deleteProfileError { throw deleteProfileError }
-        loadedProfile = nil
+        loadedProfiles.removeAll { $0.id == profileID }
+    }
+
+    func resetLocalData() throws {
+        resetLocalDataCalls += 1
+        if let resetLocalDataError { throw resetLocalDataError }
+        loadedProfiles = []
+        readRecord = nil
     }
 
     func detectProduct() throws -> ServerProduct {
@@ -66,9 +89,12 @@ private actor ClientSpy {
         return try statusQueue.removeFirst().get()
     }
 
-    func readShare() throws -> ShareRecord {
+    func readShare(_ profileID: UUID) throws -> ShareRecord {
         if let readError { throw readError }
         guard let readRecord else { throw AppFailure("No protected share configured.") }
+        guard readRecord.profileID == profileID else {
+            throw AppFailure("Protected share belongs to a different profile.")
+        }
         return readRecord
     }
 
@@ -84,10 +110,12 @@ private actor ClientSpy {
         readRecord = record
     }
 
-    func deleteShare() throws {
+    func deleteShare(_ profileID: UUID) throws {
         deleteShareCalls += 1
         if let deleteShareError { throw deleteShareError }
-        readRecord = nil
+        if readRecord?.profileID == profileID {
+            readRecord = nil
+        }
     }
 
     func submit(_ record: ShareRecord) throws {
@@ -107,17 +135,19 @@ private actor ClientSpy {
 
 private func client(_ spy: ClientSpy) -> SealbreakClient {
     SealbreakClient(
-        loadProfile: { try await spy.loadProfile() },
+        loadProfiles: { try await spy.loadProfiles() },
+        insertProfile: { try await spy.insertProfile($0) },
         saveProfile: { try await spy.saveProfile($0) },
-        deleteProfile: { try await spy.deleteProfile() },
+        deleteProfile: { try await spy.deleteProfile($0) },
+        resetLocalData: { try await spy.resetLocalData() },
         detectProduct: { _ in try await spy.detectProduct() },
         dnssecStatus: { _ in await spy.dnssecStatus() },
         status: { _ in try await spy.status() },
         submit: { try await spy.submit($0) },
-        readShare: { _ in try await spy.readShare() },
+        readShare: { profileID, _ in try await spy.readShare(profileID) },
         insertShare: { record, _ in try await spy.insert(record) },
         replaceShare: { _, replacement, _ in try await spy.replace(replacement) },
-        deleteShare: { _ in try await spy.deleteShare() },
+        deleteShare: { profileID, _ in try await spy.deleteShare(profileID) },
         requireForeground: {},
         waitForForeground: { try await spy.waitForForeground() },
         cancelSensitiveOperation: { await spy.cancel() }
@@ -133,7 +163,7 @@ struct FeatureTests {
         _ name: String = "Server",
         product: ServerProduct = .generic
     ) throws -> ServerProfile {
-        try ServerProfile(name: name, address: origin, product: product)
+        try ServerProfile(id: UUID(), name: name, address: origin, product: product)
     }
 
     private func record(_ profile: ServerProfile) throws -> ShareRecord {
@@ -171,6 +201,7 @@ struct FeatureTests {
             HomeFeature()
         } withDependencies: {
             $0.sealbreakClient = client(spy)
+            $0.uuid = .incrementing
         }
         store.exhaustivity = .off(showSkippedAssertions: false)
         return store
@@ -188,6 +219,7 @@ struct FeatureTests {
             AppFeature()
         } withDependencies: {
             $0.sealbreakClient = client(spy)
+            $0.uuid = .incrementing
         }
         store.exhaustivity = .off(showSkippedAssertions: false)
 
@@ -202,13 +234,21 @@ struct FeatureTests {
     }
 
     @Test
-    func appLoadFailureEntersWelcome() async {
+    func appRejectsMultiplePersistedProfilesUntilMultiServerUIExists() async throws {
+        let first = try profile("First")
+        let second = try ServerProfile(
+            id: UUID(),
+            name: "Second",
+            address: "https://second.example.com"
+        )
         let spy = ClientSpy()
-        await spy.setLoadError(AppFailure("broken"))
+        await spy.setLoadedProfiles([first, second])
+
         let store = TestStore(initialState: AppFeature.State()) {
             AppFeature()
         } withDependencies: {
             $0.sealbreakClient = client(spy)
+            $0.uuid = .incrementing
         }
         store.exhaustivity = .off(showSkippedAssertions: false)
 
@@ -217,7 +257,90 @@ struct FeatureTests {
 
         #expect(store.state.home == nil)
         #expect(store.state.setup == nil)
-        #expect(store.state.welcome?.notice?.contains("could not be read") == true)
+        #expect(store.state.welcome?.requiresLocalReset == true)
+        #expect(store.state.welcome?.notice?.contains("multiple server profiles") == true)
+    }
+
+    @Test
+    func appLoadFailureEntersWelcome() async {
+        let spy = ClientSpy()
+        await spy.setLoadError(AppFailure("broken"))
+        let store = TestStore(initialState: AppFeature.State()) {
+            AppFeature()
+        } withDependencies: {
+            $0.sealbreakClient = client(spy)
+            $0.uuid = .incrementing
+        }
+        store.exhaustivity = .off(showSkippedAssertions: false)
+
+        await store.send(.task).finish()
+        await store.skipReceivedActions()
+
+        #expect(store.state.home == nil)
+        #expect(store.state.setup == nil)
+        #expect(store.state.welcome?.requiresLocalReset == true)
+        #expect(store.state.welcome?.notice?.contains("Reset local data") == true)
+    }
+
+    @Test
+    func appLoadFailureRequiresConfirmedLocalResetBeforeSetup() async {
+        let spy = ClientSpy()
+        await spy.setLoadError(AppFailure("broken"))
+        let store = TestStore(initialState: AppFeature.State()) {
+            AppFeature()
+        } withDependencies: {
+            $0.sealbreakClient = client(spy)
+            $0.uuid = .incrementing
+        }
+        store.exhaustivity = .off(showSkippedAssertions: false)
+
+        await store.send(.task).finish()
+        await store.skipReceivedActions()
+        #expect(store.state.welcome?.requiresLocalReset == true)
+
+        await store.send(.welcome(.setUpTapped))
+        #expect(store.state.setup == nil)
+
+        await store.send(.welcome(.resetLocalDataTapped))
+        #expect(store.state.welcome?.confirmReset == true)
+
+        await store.send(.welcome(.resetConfirmationDismissed))
+        #expect(store.state.welcome?.confirmReset == false)
+        #expect(await spy.resetLocalDataCalls == 0)
+
+        await store.send(.welcome(.resetLocalDataTapped))
+        await store.send(.welcome(.confirmResetLocalDataTapped)).finish()
+        await store.skipReceivedActions()
+
+        #expect(await spy.resetLocalDataCalls == 1)
+        #expect(store.state.welcome?.requiresLocalReset == false)
+        #expect(store.state.welcome?.isResetting == false)
+        #expect(store.state.welcome?.notice?.contains("was reset") == true)
+    }
+
+    @Test
+    func welcomeResetFailureKeepsRecoveryRequired() async {
+        let spy = ClientSpy()
+        await spy.setResetLocalDataError(AppFailure("reset failed"))
+        let store = TestStore(
+            initialState: WelcomeFeature.State(
+                notice: "damaged",
+                requiresLocalReset: true
+            )
+        ) {
+            WelcomeFeature()
+        } withDependencies: {
+            $0.sealbreakClient = client(spy)
+        }
+        store.exhaustivity = .off(showSkippedAssertions: false)
+
+        await store.send(.resetLocalDataTapped)
+        await store.send(.confirmResetLocalDataTapped).finish()
+        await store.skipReceivedActions()
+
+        #expect(store.state.requiresLocalReset)
+        #expect(!store.state.isResetting)
+        #expect(store.state.notice == "reset failed")
     }
 
     @Test
@@ -228,6 +351,21 @@ struct FeatureTests {
 
         await store.send(.setUpTapped)
         await store.receive(.delegate(.setUp))
+    }
+
+    @Test
+    func welcomeIgnoresResetActionsWhenResetIsNotRequired() async {
+        let store = TestStore(initialState: WelcomeFeature.State()) {
+            WelcomeFeature()
+        }
+
+        await store.send(.resetLocalDataTapped)
+        #expect(!store.state.confirmReset)
+        #expect(!store.state.isResetting)
+
+        await store.send(.confirmResetLocalDataTapped)
+        #expect(!store.state.confirmReset)
+        #expect(!store.state.isResetting)
     }
 
     @Test
@@ -329,9 +467,16 @@ struct FeatureTests {
     @Test
     func unsealTargetMismatchNeverSubmits() async throws {
         let target = try profile()
-        let foreign = try ServerProfile(name: "Other", address: "https://other.example.com")
+        let mismatchedRecordJSON = """
+        {"version":1,"profileID":"\(target.id.uuidString)","boundOrigin":"https://other.example.com","share":"\(share)"}
+        """
+        let mismatchedRecord = try JSONDecoder().decode(
+            ShareRecord.self,
+            from: Data(mismatchedRecordJSON.utf8)
+        ).validated()
+
         let spy = ClientSpy()
-        await spy.setReadRecord(try record(foreign))
+        await spy.setReadRecord(mismatchedRecord)
         await spy.setStatusQueue([.success(status())])
         let store = homeStore(profile: target, status: status(), spy: spy)
 
@@ -389,6 +534,7 @@ struct FeatureTests {
             ShareSetupFeature()
         } withDependencies: {
             $0.sealbreakClient = client(spy)
+            $0.uuid = .incrementing
         }
         store.exhaustivity = .off(showSkippedAssertions: false)
 
@@ -405,6 +551,35 @@ struct FeatureTests {
     }
 
     @Test
+    func setupRetryDoesNotDeleteExistingProfileOrShare() async throws {
+        let target = try profile()
+        let originalRecord = try record(target)
+        let spy = ClientSpy()
+        await spy.setLoadedProfile(target)
+        await spy.setReadRecord(originalRecord)
+
+        let store = TestStore(
+            initialState: ShareSetupFeature.State(profile: target)
+        ) {
+            ShareSetupFeature()
+        } withDependencies: {
+            $0.sealbreakClient = client(spy)
+            $0.uuid = .incrementing
+        }
+        store.exhaustivity = .off(showSkippedAssertions: false)
+
+        await store.send(.saveTapped(share: share)).finish()
+        await store.skipReceivedActions()
+
+        #expect(store.state.operation == nil)
+        #expect(store.state.notice.contains("already exists"))
+        #expect(await spy.deleteProfileCalls == 0)
+        #expect(await spy.insertedCount == 0)
+        #expect(await spy.currentProfiles == [target])
+        #expect(await spy.currentReadRecord == originalRecord)
+    }
+
+    @Test
     func instanceSetupFallsBackToGenericWhenProductDetectionFails() async throws {
         let spy = ClientSpy()
         await spy.setDNSSECStatus(.secure)
@@ -415,6 +590,7 @@ struct FeatureTests {
             InstanceSetupFeature()
         } withDependencies: {
             $0.sealbreakClient = client(spy)
+            $0.uuid = .incrementing
         }
         store.exhaustivity = .off(showSkippedAssertions: false)
 
@@ -423,42 +599,47 @@ struct FeatureTests {
         await store.skipReceivedActions()
 
         #expect(store.state.checkedProfile?.product == .generic)
+        #expect(store.state.checkedProfile?.id.uuidString == "00000000-0000-0000-0000-000000000000")
         #expect(store.state.canContinue)
         #expect(await spy.detectProductCalls == 1)
     }
 
     @Test
-    func setupImportPreservesShareWhenDisplayProfileSaveFails() async throws {
+    func setupImportDoesNotProtectShareWhenProfileInsertFails() async throws {
         let target = try profile()
         let spy = ClientSpy()
-        await spy.setSaveProfileError(AppFailure("save failed"))
+        await spy.setInsertProfileError(AppFailure("insert failed"))
         let store = TestStore(
             initialState: ShareSetupFeature.State(profile: target)
         ) {
             ShareSetupFeature()
         } withDependencies: {
             $0.sealbreakClient = client(spy)
+            $0.uuid = .incrementing
         }
         store.exhaustivity = .off(showSkippedAssertions: false)
 
         await store.send(
             .saveTapped(share: share)
         ).finish()
-        let fallbackNotice =
-            "Protected share exists, but display metadata could not be saved. Remove local data and set up Sealbreak again."
-        await store.receive(.importResponse(.success(.init(profile: target, notice: fallbackNotice))))
-        await store.receive(.delegate(.profileReady(target, notice: fallbackNotice)))
+        await store.skipReceivedActions()
 
-        #expect(await spy.insertedCount == 1)
-        #expect(store.state.notice.contains("display metadata could not be saved"))
+        #expect(await spy.insertedCount == 0)
+        #expect(store.state.notice == "insert failed")
     }
     @Test
     func removeLocalDataCoversProfileDeletionFailure() async throws {
+        let target = try profile()
+        var state = SetupFeature.State()
+        state.step = .share
+        state.share = ShareSetupFeature.State(profile: target)
+
         let spy = ClientSpy()
-        let store = TestStore(initialState: SetupFeature.State()) {
+        let store = TestStore(initialState: state) {
             SetupFeature()
         } withDependencies: {
             $0.sealbreakClient = client(spy)
+            $0.uuid = .incrementing
         }
         store.exhaustivity = .off(showSkippedAssertions: false)
 
@@ -479,6 +660,7 @@ struct FeatureTests {
             ReplaceShareFeature()
         } withDependencies: {
             $0.sealbreakClient = client(spy)
+            $0.uuid = .incrementing
         }
         store.exhaustivity = .off(showSkippedAssertions: false)
 
@@ -514,6 +696,7 @@ struct FeatureTests {
             HomeFeature()
         } withDependencies: {
             $0.sealbreakClient = client(spy)
+            $0.uuid = .incrementing
         }
         store.exhaustivity = .off(showSkippedAssertions: false)
 
@@ -558,6 +741,7 @@ struct FeatureTests {
             AppFeature()
         } withDependencies: {
             $0.sealbreakClient = client(spy)
+            $0.uuid = .incrementing
         }
         store.exhaustivity = .off(showSkippedAssertions: false)
 
@@ -584,6 +768,7 @@ struct FeatureTests {
             AppFeature()
         } withDependencies: {
             $0.sealbreakClient = client(spy)
+            $0.uuid = .incrementing
         }
         store.exhaustivity = .off(showSkippedAssertions: false)
 
@@ -595,7 +780,16 @@ struct FeatureTests {
         #expect(store.state.home?.profile == target)
         #expect(store.state.home?.status == checked)
 
-        await store.send(.home(.delegate(.localDataRemoved(notice: "Local data removed"))))
+        await store.send(
+            .home(
+                .delegate(
+                    .localDataRemoved(
+                        notice: "Local data removed",
+                        requiresLocalReset: false
+                    )
+                )
+            )
+        )
         #expect(store.state.home == nil)
         #expect(store.state.setup == nil)
         #expect(store.state.welcome?.notice == "Local data removed")
@@ -615,6 +809,7 @@ struct FeatureTests {
             AppFeature()
         } withDependencies: {
             $0.sealbreakClient = client(homeSpy)
+            $0.uuid = .incrementing
         }
         homeStore.exhaustivity = .off(showSkippedAssertions: false)
 
@@ -636,6 +831,7 @@ struct FeatureTests {
             AppFeature()
         } withDependencies: {
             $0.sealbreakClient = client(setupSpy)
+            $0.uuid = .incrementing
         }
         setupStore.exhaustivity = .off(showSkippedAssertions: false)
 
@@ -699,6 +895,7 @@ struct FeatureTests {
             HomeFeature()
         } withDependencies: {
             $0.sealbreakClient = client(spy)
+            $0.uuid = .incrementing
         }
         store.exhaustivity = .off(showSkippedAssertions: false)
 
@@ -745,6 +942,7 @@ struct FeatureTests {
             SetupFeature()
         } withDependencies: {
             $0.sealbreakClient = client(spy)
+            $0.uuid = .incrementing
         }
         store.exhaustivity = .off(showSkippedAssertions: false)
 
@@ -777,6 +975,7 @@ struct FeatureTests {
             InstanceSetupFeature()
         } withDependencies: {
             $0.sealbreakClient = client(spy)
+            $0.uuid = .incrementing
         }
         store.exhaustivity = .off(showSkippedAssertions: false)
 
@@ -801,6 +1000,7 @@ struct FeatureTests {
             InstanceSetupFeature()
         } withDependencies: {
             $0.sealbreakClient = client(spy)
+            $0.uuid = .incrementing
         }
         store.exhaustivity = .off(showSkippedAssertions: false)
 
@@ -826,6 +1026,7 @@ struct FeatureTests {
             ShareSetupFeature()
         } withDependencies: {
             $0.sealbreakClient = client(spy)
+            $0.uuid = .incrementing
         }
         store.exhaustivity = .off(showSkippedAssertions: false)
 
@@ -856,6 +1057,7 @@ struct FeatureTests {
             SetupFeature()
         } withDependencies: {
             $0.sealbreakClient = client(spy)
+            $0.uuid = .incrementing
         }
         interruptionStore.exhaustivity = .off(showSkippedAssertions: false)
 
@@ -873,6 +1075,7 @@ struct FeatureTests {
             ReplaceShareFeature()
         } withDependencies: {
             $0.sealbreakClient = client(spy)
+            $0.uuid = .incrementing
         }
         store.exhaustivity = .off(showSkippedAssertions: false)
 
@@ -897,6 +1100,7 @@ struct FeatureTests {
             ReplaceShareFeature()
         } withDependencies: {
             $0.sealbreakClient = client(spy)
+            $0.uuid = .incrementing
         }
         cancellationStore.exhaustivity = .off(showSkippedAssertions: false)
 
@@ -916,6 +1120,7 @@ struct FeatureTests {
             ReplaceShareFeature()
         } withDependencies: {
             $0.sealbreakClient = client(spy)
+            $0.uuid = .incrementing
         }
         interruptionStore.exhaustivity = .off(showSkippedAssertions: false)
 
@@ -937,6 +1142,7 @@ struct FeatureTests {
             AppFeature()
         } withDependencies: {
             $0.sealbreakClient = client(spy)
+            $0.uuid = .incrementing
         }
         store.exhaustivity = .off(showSkippedAssertions: false)
 
@@ -953,6 +1159,7 @@ struct FeatureTests {
             AppFeature()
         } withDependencies: {
             $0.sealbreakClient = client(spy)
+            $0.uuid = .incrementing
         }
         store.exhaustivity = .off(showSkippedAssertions: false)
 
@@ -1044,7 +1251,7 @@ struct FeatureTests {
         await persistenceStore.send(.removeLocalDataTapped)
         await persistenceStore.send(.confirmRemoveLocalDataTapped).finish()
         await persistenceStore.skipReceivedActions()
-        #expect(persistenceStore.state.notice.contains("display file could not be removed"))
+        #expect(persistenceStore.state.notice.contains("Reset local Sealbreak data"))
 
         let cancellationSpy = ClientSpy()
         await cancellationSpy.setWaitCancellation(true)
@@ -1054,6 +1261,70 @@ struct FeatureTests {
         await cancellationStore.send(.confirmRemoveLocalDataTapped).finish()
         await cancellationStore.skipReceivedActions()
         #expect(cancellationStore.state.notice.contains("Operation cancelled"))
+    }
+
+    @Test
+    func partialHomeRemovalRequiresResetAndPreventsSecondProfile() async throws {
+        let first = try profile("First")
+        let second = try ServerProfile(
+            id: UUID(),
+            name: "Second",
+            address: "https://second.example.com"
+        )
+        let spy = ClientSpy()
+        await spy.setLoadedProfile(first)
+        await spy.setReadRecord(try record(first))
+        await spy.setDeleteProfileError(AppFailure("delete profile failed"))
+
+        var initialState = AppFeature.State()
+        initialState.isLoading = false
+        initialState.didLoad = true
+        initialState.home = HomeFeature.State(profile: first, status: status())
+
+        let appStore = TestStore(initialState: initialState) {
+            AppFeature()
+        } withDependencies: {
+            $0.sealbreakClient = client(spy)
+            $0.uuid = .incrementing
+        }
+        appStore.exhaustivity = .off(showSkippedAssertions: false)
+
+        await appStore.send(.home(.removeLocalDataTapped))
+        await appStore.send(.home(.confirmRemoveLocalDataTapped)).finish()
+        await appStore.skipReceivedActions()
+
+        #expect(appStore.state.home == nil)
+        #expect(appStore.state.setup == nil)
+        #expect(appStore.state.welcome?.requiresLocalReset == true)
+        #expect(appStore.state.welcome?.notice?.contains("Reset local Sealbreak data") == true)
+        #expect(await spy.currentProfiles == [first])
+        #expect(await spy.currentReadRecord == nil)
+
+        await appStore.send(.welcome(.setUpTapped))
+        #expect(appStore.state.setup == nil)
+        #expect(appStore.state.welcome?.requiresLocalReset == true)
+
+        await appStore.send(.welcome(.delegate(.setUp)))
+        #expect(appStore.state.setup == nil)
+        #expect(appStore.state.welcome?.requiresLocalReset == true)
+
+        let setupStore = TestStore(
+            initialState: ShareSetupFeature.State(profile: second)
+        ) {
+            ShareSetupFeature()
+        } withDependencies: {
+            $0.sealbreakClient = client(spy)
+            $0.uuid = .incrementing
+        }
+        setupStore.exhaustivity = .off(showSkippedAssertions: false)
+
+        await setupStore.send(.saveTapped(share: share)).finish()
+        await setupStore.skipReceivedActions()
+
+        #expect(setupStore.state.operation == nil)
+        #expect(setupStore.state.notice.contains("already exists"))
+        #expect(await spy.currentProfiles == [first])
+        #expect(await spy.insertedCount == 0)
     }
 
     @Test
@@ -1088,6 +1359,7 @@ struct FeatureTests {
             ShareSetupFeature()
         } withDependencies: {
             $0.sealbreakClient = client(importSpy)
+            $0.uuid = .incrementing
         }
         importStore.exhaustivity = .off(showSkippedAssertions: false)
 
@@ -1097,15 +1369,22 @@ struct FeatureTests {
         await importStore.skipReceivedActions()
         #expect(importStore.state.operation == nil)
         #expect(importStore.state.notice.contains("Operation cancelled"))
+        #expect(await importSpy.deleteProfileCalls == 1)
     }
 
     @Test
     func setupHandlesConfirmationAndRemoveOutcomes() async throws {
+        let target = try profile()
+
+        var successState = SetupFeature.State()
+        successState.step = .share
+        successState.share = ShareSetupFeature.State(profile: target)
         let successSpy = ClientSpy()
-        let successStore = TestStore(initialState: SetupFeature.State()) {
+        let successStore = TestStore(initialState: successState) {
             SetupFeature()
         } withDependencies: {
             $0.sealbreakClient = client(successSpy)
+            $0.uuid = .incrementing
         }
         successStore.exhaustivity = .off(showSkippedAssertions: false)
 
@@ -1119,12 +1398,16 @@ struct FeatureTests {
         await successStore.skipReceivedActions()
         #expect(successStore.state.notice.contains("Local share removed"))
 
+        var cancellationState = SetupFeature.State()
+        cancellationState.step = .share
+        cancellationState.share = ShareSetupFeature.State(profile: target)
         let cancellationSpy = ClientSpy()
         await cancellationSpy.setWaitCancellation(true)
-        let cancellationStore = TestStore(initialState: SetupFeature.State()) {
+        let cancellationStore = TestStore(initialState: cancellationState) {
             SetupFeature()
         } withDependencies: {
             $0.sealbreakClient = client(cancellationSpy)
+            $0.uuid = .incrementing
         }
         cancellationStore.exhaustivity = .off(showSkippedAssertions: false)
 
@@ -1134,12 +1417,16 @@ struct FeatureTests {
         #expect(cancellationStore.state.operation == nil)
         #expect(cancellationStore.state.notice.contains("Operation cancelled"))
 
+        var failureState = SetupFeature.State()
+        failureState.step = .share
+        failureState.share = ShareSetupFeature.State(profile: target)
         let failureSpy = ClientSpy()
         await failureSpy.setDeleteShareError(AppFailure("delete failed"))
-        let failureStore = TestStore(initialState: SetupFeature.State()) {
+        let failureStore = TestStore(initialState: failureState) {
             SetupFeature()
         } withDependencies: {
             $0.sealbreakClient = client(failureSpy)
+            $0.uuid = .incrementing
         }
         failureStore.exhaustivity = .off(showSkippedAssertions: false)
 
@@ -1152,10 +1439,13 @@ struct FeatureTests {
 }
 
 private extension ClientSpy {
-    func setLoadedProfile(_ value: ServerProfile?) { loadedProfile = value }
+    func setLoadedProfile(_ value: ServerProfile?) { loadedProfiles = value.map { [$0] } ?? [] }
+    func setLoadedProfiles(_ value: [ServerProfile]) { loadedProfiles = value }
     func setLoadError(_ value: AppFailure?) { loadError = value }
+    func setInsertProfileError(_ value: AppFailure?) { insertProfileError = value }
     func setSaveProfileError(_ value: AppFailure?) { saveProfileError = value }
     func setDeleteProfileError(_ value: AppFailure?) { deleteProfileError = value }
+    func setResetLocalDataError(_ value: AppFailure?) { resetLocalDataError = value }
     func setDetectedProduct(_ value: ServerProduct) { detectedProduct = value }
     func setDetectionError(_ value: AppFailure?) { detectionError = value }
     func setDNSSECStatus(_ value: DNSSECStatus) { configuredDNSSECStatus = value }
@@ -1168,6 +1458,8 @@ private extension ClientSpy {
     func setSubmitError(_ value: AppFailure?) { submitError = value }
     func setWaitCancellation(_ value: Bool) { waitCancellation = value }
 
+    var currentProfiles: [ServerProfile] { loadedProfiles }
+    var currentReadRecord: ShareRecord? { readRecord }
     var submittedCount: Int { submittedRecords.count }
     var insertedCount: Int { insertedRecords.count }
     var insertedBoundOrigins: [String] { insertedRecords.map(\.boundOrigin) }

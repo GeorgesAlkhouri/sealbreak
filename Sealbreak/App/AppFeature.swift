@@ -14,7 +14,7 @@ struct AppFeature {
 
     enum Action: Equatable {
         case task
-        case profileLoaded(Result<ServerProfile?, AppFailure>)
+        case profilesLoaded(Result<[ServerProfile], AppFailure>)
         case privacy(PrivacyFeature.Action)
         case welcome(WelcomeFeature.Action)
         case home(HomeFeature.Action)
@@ -36,16 +36,25 @@ struct AppFeature {
                 state.isLoading = true
                 return .run { send in
                     do {
-                        let profile = try await client.loadProfile()
-                        await send(.profileLoaded(.success(profile)))
+                        let profiles = try await client.loadProfiles()
+                        await send(.profilesLoaded(.success(profiles)))
                     } catch {
-                        await send(.profileLoaded(.failure(normalizedAppFailure(error))))
+                        await send(.profilesLoaded(.failure(normalizedAppFailure(error))))
                     }
                 }
 
-            case .profileLoaded(.success(let profile)):
+            case .profilesLoaded(.success(let profiles)):
                 state.isLoading = false
-                if let profile {
+                guard profiles.count <= 1 else {
+                    state.home = nil
+                    state.setup = nil
+                    state.welcome = WelcomeFeature.State(
+                        notice: "Local Sealbreak data contains multiple server profiles, but this app version supports one. Reset local data to continue.",
+                        requiresLocalReset: true
+                    )
+                    return .none
+                }
+                if let profile = profiles.first {
                     state.welcome = nil
                     state.setup = nil
                     state.home = HomeFeature.State(profile: profile)
@@ -56,12 +65,13 @@ struct AppFeature {
                 state.welcome = WelcomeFeature.State()
                 return .none
 
-            case .profileLoaded(.failure):
+            case .profilesLoaded(.failure):
                 state.isLoading = false
                 state.home = nil
                 state.setup = nil
                 state.welcome = WelcomeFeature.State(
-                    notice: "The display profile could not be read. Set up Sealbreak again using your independent share copy."
+                    notice: "Local Sealbreak configuration could not be read. Reset local data to continue, then set up again using your independent share copy.",
+                    requiresLocalReset: true
                 )
                 return .none
 
@@ -83,13 +93,19 @@ struct AppFeature {
                 guard state.home?.isBusy == false else { return .none }
                 return state.home == nil ? .none : .send(.home(.refreshRequested))
 
-            case .home(.delegate(.localDataRemoved(let notice))):
+            case .home(.delegate(.localDataRemoved(let notice, let requiresLocalReset))):
                 state.home = nil
                 state.setup = nil
-                state.welcome = WelcomeFeature.State(notice: notice)
+                state.welcome = WelcomeFeature.State(
+                    notice: notice,
+                    requiresLocalReset: requiresLocalReset
+                )
                 return .none
 
             case .welcome(.delegate(.setUp)):
+                guard state.welcome?.requiresLocalReset != true else {
+                    return .none
+                }
                 state.welcome = nil
                 state.setup = SetupFeature.State()
                 return .none

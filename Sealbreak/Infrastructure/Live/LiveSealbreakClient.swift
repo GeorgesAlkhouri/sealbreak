@@ -6,14 +6,20 @@ import UIKit
 extension SealbreakClient: DependencyKey {
     static var liveValue: Self {
         Self(
-            loadProfile: {
-                try await LiveSealbreakClientController.shared.loadProfile()
+            loadProfiles: {
+                try await LiveSealbreakClientController.shared.loadProfiles()
+            },
+            insertProfile: { profile in
+                try await LiveSealbreakClientController.shared.insertProfile(profile)
             },
             saveProfile: { profile in
                 try await LiveSealbreakClientController.shared.saveProfile(profile)
             },
-            deleteProfile: {
-                try await LiveSealbreakClientController.shared.deleteProfile()
+            deleteProfile: { profileID in
+                try await LiveSealbreakClientController.shared.deleteProfile(profileID)
+            },
+            resetLocalData: {
+                try await LiveSealbreakClientController.shared.resetLocalData()
             },
             detectProduct: { profile in
                 try await LiveSealbreakClientController.shared.detectProduct(profile)
@@ -27,8 +33,11 @@ extension SealbreakClient: DependencyKey {
             submit: { record in
                 try await LiveSealbreakClientController.shared.submit(record)
             },
-            readShare: { reason in
-                try await LiveSealbreakClientController.shared.readShare(reason: reason)
+            readShare: { profileID, reason in
+                try await LiveSealbreakClientController.shared.readShare(
+                    profileID: profileID,
+                    reason: reason
+                )
             },
             insertShare: { record, reason in
                 try await LiveSealbreakClientController.shared.insertShare(record, reason: reason)
@@ -40,8 +49,11 @@ extension SealbreakClient: DependencyKey {
                     reason: reason
                 )
             },
-            deleteShare: { reason in
-                try await LiveSealbreakClientController.shared.deleteShare(reason: reason)
+            deleteShare: { profileID, reason in
+                try await LiveSealbreakClientController.shared.deleteShare(
+                    profileID: profileID,
+                    reason: reason
+                )
             },
             requireForeground: {
                 try await LiveSealbreakClientController.shared.requireForeground()
@@ -66,16 +78,32 @@ private final class LiveSealbreakClientController {
     private let dnssecResolver = DNSSECResolver.live
     private var activeContext: LAContext?
 
-    func loadProfile() throws -> ServerProfile? {
-        try profiles.load()
+    func loadProfiles() throws -> [ServerProfile] {
+        try profiles.loadAll()
+    }
+
+    func insertProfile(_ profile: ServerProfile) throws {
+        try profiles.insert(profile)
     }
 
     func saveProfile(_ profile: ServerProfile) throws {
         try profiles.save(profile)
     }
 
-    func deleteProfile() throws {
-        try profiles.delete()
+    func deleteProfile(_ profileID: UUID) throws {
+        try profiles.delete(id: profileID)
+    }
+
+    func resetLocalData() throws {
+        try requireForeground()
+        try resetLocalStorage(
+            deleteShares: {
+                try keychain.deleteAll()
+            },
+            resetProfiles: {
+                try profiles.reset()
+            }
+        )
     }
 
     func detectProduct(_ profile: ServerProfile) async throws -> ServerProduct {
@@ -94,9 +122,9 @@ private final class LiveSealbreakClientController {
         try await client.submit(record)
     }
 
-    func readShare(reason: String) async throws -> ShareRecord {
+    func readShare(profileID: UUID, reason: String) async throws -> ShareRecord {
         try await withAuthorizedContext(reason: reason) { context in
-            try keychain.read(context: context)
+            try keychain.read(profileID: profileID, context: context)
         }
     }
 
@@ -117,7 +145,7 @@ private final class LiveSealbreakClientController {
                 expectedProfile: expectedProfile,
                 replacement: replacement,
                 readExisting: {
-                    try keychain.read(context: context)
+                    try keychain.read(profileID: expectedProfile.id, context: context)
                 },
                 beforeReplace: {
                     try requireForeground()
@@ -129,10 +157,10 @@ private final class LiveSealbreakClientController {
         }
     }
 
-    func deleteShare(reason: String) async throws {
+    func deleteShare(profileID: UUID, reason: String) async throws {
         try await withAuthorizedContext(reason: reason) { context in
             try requireForeground()
-            try keychain.delete(context: context)
+            try keychain.delete(profileID: profileID, context: context)
         }
     }
 

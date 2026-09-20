@@ -72,34 +72,48 @@ struct ShareSetupFeature {
                     var record = record
                     defer { record.share.removeAll(keepingCapacity: false) }
 
+                    var profileInserted = false
                     do {
+                        // Keep the current app single-profile even though the
+                        // persistence layer is collection-capable for future multi-server UI.
+                        let existingProfiles = try await client.loadProfiles()
+                        guard existingProfiles.isEmpty else {
+                            throw AppFailure(
+                                "A local server profile already exists. Reset local Sealbreak data before setting up another server."
+                            )
+                        }
+
+                        // Create the non-secret profile identity before the Keychain item.
+                        // Setup is create-only: rollback is safe only for a profile this
+                        // operation inserted itself.
+                        try await client.insertProfile(profile)
+                        profileInserted = true
+
                         try await client.waitForForeground()
                         try await client.insertShare(
                             record,
                             "Protect this share for \(record.boundOrigin)"
                         )
 
-                        let notice: String
-                        do {
-                            try await client.saveProfile(profile)
-                            notice = "Share protected on this iPhone. Check status to begin."
-                        } catch {
-                            notice = "Protected share exists, but display metadata could not be saved. Remove local data and set up Sealbreak again."
-                        }
-
                         await send(
                             .importResponse(
                                 .success(
                                     ProfileResult(
                                         profile: profile,
-                                        notice: notice
+                                        notice: "Share protected on this iPhone. Check status to begin."
                                     )
                                 )
                             )
                         )
                     } catch is CancellationError {
+                        if profileInserted {
+                            try? await client.deleteProfile(profile.id)
+                        }
                         await send(.operationCancelled)
                     } catch {
+                        if profileInserted {
+                            try? await client.deleteProfile(profile.id)
+                        }
                         await send(
                             .importResponse(
                                 .failure(normalizedAppFailure(error))

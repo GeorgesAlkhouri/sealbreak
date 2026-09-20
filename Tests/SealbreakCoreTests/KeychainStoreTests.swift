@@ -9,40 +9,59 @@ struct KeychainStoreTests {
     private let syntheticShare = String(repeating: "a", count: 64)
 
     @Test
-    func readReturnsValidatedRecordAndBuildsExpectedQuery() throws {
+    func readReturnsValidatedRecordAndBuildsProfileScopedQuery() throws {
         let stub = KeychainStub()
         let record = try makeRecord()
         stub.copyStatus = errSecSuccess
         stub.copyData = try JSONEncoder().encode(record)
         let context = LAContext()
 
-        let result = try KeychainStore(access: stub).read(context: context)
+        let result = try KeychainStore(access: stub).read(
+            profileID: record.profileID,
+            context: context
+        )
 
+        #expect(result.profileID == record.profileID)
         #expect(result.boundOrigin == record.boundOrigin)
         #expect(result.share == record.share)
-        #expect(stub.lastCopyRequest?[kSecAttrAccount as String] as? String == "single-share-v1")
+        #expect(
+            stub.lastCopyRequest?[kSecAttrAccount as String] as? String
+                == "share.\(record.profileID.uuidString.lowercased())"
+        )
         #expect(stub.lastCopyRequest?[kSecReturnData as String] as? Bool == true)
         #expect(stub.lastCopyRequest?[kSecUseAuthenticationContext as String] as? LAContext === context)
     }
 
     @Test
-    func readRejectsOversizedAndUnreadableRecords() throws {
+    func readRejectsOversizedUnreadableAndMismatchedRecords() throws {
         let stub = KeychainStub()
         let store = KeychainStore(access: stub)
         let context = LAContext()
+        let profileID = UUID()
 
         stub.copyStatus = errSecSuccess
         stub.copyData = Data(repeating: 0, count: StorageLimits.maxRecordBytes + 1)
-        #expect(throws: AppFailure.self) { try store.read(context: context) }
+        #expect(throws: AppFailure.self) {
+            try store.read(profileID: profileID, context: context)
+        }
 
         stub.copyData = Data("{}".utf8)
-        #expect(throws: AppFailure.self) { try store.read(context: context) }
+        #expect(throws: AppFailure.self) {
+            try store.read(profileID: profileID, context: context)
+        }
+
+        let foreign = try makeRecord()
+        #expect(foreign.profileID != profileID)
+        stub.copyData = try JSONEncoder().encode(foreign)
+        #expect(throws: AppFailure.self) {
+            try store.read(profileID: profileID, context: context)
+        }
     }
 
     @Test
     func readMapsKeychainFailures() {
         let cases: [(OSStatus, String)] = [
-            (errSecDuplicateItem, "A protected share already exists."),
+            (errSecDuplicateItem, "A protected share already exists"),
             (errSecItemNotFound, "No accessible share was found."),
             (errSecAuthFailed, "Keychain access was denied."),
             (errSecInteractionNotAllowed, "Keychain access was denied."),
@@ -54,7 +73,10 @@ struct KeychainStoreTests {
             let stub = KeychainStub()
             stub.copyStatus = status
             do {
-                _ = try KeychainStore(access: stub).read(context: LAContext())
+                _ = try KeychainStore(access: stub).read(
+                    profileID: UUID(),
+                    context: LAContext()
+                )
                 #expect(Bool(false))
             } catch let error as AppFailure {
                 #expect(error.message.hasPrefix(prefix))
@@ -65,7 +87,7 @@ struct KeychainStoreTests {
     }
 
     @Test
-    func insertProtectsEncodedRecordAndMapsFailures() throws {
+    func insertProtectsEncodedRecordInProfileScopedAccountAndMapsFailures() throws {
         let stub = KeychainStub()
         let store = KeychainStore(access: stub)
         let context = LAContext()
@@ -74,8 +96,13 @@ struct KeychainStoreTests {
         try store.insert(record, context: context)
         let data = try #require(stub.lastAddRequest?[kSecValueData as String] as? Data)
         let decoded = try JSONDecoder().decode(ShareRecord.self, from: data)
+        #expect(decoded.profileID == record.profileID)
         #expect(decoded.boundOrigin == record.boundOrigin)
         #expect(decoded.share == record.share)
+        #expect(
+            stub.lastAddRequest?[kSecAttrAccount as String] as? String
+                == "share.\(record.profileID.uuidString.lowercased())"
+        )
         #expect(stub.lastAddRequest?[kSecAttrAccessControl as String] != nil)
         #expect(stub.lastAddRequest?[kSecUseAuthenticationContext as String] as? LAContext === context)
 
@@ -87,7 +114,7 @@ struct KeychainStoreTests {
     }
 
     @Test
-    func replaceUpdatesOnlyValueDataAndMapsFailure() throws {
+    func replaceUpdatesOnlyTheSelectedProfileAccountAndMapsFailure() throws {
         let stub = KeychainStub()
         let store = KeychainStore(access: stub)
         let context = LAContext()
@@ -96,6 +123,10 @@ struct KeychainStoreTests {
         try store.replace(record, context: context)
         let data = try #require(stub.lastUpdateAttributes?[kSecValueData as String] as? Data)
         #expect(try JSONDecoder().decode(ShareRecord.self, from: data).share == record.share)
+        #expect(
+            stub.lastUpdateRequest?[kSecAttrAccount as String] as? String
+                == "share.\(record.profileID.uuidString.lowercased())"
+        )
         #expect(stub.lastUpdateRequest?[kSecUseAuthenticationContext as String] as? LAContext === context)
 
         stub.updateStatus = errSecAuthFailed
@@ -103,20 +134,27 @@ struct KeychainStoreTests {
     }
 
     @Test
-    func deleteTreatsMissingItemAsSuccessAndRejectsOtherFailures() throws {
+    func deleteTargetsOneProfileAndTreatsMissingItemAsSuccess() throws {
         let stub = KeychainStub()
         let store = KeychainStore(access: stub)
         let context = LAContext()
+        let profileID = UUID()
 
         stub.deleteStatus = errSecSuccess
-        try store.delete(context: context)
+        try store.delete(profileID: profileID, context: context)
+        #expect(
+            stub.lastDeleteRequest?[kSecAttrAccount as String] as? String
+                == "share.\(profileID.uuidString.lowercased())"
+        )
         #expect(stub.lastDeleteRequest?[kSecUseAuthenticationContext as String] as? LAContext === context)
 
         stub.deleteStatus = errSecItemNotFound
-        try store.delete(context: context)
+        try store.delete(profileID: profileID, context: context)
 
         stub.deleteStatus = errSecAuthFailed
-        #expect(throws: AppFailure.self) { try store.delete(context: context) }
+        #expect(throws: AppFailure.self) {
+            try store.delete(profileID: profileID, context: context)
+        }
     }
 
     @Test
@@ -138,41 +176,331 @@ struct KeychainStoreTests {
     }
 
     @Test
+    func deleteAllTargetsOnlySealbreakServiceNamespace() throws {
+        let access = KeychainStub()
+        let store = KeychainStore(access: access)
+
+        try store.deleteAll()
+
+        let request = try #require(access.lastDeleteRequest)
+        #expect(
+            request[kSecClass as String] as? String
+                == kSecClassGenericPassword as String
+        )
+        #expect(
+            request[kSecAttrService as String] as? String
+                == "\(Bundle.main.bundleIdentifier ?? "Sealbreak").unseal"
+        )
+        #expect(request[kSecAttrAccount as String] == nil)
+        #expect(request[kSecAttrSynchronizable as String] as? Bool == false)
+
+        access.deleteStatus = errSecItemNotFound
+        try store.deleteAll()
+
+        access.deleteStatus = errSecParam
+        #expect(throws: AppFailure.self) {
+            try store.deleteAll()
+        }
+    }
+
+    @Test
     func profileStoreDefaultDirectoryCanBeResolved() {
         _ = ProfileStore()
     }
 
     @Test
-    func profileStoreRoundTripsAndDeletesProfile() throws {
+    func profileStorePersistsCollectionAndDeletesOnlySelectedProfile() throws {
         let root = temporaryRoot()
         defer { try? FileManager.default.removeItem(at: root) }
         let store = ProfileStore(baseDirectory: root)
-        let profile = try ServerProfile(name: "Test", address: origin, product: .openBao)
+        let first = try ServerProfile(id: UUID(), name: "Test", address: origin, product: .openBao)
+        let second = try ServerProfile(
+            id: UUID(),
+            name: "Production",
+            address: "https://prod.example.com",
+            product: .vault
+        )
 
-        #expect(try store.load() == nil)
-        try store.save(profile)
-        #expect(try store.load() == profile)
-        try store.delete()
-        #expect(try store.load() == nil)
-        try store.delete()
+        #expect(try store.loadAll().isEmpty)
+        try store.save(first)
+        #expect(try store.loadAll() == [first])
+
+        try store.save(second)
+        #expect(try store.loadAll() == [first, second])
+
+        let renamedFirst = try ServerProfile(
+            id: first.id,
+            name: "Renamed",
+            address: first.origin,
+            product: first.product
+        )
+        try store.save(renamedFirst)
+        #expect(try store.loadAll() == [renamedFirst, second])
+
+        try store.delete(id: first.id)
+        #expect(try store.loadAll() == [second])
+
+        try store.delete(id: second.id)
+        #expect(try store.loadAll().isEmpty)
+        try store.delete(id: second.id)
     }
 
     @Test
-    func profileStoreRejectsOversizedFile() throws {
+    func profileStoreInsertIsCreateOnlyAndPreservesExistingCatalog() throws {
+        let root = temporaryRoot()
+        defer { try? FileManager.default.removeItem(at: root) }
+        let store = ProfileStore(baseDirectory: root)
+        let existing = try ServerProfile(
+            id: UUID(),
+            name: "Existing",
+            address: origin
+        )
+        try store.insert(existing)
+
+        #expect(throws: AppFailure.self) {
+            try store.insert(existing)
+        }
+        #expect(try store.loadAll() == [existing])
+
+        let sameOrigin = try ServerProfile(
+            id: UUID(),
+            name: "Same origin",
+            address: existing.origin
+        )
+        #expect(throws: AppFailure.self) {
+            try store.insert(sameOrigin)
+        }
+        #expect(try store.loadAll() == [existing])
+    }
+
+    @Test
+    func profileStoreResetRemovesMalformedCatalogWithoutReadingIt() throws {
+        let root = temporaryRoot()
+        defer { try? FileManager.default.removeItem(at: root) }
+        try writeCatalogData(Data("{}".utf8), to: root)
+
+        let store = ProfileStore(baseDirectory: root)
+        try store.reset()
+        #expect(try store.loadAll().isEmpty)
+
+        try store.reset()
+    }
+
+    @Test
+    func localResetRecoversMalformedCatalogWithoutOrphaningShares() throws {
+        let root = temporaryRoot()
+        defer { try? FileManager.default.removeItem(at: root) }
+        try writeCatalogData(Data("{}".utf8), to: root)
+
+        let access = KeychainStub()
+        let keychain = KeychainStore(access: access)
+        let profiles = ProfileStore(baseDirectory: root)
+
+        try resetLocalStorage(
+            deleteShares: {
+                try keychain.deleteAll()
+            },
+            resetProfiles: {
+                try profiles.reset()
+            }
+        )
+
+        #expect(try profiles.loadAll().isEmpty)
+        let request = try #require(access.lastDeleteRequest)
+        #expect(request[kSecAttrAccount as String] == nil)
+
+        try writeCatalogData(Data("{}".utf8), to: root)
+        access.deleteStatus = errSecParam
+
+        #expect(throws: AppFailure.self) {
+            try resetLocalStorage(
+                deleteShares: {
+                    try keychain.deleteAll()
+                },
+                resetProfiles: {
+                    try profiles.reset()
+                }
+            )
+        }
+        #expect(throws: AppFailure.self) {
+            try profiles.loadAll()
+        }
+    }
+
+    @Test
+    func localResetDeletesSharesBeforeProfileCatalog() throws {
+        var events: [String] = []
+
+        try resetLocalStorage(
+            deleteShares: {
+                events.append("shares")
+            },
+            resetProfiles: {
+                events.append("profiles")
+            }
+        )
+        #expect(events == ["shares", "profiles"])
+
+        events = []
+        #expect(throws: AppFailure.self) {
+            try resetLocalStorage(
+                deleteShares: {
+                    events.append("shares")
+                    throw AppFailure("keychain delete failed")
+                },
+                resetProfiles: {
+                    events.append("profiles")
+                }
+            )
+        }
+        #expect(events == ["shares"])
+    }
+
+    @Test
+    func profileStoreRejectsDuplicateOriginAndRetargeting() throws {
+        let root = temporaryRoot()
+        defer { try? FileManager.default.removeItem(at: root) }
+        let store = ProfileStore(baseDirectory: root)
+        let profile = try ServerProfile(id: UUID(), name: "Test", address: origin)
+
+        try store.save(profile)
+
+        let duplicateOrigin = try ServerProfile(id: UUID(), name: "Duplicate", address: origin)
+        #expect(throws: AppFailure.self) {
+            try store.save(duplicateOrigin)
+        }
+
+        let retargeted = try ServerProfile(
+            id: profile.id,
+            name: profile.name,
+            address: "https://other.example.com",
+            product: profile.product
+        )
+        #expect(throws: AppFailure.self) {
+            try store.save(retargeted)
+        }
+    }
+
+    @Test
+    func profileStoreRejectsOversizedCatalog() throws {
         let root = temporaryRoot()
         defer { try? FileManager.default.removeItem(at: root) }
         let folder = root.appendingPathComponent("Sealbreak", isDirectory: true)
         try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
-        try Data(repeating: 0, count: StorageLimits.maxRecordBytes + 1)
-            .write(to: folder.appendingPathComponent("profile.json"))
+        try Data(repeating: 0, count: StorageLimits.maxProfileCatalogBytes + 1)
+            .write(to: folder.appendingPathComponent("profiles.json"))
 
         #expect(throws: AppFailure.self) {
-            try ProfileStore(baseDirectory: root).load()
+            try ProfileStore(baseDirectory: root).loadAll()
         }
     }
 
+    @Test
+    func profileStoreRejectsMalformedAndUnsupportedCatalogs() throws {
+        let malformedRoot = temporaryRoot()
+        defer { try? FileManager.default.removeItem(at: malformedRoot) }
+        try writeCatalogData(Data("{}".utf8), to: malformedRoot)
+
+        #expect(throws: AppFailure.self) {
+            try ProfileStore(baseDirectory: malformedRoot).loadAll()
+        }
+
+        let versionRoot = temporaryRoot()
+        defer { try? FileManager.default.removeItem(at: versionRoot) }
+        try writeCatalog(
+            TestProfileCatalog(version: 2, profiles: []),
+            to: versionRoot
+        )
+
+        #expect(throws: AppFailure.self) {
+            try ProfileStore(baseDirectory: versionRoot).loadAll()
+        }
+    }
+
+    @Test
+    func profileStoreRejectsInvalidCollectionInvariants() throws {
+        let sharedID = UUID()
+        let first = try ServerProfile(
+            id: sharedID,
+            name: "First",
+            address: "https://first.example.com"
+        )
+        let duplicateID = try ServerProfile(
+            id: sharedID,
+            name: "Second",
+            address: "https://second.example.com"
+        )
+
+        let duplicateIDRoot = temporaryRoot()
+        defer { try? FileManager.default.removeItem(at: duplicateIDRoot) }
+        try writeCatalog(
+            TestProfileCatalog(version: 1, profiles: [first, duplicateID]),
+            to: duplicateIDRoot
+        )
+
+        #expect(throws: AppFailure.self) {
+            try ProfileStore(baseDirectory: duplicateIDRoot).loadAll()
+        }
+
+        let duplicateOrigin = try ServerProfile(
+            id: UUID(),
+            name: "Duplicate origin",
+            address: first.origin
+        )
+        let duplicateOriginRoot = temporaryRoot()
+        defer { try? FileManager.default.removeItem(at: duplicateOriginRoot) }
+        try writeCatalog(
+            TestProfileCatalog(version: 1, profiles: [first, duplicateOrigin]),
+            to: duplicateOriginRoot
+        )
+
+        #expect(throws: AppFailure.self) {
+            try ProfileStore(baseDirectory: duplicateOriginRoot).loadAll()
+        }
+    }
+
+    @Test
+    func profileStoreRejectsOversizedProfileInsideCatalog() throws {
+        let name = "é" + String(repeating: "\u{0301}", count: 2_047)
+        let profile = try ServerProfile(
+            id: UUID(),
+            name: name,
+            address: origin
+        )
+        #expect(try JSONEncoder().encode(profile).count > StorageLimits.maxRecordBytes)
+
+        let root = temporaryRoot()
+        defer { try? FileManager.default.removeItem(at: root) }
+        try writeCatalog(
+            TestProfileCatalog(version: 1, profiles: [profile]),
+            to: root
+        )
+
+        #expect(throws: AppFailure.self) {
+            try ProfileStore(baseDirectory: root).loadAll()
+        }
+    }
+
+    private struct TestProfileCatalog: Codable {
+        let version: Int
+        let profiles: [ServerProfile]
+    }
+
+    private func writeCatalog(_ catalog: TestProfileCatalog, to root: URL) throws {
+        try writeCatalogData(try JSONEncoder().encode(catalog), to: root)
+    }
+
+    private func writeCatalogData(_ data: Data, to root: URL) throws {
+        let folder = root.appendingPathComponent("Sealbreak", isDirectory: true)
+        try FileManager.default.createDirectory(
+            at: folder,
+            withIntermediateDirectories: true
+        )
+        try data.write(to: folder.appendingPathComponent("profiles.json"))
+    }
+
     private func makeRecord() throws -> ShareRecord {
-        let profile = try ServerProfile(name: "Test", address: origin, product: .vault)
+        let profile = try ServerProfile(id: UUID(), name: "Test", address: origin, product: .vault)
         return try ShareRecord(profile: profile, input: syntheticShare)
     }
 

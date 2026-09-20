@@ -8,20 +8,28 @@ struct SealbreakClientTests {
     @Test
     func unimplementedDependenciesFailClosed() async throws {
         let dependency = SealbreakClient.testValue
-        let profile = try ServerProfile(name: "Server", address: "https://server.example.com")
+        let profile = try ServerProfile(id: UUID(), name: "Server", address: "https://server.example.com")
         let record = try ShareRecord(profile: profile, input: String(repeating: "a", count: 64))
 
         #expect(
-            await failureMessage { try await dependency.loadProfile() }
+            await failureMessage { try await dependency.loadProfiles() }
                 == "Unimplemented profile load dependency."
+        )
+        #expect(
+            await failureMessage { try await dependency.insertProfile(profile) }
+                == "Unimplemented profile insert dependency."
         )
         #expect(
             await failureMessage { try await dependency.saveProfile(profile) }
                 == "Unimplemented profile save dependency."
         )
         #expect(
-            await failureMessage { try await dependency.deleteProfile() }
+            await failureMessage { try await dependency.deleteProfile(profile.id) }
                 == "Unimplemented profile delete dependency."
+        )
+        #expect(
+            await failureMessage { try await dependency.resetLocalData() }
+                == "Unimplemented local-data reset dependency."
         )
         #expect(
             await failureMessage { try await dependency.detectProduct(profile) }
@@ -40,7 +48,7 @@ struct SealbreakClientTests {
                 == "Unimplemented share submission dependency."
         )
         #expect(
-            await failureMessage { try await dependency.readShare("Test") }
+            await failureMessage { try await dependency.readShare(profile.id, "Test") }
                 == "Unimplemented protected-share dependency."
         )
         #expect(
@@ -52,7 +60,7 @@ struct SealbreakClientTests {
                 == "Unimplemented protected-share dependency."
         )
         #expect(
-            await failureMessage { try await dependency.deleteShare("Test") }
+            await failureMessage { try await dependency.deleteShare(profile.id, "Test") }
                 == "Unimplemented protected-share dependency."
         )
         #expect(

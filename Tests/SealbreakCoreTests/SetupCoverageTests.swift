@@ -11,6 +11,8 @@ struct SetupCoverageTests {
     func instanceStateAndValidationBranches() async {
         let store = TestStore(initialState: InstanceSetupFeature.State()) {
             InstanceSetupFeature()
+        } withDependencies: {
+            $0.uuid = .incrementing
         }
         store.exhaustivity = .off(showSkippedAssertions: false)
 
@@ -279,6 +281,18 @@ struct SetupCoverageTests {
         #expect(store.state.operation == nil)
     }
 
+    @Test
+    func setupRejectsRemovalWithoutAssociatedProfile() async {
+        var state = SetupFeature.State()
+        state.confirmDelete = true
+        let store = setupStore(state, dependency: .testValue)
+
+        await store.send(.confirmRemoveLocalDataTapped)
+        #expect(!store.state.confirmDelete)
+        #expect(store.state.operation == nil)
+        #expect(store.state.notice == "No protected share is associated with this setup.")
+    }
+
     private func instanceStore(
         _ dependency: SealbreakClient
     ) -> TestStore<InstanceSetupFeature.State, InstanceSetupFeature.Action> {
@@ -286,6 +300,7 @@ struct SetupCoverageTests {
             InstanceSetupFeature()
         } withDependencies: {
             $0.sealbreakClient = dependency
+            $0.uuid = .incrementing
         }
         store.exhaustivity = .off(showSkippedAssertions: false)
         return store
@@ -305,7 +320,7 @@ struct SetupCoverageTests {
     }
 
     private func profile() throws -> ServerProfile {
-        try ServerProfile(name: "Server", address: origin)
+        try ServerProfile(id: UUID(), name: "Server", address: origin)
     }
 }
 

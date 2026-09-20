@@ -222,7 +222,7 @@ struct SealServerClientTests {
     }
 
     private func profile() throws -> ServerProfile {
-        try ServerProfile(name: "Test", address: origin)
+        try ServerProfile(id: UUID(), name: "Test", address: origin)
     }
 
     private func makeClient(

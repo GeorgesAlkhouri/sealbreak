@@ -56,6 +56,7 @@ struct InstanceSetupFeature {
     }
 
     @Dependency(\.sealbreakClient) private var client
+    @Dependency(\.uuid) private var uuid
 
     var body: some ReducerOf<Self> {
         Reduce { state, action in
@@ -77,7 +78,7 @@ struct InstanceSetupFeature {
 
                 let profile: ServerProfile
                 do {
-                    profile = try ServerProfile(name: state.name, address: state.address)
+                    profile = try ServerProfile(id: uuid(), name: state.name, address: state.address)
                 } catch {
                     state.invalidateConnectionCheck()
                     state.notice = normalizedAppFailure(error).message
@@ -122,6 +123,7 @@ struct InstanceSetupFeature {
                         }
 
                         let checkedProfile = try ServerProfile(
+                            id: profile.id,
                             name: profile.name,
                             address: profile.origin,
                             product: product
