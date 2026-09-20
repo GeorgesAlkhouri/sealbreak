@@ -31,7 +31,7 @@ struct ServerProfile: Codable, Equatable, Identifiable, Sendable {
     let product: ServerProduct
 
     init(
-        id: UUID = UUID(),
+        id: UUID,
         name: String,
         address: String,
         product: ServerProduct = .generic
