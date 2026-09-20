@@ -41,7 +41,7 @@ struct ServerProfile: Codable, Equatable, Sendable {
 
     func validated() throws -> Self {
         guard try ServerProfile(name: name, address: origin, product: product) == self else {
-            throw AppFailure("The server profile is invalid. Restore its protected copy from Keychain.")
+            throw AppFailure("The server profile is invalid. Set up this server profile again.")
         }
         return self
     }
@@ -51,7 +51,7 @@ struct ServerProfile: Codable, Equatable, Sendable {
         return URL(string: origin)!.appendingPathComponent("v1/sys/\(path)")
     }
 
-    private static func canonicalOrigin(_ input: String) throws -> String {
+    static func canonicalOrigin(_ input: String) throws -> String {
         let value = input.trimmingCharacters(in: .whitespacesAndNewlines)
         guard value.utf8.count <= 512,
               value.unicodeScalars.allSatisfy({ $0.value > 32 && $0.value < 127 }),
@@ -81,12 +81,13 @@ struct ServerProfile: Codable, Equatable, Sendable {
 
 struct ShareRecord: Codable, Equatable, Sendable {
     let version: Int
-    let profile: ServerProfile
+    let boundOrigin: String
     var share: String
 
     init(profile: ServerProfile, input: String) throws {
+        let profile = try profile.validated()
         self.version = 1
-        self.profile = try profile.validated()
+        self.boundOrigin = profile.origin
         self.share = try Self.validateShare(input)
     }
 
@@ -94,9 +95,16 @@ struct ShareRecord: Codable, Equatable, Sendable {
         guard version == 1 else {
             throw AppFailure("Unsupported Keychain record version.")
         }
-        _ = try profile.validated()
+        guard try ServerProfile.canonicalOrigin(boundOrigin) == boundOrigin else {
+            throw AppFailure("The protected target binding is invalid. Use independent recovery.")
+        }
         _ = try Self.validateShare(share)
         return self
+    }
+
+    func endpoint(_ path: String) throws -> URL {
+        _ = try validated()
+        return URL(string: boundOrigin)!.appendingPathComponent("v1/sys/\(path)")
     }
 
     static func validateShare(_ input: String) throws -> String {
