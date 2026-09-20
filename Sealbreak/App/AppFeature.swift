@@ -14,7 +14,7 @@ struct AppFeature {
 
     enum Action: Equatable {
         case task
-        case profileLoaded(Result<ServerProfile?, AppFailure>)
+        case profilesLoaded(Result<[ServerProfile], AppFailure>)
         case privacy(PrivacyFeature.Action)
         case welcome(WelcomeFeature.Action)
         case home(HomeFeature.Action)
@@ -36,16 +36,24 @@ struct AppFeature {
                 state.isLoading = true
                 return .run { send in
                     do {
-                        let profile = try await client.loadProfile()
-                        await send(.profileLoaded(.success(profile)))
+                        let profiles = try await client.loadProfiles()
+                        await send(.profilesLoaded(.success(profiles)))
                     } catch {
-                        await send(.profileLoaded(.failure(normalizedAppFailure(error))))
+                        await send(.profilesLoaded(.failure(normalizedAppFailure(error))))
                     }
                 }
 
-            case .profileLoaded(.success(let profile)):
+            case .profilesLoaded(.success(let profiles)):
                 state.isLoading = false
-                if let profile {
+                guard profiles.count <= 1 else {
+                    state.home = nil
+                    state.setup = nil
+                    state.welcome = WelcomeFeature.State(
+                        notice: "This Sealbreak version supports one configured server profile."
+                    )
+                    return .none
+                }
+                if let profile = profiles.first {
                     state.welcome = nil
                     state.setup = nil
                     state.home = HomeFeature.State(profile: profile)
@@ -56,7 +64,7 @@ struct AppFeature {
                 state.welcome = WelcomeFeature.State()
                 return .none
 
-            case .profileLoaded(.failure):
+            case .profilesLoaded(.failure):
                 state.isLoading = false
                 state.home = nil
                 state.setup = nil
