@@ -48,7 +48,8 @@ struct ServerProfile: Codable, Equatable, Sendable {
 
     func endpoint(_ path: String) throws -> URL {
         _ = try validated()
-        return URL(string: origin)!.appendingPathComponent("v1/sys/\(path)")
+        return try Self.url(fromCanonicalOrigin: origin)
+            .appendingPathComponent("v1/sys/\(path)")
     }
 
     static func canonicalOrigin(_ input: String) throws -> String {
@@ -75,7 +76,18 @@ struct ServerProfile: Codable, Equatable, Sendable {
         if parts.port == 443 {
             parts.port = nil
         }
-        return parts.url!.absoluteString
+        guard let canonicalURL = parts.url else {
+            throw AppFailure("Unable to construct a canonical HTTPS server origin.")
+        }
+        return canonicalURL.absoluteString
+    }
+
+    static func url(fromCanonicalOrigin origin: String) throws -> URL {
+        guard try canonicalOrigin(origin) == origin,
+              let url = URL(string: origin) else {
+            throw AppFailure("The canonical server origin could not be converted to a URL.")
+        }
+        return url
     }
 }
 
@@ -104,7 +116,8 @@ struct ShareRecord: Codable, Equatable, Sendable {
 
     func endpoint(_ path: String) throws -> URL {
         _ = try validated()
-        return URL(string: boundOrigin)!.appendingPathComponent("v1/sys/\(path)")
+        return try ServerProfile.url(fromCanonicalOrigin: boundOrigin)
+            .appendingPathComponent("v1/sys/\(path)")
     }
 
     static func validateShare(_ input: String) throws -> String {
