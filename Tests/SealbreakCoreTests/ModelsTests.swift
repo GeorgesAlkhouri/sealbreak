@@ -20,6 +20,7 @@ struct ModelsTests {
         let encoded = try JSONEncoder().encode(record)
         try StorageLimits.validateEncodedSize(encoded)
         let decoded = try JSONDecoder().decode(ShareRecord.self, from: encoded).validated()
+        #expect(decoded.profileID == profile.id)
         #expect(decoded.boundOrigin == profile.origin)
         #expect(decoded.share == syntheticShare)
     }
@@ -86,6 +87,15 @@ struct ModelsTests {
     }
 
     @Test
+    func profileValidationPreservesStableIdentity() throws {
+        let id = UUID()
+        let profile = try ServerProfile(id: id, name: "Test", address: origin)
+
+        #expect(try profile.validated().id == id)
+        #expect(try ShareRecord(profile: profile, input: syntheticShare).profileID == id)
+    }
+
+    @Test
     func rejectsURLComponentsThatCannotConstructURL() {
         var components = URLComponents()
         components.scheme = "https"
@@ -108,11 +118,11 @@ struct ModelsTests {
 
     @Test
     func decodedProfileStillNeedsValidation() throws {
-        let unsafeJSON = #"{"name":"Test","origin":"http://bao.example.com","product":"Generic"}"#
+        let unsafeJSON = #"{"id":"00000000-0000-0000-0000-000000000001","name":"Test","origin":"http://bao.example.com","product":"Generic"}"#
         let unsafe = try JSONDecoder().decode(ServerProfile.self, from: Data(unsafeJSON.utf8))
         #expect(throws: AppFailure.self) { try unsafe.validated() }
 
-        let nonCanonicalJSON = #"{"name":"Test","origin":"https://BAO.example.com:443/","product":"Generic"}"#
+        let nonCanonicalJSON = #"{"id":"00000000-0000-0000-0000-000000000001","name":"Test","origin":"https://BAO.example.com:443/","product":"Generic"}"#
         let nonCanonical = try JSONDecoder().decode(ServerProfile.self, from: Data(nonCanonicalJSON.utf8))
         #expect(throws: AppFailure.self) { try nonCanonical.validated() }
     }
@@ -128,7 +138,7 @@ struct ModelsTests {
         let record = try ShareRecord(profile: profile, input: " \(syntheticShare)\n")
         #expect(record.share == syntheticShare)
         let json = """
-        {"version":2,"boundOrigin":"\(origin)","share":"\(syntheticShare)"}
+        {"version":2,"profileID":"\(profile.id.uuidString)","boundOrigin":"\(origin)","share":"\(syntheticShare)"}
         """
         let decoded = try JSONDecoder().decode(ShareRecord.self, from: Data(json.utf8))
         #expect(throws: AppFailure.self) { try decoded.validated() }
@@ -136,8 +146,9 @@ struct ModelsTests {
 
     @Test
     func protectedShareRejectsNonCanonicalBoundOrigin() throws {
+        let profileID = UUID()
         let json = """
-        {"version":1,"boundOrigin":"https://BAO.example.com:443/","share":"\(syntheticShare)"}
+        {"version":1,"profileID":"\(profileID.uuidString)","boundOrigin":"https://BAO.example.com:443/","share":"\(syntheticShare)"}
         """
         let decoded = try JSONDecoder().decode(ShareRecord.self, from: Data(json.utf8))
 
