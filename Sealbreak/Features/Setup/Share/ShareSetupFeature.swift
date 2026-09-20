@@ -74,6 +74,15 @@ struct ShareSetupFeature {
 
                     var profileInserted = false
                     do {
+                        // Keep the current app single-profile even though the
+                        // persistence layer is collection-capable for future multi-server UI.
+                        let existingProfiles = try await client.loadProfiles()
+                        guard existingProfiles.isEmpty else {
+                            throw AppFailure(
+                                "A local server profile already exists. Reset local Sealbreak data before setting up another server."
+                            )
+                        }
+
                         // Create the non-secret profile identity before the Keychain item.
                         // Setup is create-only: rollback is safe only for a profile this
                         // operation inserted itself.
