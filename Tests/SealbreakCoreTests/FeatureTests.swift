@@ -140,7 +140,7 @@ struct FeatureTests {
         _ name: String = "Server",
         product: ServerProduct = .generic
     ) throws -> ServerProfile {
-        try ServerProfile(name: name, address: origin, product: product)
+        try ServerProfile(id: UUID(), name: name, address: origin, product: product)
     }
 
     private func record(_ profile: ServerProfile) throws -> ShareRecord {
@@ -336,7 +336,7 @@ struct FeatureTests {
     @Test
     func unsealTargetMismatchNeverSubmits() async throws {
         let target = try profile()
-        let foreign = try ServerProfile(name: "Other", address: "https://other.example.com")
+        let foreign = try ServerProfile(id: UUID(), name: "Other", address: "https://other.example.com")
         let spy = ClientSpy()
         await spy.setReadRecord(try record(foreign))
         await spy.setStatusQueue([.success(status())])
