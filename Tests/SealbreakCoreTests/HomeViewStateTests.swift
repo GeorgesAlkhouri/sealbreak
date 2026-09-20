@@ -64,7 +64,6 @@ struct HomeViewStateTests {
             (.waitingForFaceID, .unsealing(activity: "Waiting for Face ID…"), "Waiting for Face ID…"),
             (.submittingShare, .unsealing(activity: "Submitting one share…"), "Submitting one share…"),
             (.verifyingStatus, .unsealing(activity: "Verifying seal status…"), "Verifying seal status…"),
-            (.restoringProfile, .checking(activity: "Restoring local profile…"), "Restoring local profile…"),
             (.removingLocalData, .checking(activity: "Removing local data…"), "Removing local data…")
         ]
 
