@@ -20,7 +20,7 @@ struct ModelsTests {
         let encoded = try JSONEncoder().encode(record)
         try StorageLimits.validateEncodedSize(encoded)
         let decoded = try JSONDecoder().decode(ShareRecord.self, from: encoded).validated()
-        #expect(decoded.profile == profile)
+        #expect(decoded.boundOrigin == profile.origin)
         #expect(decoded.share == syntheticShare)
     }
 
@@ -38,10 +38,13 @@ struct ModelsTests {
         #expect(name.utf8.count == StorageLimits.maxRecordBytes)
         let profile = try ServerProfile(name: name, address: origin)
         let record = try ShareRecord(profile: profile, input: syntheticShare)
-        for data in [try JSONEncoder().encode(profile), try JSONEncoder().encode(record)] {
-            #expect(data.count > StorageLimits.maxRecordBytes)
-            #expect(throws: AppFailure.self) { try StorageLimits.validateEncodedSize(data) }
-        }
+        let profileData = try JSONEncoder().encode(profile)
+        let recordData = try JSONEncoder().encode(record)
+
+        #expect(profileData.count > StorageLimits.maxRecordBytes)
+        #expect(throws: AppFailure.self) { try StorageLimits.validateEncodedSize(profileData) }
+        #expect(recordData.count <= StorageLimits.maxRecordBytes)
+        try StorageLimits.validateEncodedSize(recordData)
     }
 
     @Test(arguments: [0, 4_095, 4_096])
@@ -104,7 +107,7 @@ struct ModelsTests {
         let record = try ShareRecord(profile: profile, input: " \(syntheticShare)\n")
         #expect(record.share == syntheticShare)
         let json = """
-        {"version":2,"profile":{"name":"Test","origin":"\(origin)","product":"Generic"},"share":"\(syntheticShare)"}
+        {"version":2,"boundOrigin":"\(origin)","share":"\(syntheticShare)"}
         """
         let decoded = try JSONDecoder().decode(ShareRecord.self, from: Data(json.utf8))
         #expect(throws: AppFailure.self) { try decoded.validated() }
