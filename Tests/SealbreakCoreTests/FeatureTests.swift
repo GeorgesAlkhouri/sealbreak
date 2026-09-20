@@ -353,6 +353,21 @@ struct FeatureTests {
     }
 
     @Test
+    func welcomeIgnoresResetActionsWhenResetIsNotRequired() async {
+        let store = TestStore(initialState: WelcomeFeature.State()) {
+            WelcomeFeature()
+        }
+
+        await store.send(.resetLocalDataTapped)
+        #expect(!store.state.confirmReset)
+        #expect(!store.state.isResetting)
+
+        await store.send(.confirmResetLocalDataTapped)
+        #expect(!store.state.confirmReset)
+        #expect(!store.state.isResetting)
+    }
+
+    @Test
     func appWelcomeSetUpOpensSetup() async {
         var initialState = AppFeature.State()
         initialState.isLoading = false
