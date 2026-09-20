@@ -284,6 +284,47 @@ struct KeychainStoreTests {
     }
 
     @Test
+    func localResetRecoversMalformedCatalogWithoutOrphaningShares() throws {
+        let root = temporaryRoot()
+        defer { try? FileManager.default.removeItem(at: root) }
+        try writeCatalogData(Data("{}".utf8), to: root)
+
+        let access = KeychainStub()
+        let keychain = KeychainStore(access: access)
+        let profiles = ProfileStore(baseDirectory: root)
+
+        try resetLocalStorage(
+            deleteShares: {
+                try keychain.deleteAll()
+            },
+            resetProfiles: {
+                try profiles.reset()
+            }
+        )
+
+        #expect(try profiles.loadAll().isEmpty)
+        let request = try #require(access.lastDeleteRequest)
+        #expect(request[kSecAttrAccount as String] == nil)
+
+        try writeCatalogData(Data("{}".utf8), to: root)
+        access.deleteStatus = errSecParam
+
+        #expect(throws: AppFailure.self) {
+            try resetLocalStorage(
+                deleteShares: {
+                    try keychain.deleteAll()
+                },
+                resetProfiles: {
+                    try profiles.reset()
+                }
+            )
+        }
+        #expect(throws: AppFailure.self) {
+            try profiles.loadAll()
+        }
+    }
+
+    @Test
     func localResetDeletesSharesBeforeProfileCatalog() throws {
         var events: [String] = []
 
