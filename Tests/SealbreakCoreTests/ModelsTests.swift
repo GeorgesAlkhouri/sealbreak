@@ -114,6 +114,18 @@ struct ModelsTests {
     }
 
     @Test
+    func protectedShareRejectsNonCanonicalBoundOrigin() throws {
+        let json = """
+        {"version":1,"boundOrigin":"https://BAO.example.com:443/","share":"\(syntheticShare)"}
+        """
+        let decoded = try JSONDecoder().decode(ShareRecord.self, from: Data(json.utf8))
+
+        #expect(throws: AppFailure.self) {
+            try decoded.validated()
+        }
+    }
+
+    @Test
     func quorumProgressDoesNotMeanUnsealed() throws {
         let json = #"{"type":"shamir","initialized":true,"sealed":true,"t":3,"n":5,"progress":1}"#
         let status = try JSONDecoder().decode(SealStatus.self, from: Data(json.utf8)).validated()
