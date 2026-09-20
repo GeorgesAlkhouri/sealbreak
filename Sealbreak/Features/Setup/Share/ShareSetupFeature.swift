@@ -72,34 +72,39 @@ struct ShareSetupFeature {
                     var record = record
                     defer { record.share.removeAll(keepingCapacity: false) }
 
+                    var profileSaved = false
                     do {
+                        // Persist the non-secret profile identity before creating its
+                        // profile-scoped Keychain item. A crash can then leave stale
+                        // metadata, but never an unaddressable protected share.
+                        try await client.saveProfile(profile)
+                        profileSaved = true
+
                         try await client.waitForForeground()
                         try await client.insertShare(
                             record,
                             "Protect this share for \(record.boundOrigin)"
                         )
 
-                        let notice: String
-                        do {
-                            try await client.saveProfile(profile)
-                            notice = "Share protected on this iPhone. Check status to begin."
-                        } catch {
-                            notice = "Protected share exists, but display metadata could not be saved. Remove local data and set up Sealbreak again."
-                        }
-
                         await send(
                             .importResponse(
                                 .success(
                                     ProfileResult(
                                         profile: profile,
-                                        notice: notice
+                                        notice: "Share protected on this iPhone. Check status to begin."
                                     )
                                 )
                             )
                         )
                     } catch is CancellationError {
+                        if profileSaved {
+                            try? await client.deleteProfile(profile.id)
+                        }
                         await send(.operationCancelled)
                     } catch {
+                        if profileSaved {
+                            try? await client.deleteProfile(profile.id)
+                        }
                         await send(
                             .importResponse(
                                 .failure(normalizedAppFailure(error))
