@@ -365,9 +365,16 @@ struct FeatureTests {
     @Test
     func unsealTargetMismatchNeverSubmits() async throws {
         let target = try profile()
-        let foreign = try ServerProfile(id: UUID(), name: "Other", address: "https://other.example.com")
+        let mismatchedRecordJSON = """
+        {"version":1,"profileID":"\(target.id.uuidString)","boundOrigin":"https://other.example.com","share":"\(share)"}
+        """
+        let mismatchedRecord = try JSONDecoder().decode(
+            ShareRecord.self,
+            from: Data(mismatchedRecordJSON.utf8)
+        ).validated()
+
         let spy = ClientSpy()
-        await spy.setReadRecord(try record(foreign))
+        await spy.setReadRecord(mismatchedRecord)
         await spy.setStatusQueue([.success(status())])
         let store = homeStore(profile: target, status: status(), spy: spy)
 
