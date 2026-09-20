@@ -9,11 +9,17 @@ extension SealbreakClient: DependencyKey {
             loadProfiles: {
                 try await LiveSealbreakClientController.shared.loadProfiles()
             },
+            insertProfile: { profile in
+                try await LiveSealbreakClientController.shared.insertProfile(profile)
+            },
             saveProfile: { profile in
                 try await LiveSealbreakClientController.shared.saveProfile(profile)
             },
             deleteProfile: { profileID in
                 try await LiveSealbreakClientController.shared.deleteProfile(profileID)
+            },
+            resetLocalData: {
+                try await LiveSealbreakClientController.shared.resetLocalData()
             },
             detectProduct: { profile in
                 try await LiveSealbreakClientController.shared.detectProduct(profile)
@@ -76,12 +82,28 @@ private final class LiveSealbreakClientController {
         try profiles.loadAll()
     }
 
+    func insertProfile(_ profile: ServerProfile) throws {
+        try profiles.insert(profile)
+    }
+
     func saveProfile(_ profile: ServerProfile) throws {
         try profiles.save(profile)
     }
 
     func deleteProfile(_ profileID: UUID) throws {
         try profiles.delete(id: profileID)
+    }
+
+    func resetLocalData() throws {
+        try requireForeground()
+        try resetLocalStorage(
+            deleteShares: {
+                try keychain.deleteAll()
+            },
+            resetProfiles: {
+                try profiles.reset()
+            }
+        )
     }
 
     func detectProduct(_ profile: ServerProfile) async throws -> ServerProduct {
