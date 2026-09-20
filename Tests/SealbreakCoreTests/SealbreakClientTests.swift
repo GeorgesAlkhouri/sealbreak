@@ -16,12 +16,20 @@ struct SealbreakClientTests {
                 == "Unimplemented profile load dependency."
         )
         #expect(
+            await failureMessage { try await dependency.insertProfile(profile) }
+                == "Unimplemented profile insert dependency."
+        )
+        #expect(
             await failureMessage { try await dependency.saveProfile(profile) }
                 == "Unimplemented profile save dependency."
         )
         #expect(
             await failureMessage { try await dependency.deleteProfile(profile.id) }
                 == "Unimplemented profile delete dependency."
+        )
+        #expect(
+            await failureMessage { try await dependency.resetLocalData() }
+                == "Unimplemented local-data reset dependency."
         )
         #expect(
             await failureMessage { try await dependency.detectProduct(profile) }
