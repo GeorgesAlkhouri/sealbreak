@@ -83,8 +83,7 @@ struct ServerProfile: Codable, Equatable, Sendable {
     }
 
     static func url(fromCanonicalOrigin origin: String) throws -> URL {
-        guard try canonicalOrigin(origin) == origin,
-              let url = URL(string: origin) else {
+        guard let url = URL(string: origin) else {
             throw AppFailure("The canonical server origin could not be converted to a URL.")
         }
         return url
