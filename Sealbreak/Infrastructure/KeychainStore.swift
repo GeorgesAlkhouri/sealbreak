@@ -130,7 +130,7 @@ struct KeychainStore {
     private func failure(_ status: OSStatus) -> AppFailure {
         switch status {
         case errSecDuplicateItem:
-            return AppFailure("A protected share already exists. Restore its profile from Keychain, or explicitly remove local data before importing again.")
+            return AppFailure("A protected share already exists. Remove local data before importing another share.")
         case errSecItemNotFound:
             return AppFailure("No accessible share was found. Face ID or the device passcode may have changed. Recover from your independent copy.")
         case errSecAuthFailed, errSecInteractionNotAllowed, errSecUserCanceled:
@@ -169,7 +169,7 @@ struct ProfileStore {
         }
         let data = try handle.read(upToCount: StorageLimits.maxRecordBytes + 1) ?? Data()
         guard data.count <= StorageLimits.maxRecordBytes else {
-            throw AppFailure("Invalid display profile. Restore it from Keychain.")
+            throw AppFailure("Invalid display profile. Set up this server profile again.")
         }
         return try JSONDecoder().decode(ServerProfile.self, from: data).validated()
     }
