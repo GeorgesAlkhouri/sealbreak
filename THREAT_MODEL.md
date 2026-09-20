@@ -66,14 +66,14 @@ flowchart TB
         subgraph APP["Sealbreak app process and sandbox"]
             UI["UI and state machine"]
             MODEL["Operation and authorization lifecycle"]
-            DISPLAY[("Non-secret display profile")]
+            DISPLAY[("Non-secret profile catalog")]
             MEM["Transient plaintext share / request body"]
             NET["OpenBao network client"]
         end
 
         subgraph IOS["iOS security services"]
             AUTH["Face ID / LAContext"]
-            KC[("Keychain: share + authoritative target binding")]
+            KC[("Keychain: share + profile ID + authoritative target binding")]
         end
     end
 
@@ -129,9 +129,9 @@ sequenceDiagram
     A->>F: Request fresh biometric authorization
     F-->>A: Success
 
-    A->>K: Read protected share record
-    K-->>A: Share + authoritative target binding
-    A->>A: Verify protected target equals selected target
+    A->>K: Read protected share record for selected profile ID
+    K-->>A: Share + profile ID + authoritative target binding
+    A->>A: Verify profile ID and protected target match selection
     A->>O: POST /v1/sys/unseal
     O-->>A: Response
 
@@ -162,7 +162,7 @@ Controls: **M03, M04**
 
 An attacker or corrupted local metadata attempts to associate a stored share with another server.
 
-The protected Keychain record stores the canonical bound server origin together with the share, but not the display profile. Before submission, Sealbreak compares that protected origin with the selected profile origin and aborts on mismatch. Network submission is then built from the protected bound origin, so changing the separate display profile cannot retarget a share.
+Each display profile has a stable UUID. The protected Keychain record stores that profile ID and the canonical bound server origin together with the share, but not the display profile itself. The Keychain account is also derived from the profile ID. Before submission, Sealbreak requires both the protected profile ID and protected origin to match the selected profile and aborts on mismatch. Network submission is then built from the protected bound origin, so changing separate display metadata cannot retarget or cross-associate a share.
 
 Affected assets: **A01, A02, A05**
 
@@ -258,7 +258,7 @@ Controls: **M01, M02, M06, M11**
 
 Incorrect storage configuration could copy the protected share to another device or backup channel.
 
-The Keychain query explicitly disables synchronization and uses `WhenPasscodeSetThisDeviceOnly`. The non-secret display profile is stored with complete file protection and excluded from backup. Real backup, restore, and device-migration behavior still depends on platform enforcement and should be tested on physical devices.
+The Keychain query explicitly disables synchronization and uses `WhenPasscodeSetThisDeviceOnly`. Each protected share uses a profile-scoped Keychain account. The non-secret profile catalog is stored with complete file protection and excluded from backup. Real backup, restore, and device-migration behavior still depends on platform enforcement and should be tested on physical devices.
 
 Affected assets: **A01, A02**
 
