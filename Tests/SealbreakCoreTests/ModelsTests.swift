@@ -15,7 +15,7 @@ struct ModelsTests {
 
     @Test(arguments: ["Server", "Freiburg – Süd", "東京", String(repeating: "🔒", count: 40)])
     func ordinaryNamesRoundTrip(name: String) throws {
-        let profile = try ServerProfile(name: name, address: origin, product: .vault)
+        let profile = try ServerProfile(id: UUID(), name: name, address: origin, product: .vault)
         let record = try ShareRecord(profile: profile, input: syntheticShare)
         let encoded = try JSONEncoder().encode(record)
         try StorageLimits.validateEncodedSize(encoded)
@@ -30,14 +30,14 @@ struct ModelsTests {
         let name = "a" + String(repeating: "\u{0301}", count: 3_000)
         #expect(name.count == 1)
         #expect(name.utf8.count == 6_001)
-        #expect(throws: AppFailure.self) { try ServerProfile(name: name, address: origin) }
+        #expect(throws: AppFailure.self) { try ServerProfile(id: UUID(), name: name, address: origin) }
     }
 
     @Test
     func c01CountsEncodedOverhead() throws {
         let name = "é" + String(repeating: "\u{0301}", count: 2_047)
         #expect(name.utf8.count == StorageLimits.maxRecordBytes)
-        let profile = try ServerProfile(name: name, address: origin)
+        let profile = try ServerProfile(id: UUID(), name: name, address: origin)
         let record = try ShareRecord(profile: profile, input: syntheticShare)
         let profileData = try JSONEncoder().encode(profile)
         let recordData = try JSONEncoder().encode(record)
@@ -62,7 +62,7 @@ struct ModelsTests {
 
     @Test(arguments: ["", "a\nb", String(repeating: "a", count: 41)])
     func rejectsInvalidName(name: String) {
-        #expect(throws: AppFailure.self) { try ServerProfile(name: name, address: origin) }
+        #expect(throws: AppFailure.self) { try ServerProfile(id: UUID(), name: name, address: origin) }
     }
 
     @Test(arguments: [
@@ -73,16 +73,16 @@ struct ModelsTests {
         "https://bao%2eexample.com", "https://bao.example.com\\evil"
     ])
     func rejectsUnsafeOrigin(address: String) {
-        #expect(throws: AppFailure.self) { try ServerProfile(name: "Test", address: address) }
+        #expect(throws: AppFailure.self) { try ServerProfile(id: UUID(), name: "Test", address: address) }
     }
 
     @Test
     func canonicalizesOriginAndBuildsEndpoint() throws {
-        let profile = try ServerProfile(name: " Test ", address: " https://BAO.example.com:443/ ")
+        let profile = try ServerProfile(id: UUID(), name: " Test ", address: " https://BAO.example.com:443/ ")
         #expect(profile.name == "Test")
         #expect(profile.origin == origin)
         #expect(try profile.endpoint("unseal").absoluteString == "\(origin)/v1/sys/unseal")
-        let custom = try ServerProfile(name: "Test", address: "\(origin):8200")
+        let custom = try ServerProfile(id: UUID(), name: "Test", address: "\(origin):8200")
         #expect(custom.origin == "\(origin):8200")
     }
 
@@ -134,7 +134,7 @@ struct ModelsTests {
 
     @Test
     func trimsShareAndRejectsUnknownRecordVersion() throws {
-        let profile = try ServerProfile(name: "Test", address: origin)
+        let profile = try ServerProfile(id: UUID(), name: "Test", address: origin)
         let record = try ShareRecord(profile: profile, input: " \(syntheticShare)\n")
         #expect(record.share == syntheticShare)
         let json = """
