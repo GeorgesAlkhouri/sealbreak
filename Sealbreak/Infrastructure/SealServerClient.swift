@@ -14,14 +14,10 @@ final class TransportPolicy: NSObject, URLSessionTaskDelegate, @unchecked Sendab
 
     func urlSession(
         _: URLSession,
-        didReceive challenge: URLAuthenticationChallenge,
+        didReceive _: URLAuthenticationChallenge,
         completionHandler: @escaping (URLSession.AuthChallengeDisposition, URLCredential?) -> Void
     ) {
-        if challenge.protectionSpace.authenticationMethod == NSURLAuthenticationMethodServerTrust {
-            completionHandler(.performDefaultHandling, nil)
-        } else {
-            completionHandler(.cancelAuthenticationChallenge, nil)
-        }
+        completionHandler(.performDefaultHandling, nil)
     }
 
     func urlSession(
@@ -192,8 +188,13 @@ struct SealServerClient: Sendable {
             delegate: TransportPolicy(),
             delegateQueue: nil
         )
+        var completedSuccessfully = false
         defer {
-            session.invalidateAndCancel()
+            if completedSuccessfully {
+                session.finishTasksAndInvalidate()
+            } else {
+                session.invalidateAndCancel()
+            }
         }
 
         let request = try Self.makeRequest(
@@ -231,13 +232,14 @@ struct SealServerClient: Sendable {
                 }
                 data.append(byte)
             }
+            completedSuccessfully = true
             return data
         } catch is CancellationError {
             throw CancellationError()
         } catch let error as AppFailure {
             throw error
         } catch let error as URLError {
-            if error.code == .cancelled {
+            if error.code == .cancelled, Task.isCancelled {
                 throw CancellationError()
             }
             switch error.code {

@@ -190,6 +190,7 @@ struct SealServerClientTests {
         let cases: [(URLError.Code, String)] = [
             (.serverCertificateUntrusted, "TLS validation failed."),
             (.secureConnectionFailed, "TLS validation failed."),
+            (.cancelled, "Connection failed or timed out."),
             (.timedOut, "Connection failed or timed out.")
         ]
 
