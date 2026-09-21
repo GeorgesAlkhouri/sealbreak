@@ -52,7 +52,6 @@
 		000000000000000000000258 /* LiveDNSSECResolver.swift in Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000157 /* LiveDNSSECResolver.swift */; };
 		000000000000000000000250 /* ComposableArchitecture in Frameworks */ = {isa = PBXBuildFile; productRef = 000000000000000000000401 /* ComposableArchitecture */; };
 		000000000000000000000513 /* SealServerIntegrationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000503 /* SealServerIntegrationTests.swift */; };
-		000000000000000000000514 /* IntegrationFixture.swift in Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000504 /* IntegrationFixture.swift */; };
 		000000000000000000000515 /* AppFailure.swift in Integration Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000150 /* AppFailure.swift */; };
 		000000000000000000000516 /* Models.swift in Integration Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000103 /* Models.swift */; };
 		000000000000000000000517 /* SealServerClient.swift in Integration Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000105 /* SealServerClient.swift */; };
@@ -106,7 +105,6 @@
 		000000000000000000000157 /* LiveDNSSECResolver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveDNSSECResolver.swift; sourceTree = "<group>"; };
 		000000000000000000000501 /* SealbreakIntegrationTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = SealbreakIntegrationTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		000000000000000000000503 /* SealServerIntegrationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SealServerIntegrationTests.swift; sourceTree = "<group>"; };
-		000000000000000000000504 /* IntegrationFixture.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IntegrationFixture.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -337,7 +335,6 @@
 			isa = PBXGroup;
 			children = (
 				000000000000000000000503 /* SealServerIntegrationTests.swift */,
-				000000000000000000000504 /* IntegrationFixture.swift */,
 			);
 			path = Tests/SealbreakIntegrationTests;
 			sourceTree = "<group>";
@@ -495,7 +492,6 @@
 			buildActionMask = 2147483647;
 			files = (
 				000000000000000000000513 /* SealServerIntegrationTests.swift in Sources */,
-				000000000000000000000514 /* IntegrationFixture.swift in Sources */,
 				000000000000000000000515 /* AppFailure.swift in Integration Sources */,
 				000000000000000000000516 /* Models.swift in Integration Sources */,
 				000000000000000000000517 /* SealServerClient.swift in Integration Sources */,

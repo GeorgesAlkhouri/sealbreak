@@ -18,7 +18,6 @@ bin_dir="$work_dir/bin"
 tls_dir="$work_dir/tls"
 data_dir="$work_dir/data"
 server_log="$work_dir/server.log"
-fixture_file="$repo_root/Tests/SealbreakIntegrationTests/IntegrationFixture.swift"
 server_pid=""
 simulator_udid=""
 
@@ -29,11 +28,10 @@ cleanup() {
   fi
 
   if [[ -n "$simulator_udid" ]]; then
-    xcrun simctl keychain "$simulator_udid" reset >/dev/null 2>&1 || true
     xcrun simctl shutdown "$simulator_udid" >/dev/null 2>&1 || true
+    xcrun simctl delete "$simulator_udid" >/dev/null 2>&1 || true
   fi
 
-  git checkout -- "$fixture_file" >/dev/null 2>&1 || true
   rm -rf "$work_dir"
 }
 trap cleanup EXIT
@@ -190,36 +188,51 @@ if [[ "${GITHUB_ACTIONS:-}" == "true" ]]; then
   echo "::add-mask::$second_share"
 fi
 
-cat >"$fixture_file" <<EOF
-enum IntegrationFixture {
-    static let serverURL = "https://127.0.0.1:8200"
-    static let serverProduct = "$server"
-    static let firstShare = "$first_share"
-    static let secondShare = "$second_share"
-
-    static var isConfigured: Bool { true }
-
-    static var expectedProduct: ServerProduct {
-        switch serverProduct {
-        case "openbao": return .openBao
-        case "vault": return .vault
-        default: return .generic
-        }
-    }
-}
-EOF
-
-simulator_udid="$(
+simulator_spec="$(
   xcrun simctl list devices available -j |
-    jq -r '[.devices[] | .[] | select((.name | startswith("iPhone")) and (.isAvailable != false))][0].udid // empty'
+    jq -r '
+      .devices
+      | to_entries[]
+      | select(.key | contains("iOS"))
+      | .key as $runtime
+      | .value[]
+      | select(.name | startswith("iPhone"))
+      | [$runtime, .deviceTypeIdentifier]
+      | @tsv
+    ' |
+    head -n 1
 )"
 
-if [[ -z "$simulator_udid" ]]; then
-  echo "no available iPhone simulator found" >&2
+if [[ -z "$simulator_spec" ]]; then
+  echo "no available iPhone simulator runtime/device type found" >&2
   exit 1
 fi
 
-xcrun simctl boot "$simulator_udid" >/dev/null 2>&1 || true
+IFS=xcrun simctl bootstatus "$simulator_udid" -b
+xcrun simctl keychain "$simulator_udid" add-root-cert "$tls_dir/ca.crt"
+
+TEST_RUNNER_SEALBREAK_INTEGRATION_SERVER_URL="https://127.0.0.1:8200" \
+TEST_RUNNER_SEALBREAK_INTEGRATION_SERVER_PRODUCT="$server" \
+TEST_RUNNER_SEALBREAK_INTEGRATION_SHARE_1="$first_share" \
+TEST_RUNNER_SEALBREAK_INTEGRATION_SHARE_2="$second_share" \
+xcodebuild \
+  -project Sealbreak.xcodeproj \
+  -scheme Sealbreak \
+  -configuration Debug \
+  -destination "platform=iOS Simulator,id=$simulator_udid" \
+  -derivedDataPath "$work_dir/DerivedData" \
+  CODE_SIGNING_ALLOWED=NO \
+  CODE_SIGNING_REQUIRED=NO \
+  DEVELOPMENT_TEAM= \
+  COMPILER_INDEX_STORE_ENABLE=NO \
+  -skipMacroValidation \
+  -only-testing:SealbreakIntegrationTests \
+  test
+\t' read -r simulator_runtime simulator_device_type <<<"$simulator_spec"
+simulator_name="Sealbreak Integration $server ${GITHUB_RUN_ID:-$}-${GITHUB_RUN_ATTEMPT:-1}"
+simulator_udid="$(xcrun simctl create "$simulator_name" "$simulator_device_type" "$simulator_runtime")"
+
+xcrun simctl boot "$simulator_udid" >/dev/null 2>&1
 xcrun simctl bootstatus "$simulator_udid" -b
 xcrun simctl keychain "$simulator_udid" add-root-cert "$tls_dir/ca.crt"
 
