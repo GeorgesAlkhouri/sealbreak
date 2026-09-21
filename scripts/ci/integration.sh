@@ -149,7 +149,7 @@ listener "tcp" {
   tls_key_file  = "$tls_dir/server.key"
 }
 
-api_addr = "https://localhost:8200"
+api_addr = "https://127.0.0.1:8200"
 EOF
 
 "$server_bin" server -config="$work_dir/server.hcl" >"$server_log" 2>&1 &
@@ -163,7 +163,7 @@ for _ in {1..30}; do
     exit 1
   fi
 
-  status="$(curl --silent --output /dev/null --write-out '%{http_code}' --cacert "$tls_dir/ca.crt" https://localhost:8200/v1/sys/health || true)"
+  status="$(curl --silent --output /dev/null --write-out '%{http_code}' --cacert "$tls_dir/ca.crt" https://127.0.0.1:8200/v1/sys/health || true)"
   if [[ "$status" == "501" ]]; then
     ready=true
     break
@@ -179,7 +179,7 @@ if [[ "$ready" != "true" ]]; then
 fi
 
 init_json="$work_dir/init.json"
-curl --fail-with-body --silent --show-error --cacert "$tls_dir/ca.crt" --header "Content-Type: application/json" --request POST --data '{"secret_shares":3,"secret_threshold":2}' https://localhost:8200/v1/sys/init --output "$init_json"
+curl --fail-with-body --silent --show-error --cacert "$tls_dir/ca.crt" --header "Content-Type: application/json" --request POST --data '{"secret_shares":3,"secret_threshold":2}' https://127.0.0.1:8200/v1/sys/init --output "$init_json"
 
 first_share="$(jq -er '.keys_base64[0]' "$init_json")"
 second_share="$(jq -er '.keys_base64[1]' "$init_json")"
@@ -191,7 +191,7 @@ fi
 
 cat >"$fixture_file" <<EOF
 enum IntegrationFixture {
-    static let serverURL = "https://localhost:8200"
+    static let serverURL = "https://127.0.0.1:8200"
     static let serverProduct = "$server"
     static let firstShare = "$first_share"
     static let secondShare = "$second_share"
@@ -220,7 +220,6 @@ fi
 
 xcrun simctl boot "$simulator_udid" >/dev/null 2>&1 || true
 xcrun simctl bootstatus "$simulator_udid" -b
-xcrun simctl keychain "$simulator_udid" reset
 xcrun simctl keychain "$simulator_udid" add-root-cert "$tls_dir/ca.crt"
 
 xcodebuild \

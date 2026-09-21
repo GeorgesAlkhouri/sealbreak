@@ -18,6 +18,11 @@ struct SealServerIntegrationTests {
         )
         let client = SealServerClient()
 
+        let healthURL = try #require(URL(string: "\(IntegrationFixture.serverURL)/v1/sys/health"))
+        let (_, healthResponse) = try await URLSession.shared.data(from: healthURL)
+        let healthHTTPResponse = try #require(healthResponse as? HTTPURLResponse)
+        #expect(healthHTTPResponse.statusCode == 503)
+
         let initialStatus = try await client.status(profile)
         #expect(initialStatus.initialized)
         #expect(initialStatus.sealed)
