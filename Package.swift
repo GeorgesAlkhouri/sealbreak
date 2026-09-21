@@ -54,13 +54,6 @@ let package = Package(
                 )
             ],
             path: "Tests/SealbreakCoreTests"
-        ),
-        .testTarget(
-            name: "SealbreakIntegrationTests",
-            dependencies: [
-                "SealbreakCore"
-            ],
-            path: "Tests/SealbreakIntegrationTests"
         )
     ],
     swiftLanguageModes: [.v5]

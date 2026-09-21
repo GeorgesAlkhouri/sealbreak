@@ -7,6 +7,9 @@ if [[ "$#" -ne 2 ]]; then
   exit 64
 fi
 
+repo_root="$(cd "$(dirname "$0")/../.." && pwd)"
+cd "$repo_root"
+
 server="$1"
 version="$2"
 temp_root="${RUNNER_TEMP:-${TMPDIR:-/tmp}}"
@@ -15,8 +18,9 @@ bin_dir="$work_dir/bin"
 tls_dir="$work_dir/tls"
 data_dir="$work_dir/data"
 server_log="$work_dir/server.log"
+fixture_file="$repo_root/Tests/SealbreakIntegrationTests/IntegrationFixture.swift"
 server_pid=""
-ca_fingerprint=""
+simulator_udid=""
 
 cleanup() {
   if [[ -n "$server_pid" ]]; then
@@ -24,10 +28,12 @@ cleanup() {
     wait "$server_pid" >/dev/null 2>&1 || true
   fi
 
-  if [[ -n "$ca_fingerprint" ]]; then
-    sudo security delete-certificate -Z "$ca_fingerprint" /Library/Keychains/System.keychain >/dev/null 2>&1 || true
+  if [[ -n "$simulator_udid" ]]; then
+    xcrun simctl keychain "$simulator_udid" reset >/dev/null 2>&1 || true
+    xcrun simctl shutdown "$simulator_udid" >/dev/null 2>&1 || true
   fi
 
+  git checkout -- "$fixture_file" >/dev/null 2>&1 || true
   rm -rf "$work_dir"
 }
 trap cleanup EXIT
@@ -101,8 +107,7 @@ esac
 
 test -x "$server_bin"
 
-ca_cn="Sealbreak CI Test CA ${GITHUB_RUN_ID:-$}"
-
+ca_cn="Sealbreak CI Test CA ${GITHUB_RUN_ID:-$$}"
 cat >"$tls_dir/ca.cnf" <<EOF
 [req]
 distinguished_name = distinguished_name
@@ -129,11 +134,6 @@ keyUsage=digitalSignature,keyEncipherment
 EOF
 
 openssl x509 -req -sha256 -days 1 -in "$tls_dir/server.csr" -CA "$tls_dir/ca.crt" -CAkey "$tls_dir/ca.key" -CAcreateserial -extfile "$tls_dir/server.ext" -out "$tls_dir/server.crt" >/dev/null 2>&1
-
-ca_fingerprint="$(openssl x509 -in "$tls_dir/ca.crt" -noout -fingerprint -sha1 | cut -d= -f2 | tr -d ':')"
-
-sudo security add-trusted-cert -d -r trustRoot -k /Library/Keychains/System.keychain "$tls_dir/ca.crt"
-security verify-cert -c "$tls_dir/server.crt" -p ssl -s localhost -q
 
 cat >"$work_dir/server.hcl" <<EOF
 ui = false
@@ -183,32 +183,56 @@ curl --fail-with-body --silent --show-error --cacert "$tls_dir/ca.crt" --header 
 
 first_share="$(jq -er '.keys_base64[0]' "$init_json")"
 second_share="$(jq -er '.keys_base64[1]' "$init_json")"
-root_token="$(jq -er '.root_token' "$init_json")"
 
 if [[ "${GITHUB_ACTIONS:-}" == "true" ]]; then
   echo "::add-mask::$first_share"
   echo "::add-mask::$second_share"
-  echo "::add-mask::$root_token"
 fi
 
-submit_fixture_share() {
-  jq -nc --arg key "$1" '{key:$key}' |
-    curl       --fail-with-body       --silent       --show-error       --cacert "$tls_dir/ca.crt"       --header "Content-Type: application/json"       --request POST       --data-binary @-       https://localhost:8200/v1/sys/unseal       >/dev/null
+cat >"$fixture_file" <<EOF
+enum IntegrationFixture {
+    static let serverURL = "https://localhost:8200"
+    static let serverProduct = "$server"
+    static let firstShare = "$first_share"
+    static let secondShare = "$second_share"
+
+    static var isConfigured: Bool { true }
+
+    static var expectedProduct: ServerProduct {
+        switch serverProduct {
+        case "openbao": return .openBao
+        case "vault": return .vault
+        default: return .generic
+        }
+    }
 }
+EOF
 
-# Product help/OpenAPI is not available while the server is sealed. Bring the
-# fixture up only for product detection; the Swift test seals it again before
-# exercising the complete Shamir progression through SealServerClient.
-submit_fixture_share "$first_share"
-submit_fixture_share "$second_share"
-
-health_status="$(
-  curl     --silent     --output /dev/null     --write-out '%{http_code}'     --cacert "$tls_dir/ca.crt"     https://localhost:8200/v1/sys/health
+simulator_udid="$(
+  xcrun simctl list devices available -j |
+    jq -r '[.devices[] | .[] | select((.name | startswith("iPhone")) and (.isAvailable != false))][0].udid // empty'
 )"
-if [[ "$health_status" != "200" ]]; then
-  echo "$server did not reach the expected unsealed health state" >&2
-  cat "$server_log" >&2
+
+if [[ -z "$simulator_udid" ]]; then
+  echo "no available iPhone simulator found" >&2
   exit 1
 fi
 
-env   SEALBREAK_INTEGRATION_SERVER_URL="https://localhost:8200"   SEALBREAK_INTEGRATION_SERVER_PRODUCT="$server"   SEALBREAK_INTEGRATION_SHARE_1="$first_share"   SEALBREAK_INTEGRATION_SHARE_2="$second_share"   SEALBREAK_INTEGRATION_ROOT_TOKEN="$root_token"   swift test     --filter SealbreakIntegrationTests.SealServerIntegrationTests     -Xswiftc -warnings-as-errors
+xcrun simctl boot "$simulator_udid" >/dev/null 2>&1 || true
+xcrun simctl bootstatus "$simulator_udid" -b
+xcrun simctl keychain "$simulator_udid" reset
+xcrun simctl keychain "$simulator_udid" add-root-cert "$tls_dir/ca.crt"
+
+xcodebuild \
+  -project Sealbreak.xcodeproj \
+  -scheme Sealbreak \
+  -configuration Debug \
+  -destination "platform=iOS Simulator,id=$simulator_udid" \
+  -derivedDataPath "$work_dir/DerivedData" \
+  CODE_SIGNING_ALLOWED=NO \
+  CODE_SIGNING_REQUIRED=NO \
+  DEVELOPMENT_TEAM= \
+  COMPILER_INDEX_STORE_ENABLE=NO \
+  -skipMacroValidation \
+  -only-testing:SealbreakIntegrationTests \
+  test
