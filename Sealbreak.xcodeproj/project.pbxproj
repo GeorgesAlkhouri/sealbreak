@@ -53,17 +53,10 @@
 		000000000000000000000250 /* ComposableArchitecture in Frameworks */ = {isa = PBXBuildFile; productRef = 000000000000000000000401 /* ComposableArchitecture */; };
 		000000000000000000000513 /* SealServerIntegrationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000503 /* SealServerIntegrationTests.swift */; };
 		000000000000000000000514 /* IntegrationFixture.swift in Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000504 /* IntegrationFixture.swift */; };
+		000000000000000000000515 /* AppFailure.swift in Integration Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000150 /* AppFailure.swift */; };
+		000000000000000000000516 /* Models.swift in Integration Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000103 /* Models.swift */; };
+		000000000000000000000517 /* SealServerClient.swift in Integration Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000105 /* SealServerClient.swift */; };
 /* End PBXBuildFile section */
-
-/* Begin PBXContainerItemProxy section */
-		000000000000000000000508 /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = 000000000000000000000001 /* Project object */;
-			proxyType = 1;
-			remoteGlobalIDString = 000000000000000000000002;
-			remoteInfo = Sealbreak;
-		};
-/* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
 		000000000000000000000006 /* Sealbreak.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Sealbreak.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -383,7 +376,6 @@
 			buildRules = (
 			);
 			dependencies = (
-				000000000000000000000509 /* PBXTargetDependency */,
 			);
 			name = SealbreakIntegrationTests;
 			productName = SealbreakIntegrationTests;
@@ -405,7 +397,6 @@
 					};
 					000000000000000000000500 = {
 						CreatedOnToolsVersion = 26.0;
-						TestTargetID = 000000000000000000000002;
 					};
 				};
 			};
@@ -505,18 +496,13 @@
 			files = (
 				000000000000000000000513 /* SealServerIntegrationTests.swift in Sources */,
 				000000000000000000000514 /* IntegrationFixture.swift in Sources */,
+				000000000000000000000515 /* AppFailure.swift in Integration Sources */,
+				000000000000000000000516 /* Models.swift in Integration Sources */,
+				000000000000000000000517 /* SealServerClient.swift in Integration Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
-
-/* Begin PBXTargetDependency section */
-		000000000000000000000509 /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			target = 000000000000000000000002 /* Sealbreak */;
-			targetProxy = 000000000000000000000508 /* PBXContainerItemProxy */;
-		};
-/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		000000000000000000000012 /* Debug */ = {
@@ -661,7 +647,6 @@
 		000000000000000000000511 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -679,14 +664,12 @@
 				SWIFT_TREAT_WARNINGS_AS_ERRORS = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = 1;
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Sealbreak.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Sealbreak";
 			};
 			name = Debug;
 		};
 		000000000000000000000512 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -704,7 +687,6 @@
 				SWIFT_TREAT_WARNINGS_AS_ERRORS = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = 1;
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Sealbreak.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Sealbreak";
 			};
 			name = Release;
 		};
