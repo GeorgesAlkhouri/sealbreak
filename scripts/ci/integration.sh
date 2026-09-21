@@ -144,9 +144,10 @@ storage "file" {
 }
 
 listener "tcp" {
-  address       = "127.0.0.1:8200"
-  tls_cert_file = "$tls_dir/server.crt"
-  tls_key_file  = "$tls_dir/server.key"
+  address                  = "127.0.0.1:8200"
+  tls_cert_file            = "$tls_dir/server.crt"
+  tls_key_file             = "$tls_dir/server.key"
+  tls_disable_client_certs = true
 }
 
 api_addr = "https://127.0.0.1:8200"
