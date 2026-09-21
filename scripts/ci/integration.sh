@@ -188,27 +188,42 @@ if [[ "${GITHUB_ACTIONS:-}" == "true" ]]; then
   echo "::add-mask::$second_share"
 fi
 
-simulator_spec="$(
+simulator_runtime="$(
   xcrun simctl list devices available -j |
     jq -r '
       .devices
       | to_entries[]
       | select(.key | contains("iOS"))
-      | .key as $runtime
-      | .value[]
-      | select(.name | startswith("iPhone"))
-      | [$runtime, .deviceTypeIdentifier]
-      | @tsv
+      | select(any(.value[]; (.name | startswith("iPhone"))))
+      | .key
     ' |
     head -n 1
 )"
 
-if [[ -z "$simulator_spec" ]]; then
-  echo "no available iPhone simulator runtime/device type found" >&2
+if [[ -z "$simulator_runtime" ]]; then
+  echo "no available iPhone simulator runtime found" >&2
   exit 1
 fi
 
-IFS=xcrun simctl bootstatus "$simulator_udid" -b
+simulator_device_type="$(
+  xcrun simctl list devices available -j |
+    jq -r --arg runtime "$simulator_runtime" '
+      .devices[$runtime]
+      | map(select(.name | startswith("iPhone")))
+      | .[0].deviceTypeIdentifier // empty
+    '
+)"
+
+if [[ -z "$simulator_device_type" ]]; then
+  echo "no available iPhone simulator device type found" >&2
+  exit 1
+fi
+
+simulator_name="Sealbreak Integration $server ${GITHUB_RUN_ID:-$$}-${GITHUB_RUN_ATTEMPT:-1}"
+simulator_udid="$(xcrun simctl create "$simulator_name" "$simulator_device_type" "$simulator_runtime")"
+
+xcrun simctl boot "$simulator_udid"
+xcrun simctl bootstatus "$simulator_udid" -b
 xcrun simctl keychain "$simulator_udid" add-root-cert "$tls_dir/ca.crt"
 
 TEST_RUNNER_SEALBREAK_INTEGRATION_SERVER_URL="https://127.0.0.1:8200" \
