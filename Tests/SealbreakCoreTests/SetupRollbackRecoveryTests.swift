@@ -92,15 +92,86 @@ struct SetupRollbackRecoveryTests {
         #expect(store.state.welcome?.confirmReset == false)
         #expect(store.state.welcome?.notice?.contains("was reset") == true)
     }
+
+    @Test
+    func cancelledShareInsertAndFailedRollbackRequireReset() async throws {
+        let profile = try ServerProfile(
+            id: UUID(),
+            name: "Server",
+            address: "https://bao.example.com"
+        )
+        let spy = RollbackFailureSpy(cancelShareInsertion: true)
+
+        var dependency = SealbreakClient.testValue
+        dependency.loadProfiles = {
+            await spy.loadProfiles()
+        }
+        dependency.insertProfile = { profile in
+            try await spy.insertProfile(profile)
+        }
+        dependency.insertShare = { _, _ in
+            try await spy.insertShare()
+        }
+        dependency.deleteProfile = { profileID in
+            try await spy.deleteProfile(profileID)
+        }
+        dependency.waitForForeground = {}
+
+        var initialState = AppFeature.State()
+        initialState.isLoading = false
+        initialState.didLoad = true
+
+        var setupState = SetupFeature.State()
+        setupState.step = .share
+        setupState.share = ShareSetupFeature.State(profile: profile)
+        initialState.setup = setupState
+
+        let store = TestStore(initialState: initialState) {
+            AppFeature()
+        } withDependencies: {
+            $0.sealbreakClient = dependency
+        }
+        store.exhaustivity = .off(showSkippedAssertions: false)
+
+        await store.send(
+            .setup(
+                .share(
+                    .saveTapped(
+                        share: String(repeating: "a", count: 64)
+                    )
+                )
+            )
+        ).finish()
+        await store.skipReceivedActions()
+
+        #expect(await spy.insertProfileCalls == 1)
+        #expect(await spy.insertShareCalls == 1)
+        #expect(await spy.deleteProfileCalls == 1)
+        #expect(await spy.currentProfiles == [profile])
+
+        #expect(store.state.setup == nil)
+        #expect(store.state.home == nil)
+        #expect(store.state.welcome?.requiresLocalReset == true)
+        #expect(
+            store.state.welcome?.notice?.contains(
+                "Setup was cancelled"
+            ) == true
+        )
+    }
 }
 
 private actor RollbackFailureSpy {
     private var profiles: [ServerProfile] = []
+    private let cancelShareInsertion: Bool
 
     private(set) var insertProfileCalls = 0
     private(set) var insertShareCalls = 0
     private(set) var deleteProfileCalls = 0
     private(set) var resetLocalDataCalls = 0
+
+    init(cancelShareInsertion: Bool = false) {
+        self.cancelShareInsertion = cancelShareInsertion
+    }
 
     var currentProfiles: [ServerProfile] {
         profiles
@@ -120,6 +191,9 @@ private actor RollbackFailureSpy {
 
     func insertShare() throws {
         insertShareCalls += 1
+        if cancelShareInsertion {
+            throw CancellationError()
+        }
         throw AppFailure("share insert failed")
     }
 
