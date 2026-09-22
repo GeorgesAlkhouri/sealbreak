@@ -116,6 +116,15 @@ struct AppFeature {
                 state.welcome = WelcomeFeature.State()
                 return .none
 
+            case .setup(.delegate(.localResetRequired(let notice))):
+                state.home = nil
+                state.setup = nil
+                state.welcome = WelcomeFeature.State(
+                    notice: notice,
+                    requiresLocalReset: true
+                )
+                return .none
+
             case .setup(.delegate(.profileReady(let profile, let notice))):
                 state.welcome = nil
                 state.setup = nil
