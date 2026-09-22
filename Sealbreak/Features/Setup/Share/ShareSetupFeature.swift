@@ -36,6 +36,7 @@ struct ShareSetupFeature {
     enum Action: Equatable {
         enum Delegate: Equatable {
             case profileReady(ServerProfile, notice: String)
+            case localResetRequired(notice: String)
         }
 
         case saveTapped(share: String)
@@ -107,16 +108,39 @@ struct ShareSetupFeature {
                         )
                     } catch is CancellationError {
                         if profileInserted {
-                            try? await client.deleteProfile(profile.id)
+                            do {
+                                try await client.deleteProfile(profile.id)
+                            } catch {
+                                await send(
+                                    .delegate(
+                                        .localResetRequired(
+                                            notice: "Setup was cancelled, but its temporary local profile could not be removed. Reset local Sealbreak data before continuing."
+                                        )
+                                    )
+                                )
+                                return
+                            }
                         }
                         await send(.operationCancelled)
                     } catch {
+                        let failure = normalizedAppFailure(error)
                         if profileInserted {
-                            try? await client.deleteProfile(profile.id)
+                            do {
+                                try await client.deleteProfile(profile.id)
+                            } catch {
+                                await send(
+                                    .delegate(
+                                        .localResetRequired(
+                                            notice: "Protecting the share failed, and its temporary local profile could not be removed. Reset local Sealbreak data before continuing."
+                                        )
+                                    )
+                                )
+                                return
+                            }
                         }
                         await send(
                             .importResponse(
-                                .failure(normalizedAppFailure(error))
+                                .failure(failure)
                             )
                         )
                     }
