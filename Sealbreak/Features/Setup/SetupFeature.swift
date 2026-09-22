@@ -49,6 +49,7 @@ struct SetupFeature {
         enum Delegate: Equatable {
             case cancelled
             case profileReady(ServerProfile, notice: String)
+            case localResetRequired(notice: String)
         }
 
         case instance(InstanceSetupFeature.Action)
@@ -88,6 +89,10 @@ struct SetupFeature {
             case .share(.delegate(.profileReady(let profile, let notice))):
                 state.notice = notice
                 return .send(.delegate(.profileReady(profile, notice: notice)))
+
+            case .share(.delegate(.localResetRequired(let notice))):
+                state.notice = notice
+                return .send(.delegate(.localResetRequired(notice: notice)))
 
             case .backTapped:
                 guard state.share?.isBusy != true else { return .none }
