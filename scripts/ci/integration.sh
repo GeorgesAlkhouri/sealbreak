@@ -237,6 +237,7 @@ xcodebuild \
   -configuration Debug \
   -destination "platform=iOS Simulator,id=$simulator_udid" \
   -derivedDataPath "$work_dir/DerivedData" \
+  -resultBundlePath "$work_dir/integration.xcresult" \
   -clonedSourcePackagesDirPath "$source_packages_dir" \
   CODE_SIGNING_ALLOWED=NO \
   CODE_SIGNING_REQUIRED=NO \
@@ -245,3 +246,15 @@ xcodebuild \
   -skipMacroValidation \
   -only-testing:SealbreakIntegrationTests \
   test
+
+if ! xcrun xcresulttool get test-results summary \
+  --path "$work_dir/integration.xcresult" |
+  jq -e '
+    .totalTestCount == 1 and
+    .passedTests == 1 and
+    .failedTests == 0 and
+    .skippedTests == 0
+  ' >/dev/null; then
+  echo "::error::Expected exactly one passed integration test; missing, skipped, or unreadable results."
+  exit 1
+fi
