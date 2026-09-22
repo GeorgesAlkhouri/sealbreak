@@ -18,6 +18,7 @@ bin_dir="$work_dir/bin"
 tls_dir="$work_dir/tls"
 data_dir="$work_dir/data"
 server_log="$work_dir/server.log"
+source_packages_dir="${SEALBREAK_SOURCE_PACKAGES_DIR:-$work_dir/SourcePackages}"
 server_pid=""
 simulator_udid=""
 
@@ -236,6 +237,7 @@ xcodebuild \
   -configuration Debug \
   -destination "platform=iOS Simulator,id=$simulator_udid" \
   -derivedDataPath "$work_dir/DerivedData" \
+  -clonedSourcePackagesDirPath "$source_packages_dir" \
   CODE_SIGNING_ALLOWED=NO \
   CODE_SIGNING_REQUIRED=NO \
   DEVELOPMENT_TEAM= \
