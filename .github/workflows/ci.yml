@@ -81,6 +81,37 @@ jobs:
       - name: Compile complete iOS app for Simulator
         run: bash scripts/ci/build.sh simulator
 
+  integration:
+    name: CI / integration / ${{ matrix.server }}
+    runs-on: macos-26
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - server: openbao
+            version: "2.6.2"
+          - server: vault
+            version: "2.1.1"
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - name: Restore Swift package sources
+        uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25 # v5
+        with:
+          path: ${{ runner.temp }}/sealbreak-source-packages
+          key: swiftpm-integration-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('Sealbreak.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved') }}
+          restore-keys: |
+            swiftpm-integration-${{ runner.os }}-${{ runner.arch }}-
+      - name: Run real ${{ matrix.server }} Shamir integration
+        env:
+          SEALBREAK_SOURCE_PACKAGES_DIR: ${{ runner.temp }}/sealbreak-source-packages
+        run: bash scripts/ci/integration.sh "${{ matrix.server }}" "${{ matrix.version }}"
+
   sonar:
     name: CI / sonar
     runs-on: ubuntu-24.04
@@ -104,7 +135,7 @@ jobs:
   ready:
     name: CI / ready
     if: ${{ always() }}
-    needs: [quality, tests, build, sonar]
+    needs: [quality, tests, build, integration, sonar]
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:
@@ -113,9 +144,11 @@ jobs:
           QUALITY_RESULT: ${{ needs.quality.result }}
           TESTS_RESULT: ${{ needs.tests.result }}
           BUILD_RESULT: ${{ needs.build.result }}
+          INTEGRATION_RESULT: ${{ needs.integration.result }}
           SONAR_RESULT: ${{ needs.sonar.result }}
         run: |
           test "$QUALITY_RESULT" = success && \
           test "$TESTS_RESULT" = success && \
           test "$BUILD_RESULT" = success && \
+          test "$INTEGRATION_RESULT" = success && \
           test "$SONAR_RESULT" = success

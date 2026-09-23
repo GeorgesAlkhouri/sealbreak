@@ -12,20 +12,14 @@ struct SealbreakClientTests {
         let record = try ShareRecord(profile: profile, input: String(repeating: "a", count: 64))
 
         #expect(
-            await failureMessage { try await dependency.loadProfiles() }
-                == "Unimplemented profile load dependency."
+            await failureMessage { try await dependency.loadLocalSetupState() }
+                == "Unimplemented local setup state dependency."
         )
         #expect(
-            await failureMessage { try await dependency.insertProfile(profile) }
-                == "Unimplemented profile insert dependency."
-        )
-        #expect(
-            await failureMessage { try await dependency.saveProfile(profile) }
-                == "Unimplemented profile save dependency."
-        )
-        #expect(
-            await failureMessage { try await dependency.deleteProfile(profile.id) }
-                == "Unimplemented profile delete dependency."
+            await failureMessage {
+                try await dependency.protectNewProfile(profile, record, "Test")
+            }
+                == "Unimplemented setup protection dependency."
         )
         #expect(
             await failureMessage { try await dependency.resetLocalData() }
@@ -52,16 +46,12 @@ struct SealbreakClientTests {
                 == "Unimplemented protected-share dependency."
         )
         #expect(
-            await failureMessage { try await dependency.insertShare(record, "Test") }
-                == "Unimplemented protected-share dependency."
-        )
-        #expect(
             await failureMessage { try await dependency.replaceShare(profile, record, "Test") }
                 == "Unimplemented protected-share dependency."
         )
         #expect(
-            await failureMessage { try await dependency.deleteShare(profile.id, "Test") }
-                == "Unimplemented protected-share dependency."
+            await failureMessage { try await dependency.removeLocalProfile(profile.id, "Test") }
+                == "Unimplemented local removal dependency."
         )
         #expect(
             await failureMessage { try await dependency.requireForeground() }

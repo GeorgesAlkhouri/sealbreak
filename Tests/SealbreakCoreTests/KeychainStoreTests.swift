@@ -209,68 +209,370 @@ struct KeychainStoreTests {
     }
 
     @Test
-    func profileStorePersistsCollectionAndDeletesOnlySelectedProfile() throws {
+    func profileStorePersistsCreatingReadyRemovingAndDeletes() throws {
         let root = temporaryRoot()
         defer { try? FileManager.default.removeItem(at: root) }
         let store = ProfileStore(baseDirectory: root)
-        let first = try ServerProfile(id: UUID(), name: "Test", address: origin, product: .openBao)
-        let second = try ServerProfile(
+        let profile = try ServerProfile(
             id: UUID(),
-            name: "Production",
-            address: "https://prod.example.com",
-            product: .vault
+            name: "Test",
+            address: origin,
+            product: .openBao
         )
 
         #expect(try store.loadAll().isEmpty)
-        try store.save(first)
-        #expect(try store.loadAll() == [first])
 
-        try store.save(second)
-        #expect(try store.loadAll() == [first, second])
-
-        let renamedFirst = try ServerProfile(
-            id: first.id,
-            name: "Renamed",
-            address: first.origin,
-            product: first.product
+        try store.begin(profile)
+        #expect(
+            try store.loadAll() == [
+                StoredProfile(profile: profile, state: .creating)
+            ]
         )
-        try store.save(renamedFirst)
-        #expect(try store.loadAll() == [renamedFirst, second])
 
-        try store.delete(id: first.id)
-        #expect(try store.loadAll() == [second])
+        try store.commit(id: profile.id)
+        #expect(
+            try store.loadAll() == [
+                StoredProfile(profile: profile, state: .ready)
+            ]
+        )
 
-        try store.delete(id: second.id)
+        try store.beginRemoval(id: profile.id)
+        #expect(
+            try store.loadAll() == [
+                StoredProfile(profile: profile, state: .removing)
+            ]
+        )
+
+        try store.delete(id: profile.id)
         #expect(try store.loadAll().isEmpty)
-        try store.delete(id: second.id)
+
+        try store.delete(id: profile.id)
     }
 
     @Test
-    func profileStoreInsertIsCreateOnlyAndPreservesExistingCatalog() throws {
+    func profileStoreRejectsInvalidLifecycleTransitions() throws {
         let root = temporaryRoot()
         defer { try? FileManager.default.removeItem(at: root) }
         let store = ProfileStore(baseDirectory: root)
-        let existing = try ServerProfile(
+        let profile = try ServerProfile(
             id: UUID(),
-            name: "Existing",
+            name: "Test",
             address: origin
         )
-        try store.insert(existing)
 
         #expect(throws: AppFailure.self) {
-            try store.insert(existing)
+            try store.commit(id: profile.id)
         }
-        #expect(try store.loadAll() == [existing])
 
-        let sameOrigin = try ServerProfile(
-            id: UUID(),
-            name: "Same origin",
-            address: existing.origin
+        try store.begin(profile)
+
+        #expect(throws: AppFailure.self) {
+            try store.begin(profile)
+        }
+        #expect(throws: AppFailure.self) {
+            try store.commit(id: UUID())
+        }
+
+        #expect(
+            try store.loadAll() == [
+                StoredProfile(profile: profile, state: .creating)
+            ]
         )
         #expect(throws: AppFailure.self) {
-            try store.insert(sameOrigin)
+            try store.beginRemoval(id: profile.id)
         }
-        #expect(try store.loadAll() == [existing])
+    }
+
+    @Test
+    func createLocalProfileTransactionPersistsReadyOnlyAfterShareWrite() throws {
+        let root = temporaryRoot()
+        defer { try? FileManager.default.removeItem(at: root) }
+        let store = ProfileStore(baseDirectory: root)
+        let profile = try ServerProfile(
+            id: UUID(),
+            name: "Test",
+            address: origin
+        )
+        var stateDuringShareWrite: StoredProfileState?
+
+        let outcome = createLocalProfileTransaction(
+            beginProfile: {
+                try store.begin(profile)
+            },
+            insertShare: {
+                stateDuringShareWrite = try store.loadAll().first?.state
+            },
+            commitProfile: {
+                try store.commit(id: profile.id)
+            }
+        )
+
+        #expect(outcome == .completed)
+        #expect(stateDuringShareWrite == .creating)
+        #expect(
+            try store.loadAll() == [
+                StoredProfile(profile: profile, state: .ready)
+            ]
+        )
+    }
+
+    @Test
+    func createLocalProfileTransactionLeavesCreatingOnShareFailure() throws {
+        let root = temporaryRoot()
+        defer { try? FileManager.default.removeItem(at: root) }
+        let store = ProfileStore(baseDirectory: root)
+        let profile = try ServerProfile(
+            id: UUID(),
+            name: "Test",
+            address: origin
+        )
+
+        let outcome = createLocalProfileTransaction(
+            beginProfile: {
+                try store.begin(profile)
+            },
+            insertShare: {
+                throw AppFailure("share write failed")
+            },
+            commitProfile: {
+                try store.commit(id: profile.id)
+            }
+        )
+
+        guard case .recoveryRequired = outcome else {
+            Issue.record("Failed share creation must require recovery.")
+            return
+        }
+        #expect(
+            try store.loadAll() == [
+                StoredProfile(profile: profile, state: .creating)
+            ]
+        )
+    }
+
+    @Test
+    func createLocalProfileTransactionLeavesCreatingWhenCommitFails() throws {
+        let root = temporaryRoot()
+        defer { try? FileManager.default.removeItem(at: root) }
+        let store = ProfileStore(baseDirectory: root)
+        let profile = try ServerProfile(
+            id: UUID(),
+            name: "Test",
+            address: origin
+        )
+
+        let outcome = createLocalProfileTransaction(
+            beginProfile: {
+                try store.begin(profile)
+            },
+            insertShare: {},
+            commitProfile: {
+                throw AppFailure("commit failed")
+            }
+        )
+
+        guard case .recoveryRequired = outcome else {
+            Issue.record("Failed profile commit must require recovery.")
+            return
+        }
+
+        let stored = try store.loadAll()
+        #expect(
+            stored == [
+                StoredProfile(profile: profile, state: .creating)
+            ]
+        )
+        guard case .recoveryRequired = resolveLocalSetupState(profiles: stored) else {
+            Issue.record("A failed profile commit must remain recovery-required.")
+            return
+        }
+    }
+
+    @Test
+    func removeLocalProfileTransactionMarksRemovingBeforeDelete() throws {
+        let root = temporaryRoot()
+        defer { try? FileManager.default.removeItem(at: root) }
+        let store = ProfileStore(baseDirectory: root)
+        let profile = try ServerProfile(
+            id: UUID(),
+            name: "Test",
+            address: origin
+        )
+        try store.begin(profile)
+        try store.commit(id: profile.id)
+
+        var stateDuringShareDelete: StoredProfileState?
+        let outcome = removeLocalProfileTransaction(
+            beginRemoval: {
+                try store.beginRemoval(id: profile.id)
+            },
+            deleteShare: {
+                stateDuringShareDelete = try store.loadAll().first?.state
+            },
+            deleteProfile: {
+                try store.delete(id: profile.id)
+            }
+        )
+
+        #expect(outcome == .completed)
+        #expect(stateDuringShareDelete == .removing)
+        #expect(try store.loadAll().isEmpty)
+    }
+
+    @Test
+    func removeLocalProfileTransactionLeavesRemovingOnDeleteFailure() throws {
+        let root = temporaryRoot()
+        defer { try? FileManager.default.removeItem(at: root) }
+        let store = ProfileStore(baseDirectory: root)
+        let profile = try ServerProfile(
+            id: UUID(),
+            name: "Test",
+            address: origin
+        )
+        try store.begin(profile)
+        try store.commit(id: profile.id)
+
+        let outcome = removeLocalProfileTransaction(
+            beginRemoval: {
+                try store.beginRemoval(id: profile.id)
+            },
+            deleteShare: {
+                throw AppFailure("share delete failed")
+            },
+            deleteProfile: {
+                try store.delete(id: profile.id)
+            }
+        )
+
+        guard case .recoveryRequired = outcome else {
+            Issue.record("Failed local removal must require recovery.")
+            return
+        }
+        #expect(
+            try store.loadAll() == [
+                StoredProfile(profile: profile, state: .removing)
+            ]
+        )
+    }
+
+    @Test
+    func createLocalProfileTransactionDoesNotRunLaterStepsAfterBeginFailure() {
+        var events: [String] = []
+
+        let outcome = createLocalProfileTransaction(
+            beginProfile: {
+                events.append("begin")
+                throw AppFailure("begin failed")
+            },
+            insertShare: {
+                events.append("share")
+            },
+            commitProfile: {
+                events.append("commit")
+            }
+        )
+
+        guard case .recoveryRequired = outcome else {
+            Issue.record("Failed begin must require recovery.")
+            return
+        }
+        #expect(events == ["begin"])
+    }
+
+    @Test
+    func createLocalProfileTransactionDoesNotCommitAfterShareFailure() {
+        var events: [String] = []
+
+        let outcome = createLocalProfileTransaction(
+            beginProfile: {
+                events.append("begin")
+            },
+            insertShare: {
+                events.append("share")
+                throw AppFailure("share failed")
+            },
+            commitProfile: {
+                events.append("commit")
+            }
+        )
+
+        guard case .recoveryRequired = outcome else {
+            Issue.record("Failed share write must require recovery.")
+            return
+        }
+        #expect(events == ["begin", "share"])
+    }
+
+    @Test
+    func removeLocalProfileTransactionDoesNotDeleteBeforeRemovingMarker() {
+        var events: [String] = []
+
+        let outcome = removeLocalProfileTransaction(
+            beginRemoval: {
+                events.append("mark")
+                throw AppFailure("mark failed")
+            },
+            deleteShare: {
+                events.append("share")
+            },
+            deleteProfile: {
+                events.append("profile")
+            }
+        )
+
+        guard case .recoveryRequired = outcome else {
+            Issue.record("Failed removal marker must require recovery.")
+            return
+        }
+        #expect(events == ["mark"])
+    }
+
+    @Test
+    func removeLocalProfileTransactionLeavesProfileWhenShareDeleteFails() {
+        var events: [String] = []
+
+        let outcome = removeLocalProfileTransaction(
+            beginRemoval: {
+                events.append("mark")
+            },
+            deleteShare: {
+                events.append("share")
+                throw AppFailure("share failed")
+            },
+            deleteProfile: {
+                events.append("profile")
+            }
+        )
+
+        guard case .recoveryRequired = outcome else {
+            Issue.record("Failed share deletion must require recovery.")
+            return
+        }
+        #expect(events == ["mark", "share"])
+    }
+
+    @Test
+    func removeLocalProfileTransactionReportsProfileDeleteFailure() {
+        var events: [String] = []
+
+        let outcome = removeLocalProfileTransaction(
+            beginRemoval: {
+                events.append("mark")
+            },
+            deleteShare: {
+                events.append("share")
+            },
+            deleteProfile: {
+                events.append("profile")
+                throw AppFailure("profile failed")
+            }
+        )
+
+        guard case .recoveryRequired = outcome else {
+            Issue.record("Failed profile deletion must require recovery.")
+            return
+        }
+        #expect(events == ["mark", "share", "profile"])
     }
 
     @Test
@@ -297,6 +599,9 @@ struct KeychainStoreTests {
         let profiles = ProfileStore(baseDirectory: root)
 
         try resetLocalStorage(
+            prepareReset: {
+                try profiles.prepareForReset()
+            },
             deleteShares: {
                 try keychain.deleteAll()
             },
@@ -314,6 +619,9 @@ struct KeychainStoreTests {
 
         #expect(throws: AppFailure.self) {
             try resetLocalStorage(
+                prepareReset: {
+                    try profiles.prepareForReset()
+                },
                 deleteShares: {
                     try keychain.deleteAll()
                 },
@@ -328,10 +636,13 @@ struct KeychainStoreTests {
     }
 
     @Test
-    func localResetDeletesSharesBeforeProfileCatalog() throws {
+    func localResetPreparesBeforeDeletingShares() throws {
         var events: [String] = []
 
         try resetLocalStorage(
+            prepareReset: {
+                events.append("prepare")
+            },
             deleteShares: {
                 events.append("shares")
             },
@@ -339,46 +650,82 @@ struct KeychainStoreTests {
                 events.append("profiles")
             }
         )
-        #expect(events == ["shares", "profiles"])
+        #expect(events == ["prepare", "shares", "profiles"])
 
         events = []
         #expect(throws: AppFailure.self) {
             try resetLocalStorage(
+                prepareReset: {
+                    events.append("prepare")
+                    throw AppFailure("prepare failed")
+                },
                 deleteShares: {
                     events.append("shares")
-                    throw AppFailure("keychain delete failed")
                 },
                 resetProfiles: {
                     events.append("profiles")
                 }
             )
         }
-        #expect(events == ["shares"])
+        #expect(events == ["prepare"])
     }
 
     @Test
-    func profileStoreRejectsDuplicateOriginAndRetargeting() throws {
+    func localResetLeavesResettingStateWhenProfileResetFails() throws {
         let root = temporaryRoot()
         defer { try? FileManager.default.removeItem(at: root) }
-        let store = ProfileStore(baseDirectory: root)
-        let profile = try ServerProfile(id: UUID(), name: "Test", address: origin)
-
-        try store.save(profile)
-
-        let duplicateOrigin = try ServerProfile(id: UUID(), name: "Duplicate", address: origin)
-        #expect(throws: AppFailure.self) {
-            try store.save(duplicateOrigin)
-        }
-
-        let retargeted = try ServerProfile(
-            id: profile.id,
-            name: profile.name,
-            address: "https://other.example.com",
-            product: profile.product
+        let profiles = ProfileStore(baseDirectory: root)
+        let profile = try ServerProfile(
+            id: UUID(),
+            name: "Test",
+            address: origin
         )
+        try profiles.begin(profile)
+        try profiles.commit(id: profile.id)
+
         #expect(throws: AppFailure.self) {
-            try store.save(retargeted)
+            try resetLocalStorage(
+                prepareReset: {
+                    try profiles.prepareForReset()
+                },
+                deleteShares: {},
+                resetProfiles: {
+                    throw AppFailure("profile reset failed")
+                }
+            )
         }
+
+        #expect(throws: AppFailure.self) {
+            try profiles.loadAll()
+        }
+
+        try resetLocalStorage(
+            prepareReset: {
+                try profiles.prepareForReset()
+            },
+            deleteShares: {},
+            resetProfiles: {
+                try profiles.reset()
+            }
+        )
+        #expect(try profiles.loadAll().isEmpty)
+    }
+
+    @Test
+    func prepareForResetOverwritesMalformedCatalogWithoutReadingIt() throws {
+        let root = temporaryRoot()
+        defer { try? FileManager.default.removeItem(at: root) }
+        try writeCatalogData(Data("{}".utf8), to: root)
+
+        let profiles = ProfileStore(baseDirectory: root)
+        try profiles.prepareForReset()
+
+        #expect(throws: AppFailure.self) {
+            try profiles.loadAll()
+        }
+
+        try profiles.reset()
+        #expect(try profiles.loadAll().isEmpty)
     }
 
     @Test
@@ -396,7 +743,7 @@ struct KeychainStoreTests {
     }
 
     @Test
-    func profileStoreRejectsMalformedAndUnsupportedCatalogs() throws {
+    func profileStoreRejectsMalformedUnsupportedAndLegacyCatalogs() throws {
         let malformedRoot = temporaryRoot()
         defer { try? FileManager.default.removeItem(at: malformedRoot) }
         try writeCatalogData(Data("{}".utf8), to: malformedRoot)
@@ -405,15 +752,57 @@ struct KeychainStoreTests {
             try ProfileStore(baseDirectory: malformedRoot).loadAll()
         }
 
-        let versionRoot = temporaryRoot()
-        defer { try? FileManager.default.removeItem(at: versionRoot) }
+        let unsupportedRoot = temporaryRoot()
+        defer { try? FileManager.default.removeItem(at: unsupportedRoot) }
         try writeCatalog(
-            TestProfileCatalog(version: 2, profiles: []),
-            to: versionRoot
+            TestProfileCatalog(version: 99, profiles: []),
+            to: unsupportedRoot
         )
 
         #expect(throws: AppFailure.self) {
-            try ProfileStore(baseDirectory: versionRoot).loadAll()
+            try ProfileStore(baseDirectory: unsupportedRoot).loadAll()
+        }
+
+        let legacyRoot = temporaryRoot()
+        defer { try? FileManager.default.removeItem(at: legacyRoot) }
+        let legacyProfile = try ServerProfile(
+            id: UUID(),
+            name: "Legacy",
+            address: origin
+        )
+        try writeCatalogData(
+            try JSONEncoder().encode(
+                LegacyProfileCatalog(
+                    version: 1,
+                    profiles: [legacyProfile]
+                )
+            ),
+            to: legacyRoot
+        )
+
+        #expect(throws: AppFailure.self) {
+            try ProfileStore(baseDirectory: legacyRoot).loadAll()
+        }
+
+        let previousLifecycleRoot = temporaryRoot()
+        defer { try? FileManager.default.removeItem(at: previousLifecycleRoot) }
+        try writeCatalogData(
+            try JSONEncoder().encode(
+                PreviousLifecycleCatalog(
+                    version: 2,
+                    profiles: [
+                        StoredProfile(
+                            profile: legacyProfile,
+                            state: .ready
+                        )
+                    ]
+                )
+            ),
+            to: previousLifecycleRoot
+        )
+
+        #expect(throws: AppFailure.self) {
+            try ProfileStore(baseDirectory: previousLifecycleRoot).loadAll()
         }
     }
 
@@ -434,7 +823,13 @@ struct KeychainStoreTests {
         let duplicateIDRoot = temporaryRoot()
         defer { try? FileManager.default.removeItem(at: duplicateIDRoot) }
         try writeCatalog(
-            TestProfileCatalog(version: 1, profiles: [first, duplicateID]),
+            TestProfileCatalog(
+                version: 3,
+                profiles: [
+                    StoredProfile(profile: first, state: .ready),
+                    StoredProfile(profile: duplicateID, state: .ready)
+                ]
+            ),
             to: duplicateIDRoot
         )
 
@@ -450,13 +845,55 @@ struct KeychainStoreTests {
         let duplicateOriginRoot = temporaryRoot()
         defer { try? FileManager.default.removeItem(at: duplicateOriginRoot) }
         try writeCatalog(
-            TestProfileCatalog(version: 1, profiles: [first, duplicateOrigin]),
+            TestProfileCatalog(
+                version: 3,
+                profiles: [
+                    StoredProfile(profile: first, state: .ready),
+                    StoredProfile(profile: duplicateOrigin, state: .ready)
+                ]
+            ),
             to: duplicateOriginRoot
         )
 
         #expect(throws: AppFailure.self) {
             try ProfileStore(baseDirectory: duplicateOriginRoot).loadAll()
         }
+    }
+
+    @Test
+    func profileStoreDeleteRewritesRemainingEntries() throws {
+        let first = try ServerProfile(
+            id: UUID(),
+            name: "First",
+            address: "https://first.example.com"
+        )
+        let second = try ServerProfile(
+            id: UUID(),
+            name: "Second",
+            address: "https://second.example.com"
+        )
+        let root = temporaryRoot()
+        defer { try? FileManager.default.removeItem(at: root) }
+
+        try writeCatalog(
+            TestProfileCatalog(
+                version: 3,
+                profiles: [
+                    StoredProfile(profile: first, state: .ready),
+                    StoredProfile(profile: second, state: .ready)
+                ]
+            ),
+            to: root
+        )
+
+        let store = ProfileStore(baseDirectory: root)
+        try store.delete(id: first.id)
+
+        #expect(
+            try store.loadAll() == [
+                StoredProfile(profile: second, state: .ready)
+            ]
+        )
     }
 
     @Test
@@ -472,7 +909,12 @@ struct KeychainStoreTests {
         let root = temporaryRoot()
         defer { try? FileManager.default.removeItem(at: root) }
         try writeCatalog(
-            TestProfileCatalog(version: 1, profiles: [profile]),
+            TestProfileCatalog(
+                version: 3,
+                profiles: [
+                    StoredProfile(profile: profile, state: .ready)
+                ]
+            ),
             to: root
         )
 
@@ -483,7 +925,28 @@ struct KeychainStoreTests {
 
     private struct TestProfileCatalog: Codable {
         let version: Int
+        let state: ProfileCatalogState
+        let profiles: [StoredProfile]
+
+        init(
+            version: Int,
+            state: ProfileCatalogState = .active,
+            profiles: [StoredProfile]
+        ) {
+            self.version = version
+            self.state = state
+            self.profiles = profiles
+        }
+    }
+
+    private struct LegacyProfileCatalog: Codable {
+        let version: Int
         let profiles: [ServerProfile]
+    }
+
+    private struct PreviousLifecycleCatalog: Codable {
+        let version: Int
+        let profiles: [StoredProfile]
     }
 
     private func writeCatalog(_ catalog: TestProfileCatalog, to root: URL) throws {

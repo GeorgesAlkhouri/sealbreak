@@ -182,31 +182,32 @@ struct SetupCoverageTests {
     }
 
     @Test
-    func setupCancelClearsWorkflowAndCancelsSensitiveOperation() async throws {
-        let counter = CallCounter()
-        var dependency = SealbreakClient.testValue
-        dependency.cancelSensitiveOperation = {
-            await counter.increment()
-        }
-
+    func setupCancelRemainsAvailableDuringConnectionCheck() async {
         var state = SetupFeature.State()
-        state.operation = .removingLocalData
-        state.confirmDelete = true
-        state.step = .share
-        state.share = ShareSetupFeature.State(profile: try profile())
+        state.instance.isCheckingConnection = true
 
-        let store = setupStore(state, dependency: dependency)
-        await store.send(.cancelTapped).finish()
-        await store.skipReceivedActions()
+        let store = setupStore(state, dependency: .testValue)
 
-        #expect(store.state.operation == nil)
-        #expect(!store.state.confirmDelete)
-        #expect(store.state.share == nil)
-        #expect(await counter.count == 1)
+        #expect(!store.state.blocksSetupExit)
+        await store.send(.cancelTapped)
+        await store.receive(.delegate(.cancelled))
     }
 
     @Test
-    func setupForwardsShareCompletion() async throws {
+    func setupCancelClearsIdleShareAndDelegates() async throws {
+        var state = SetupFeature.State()
+        state.step = .share
+        state.share = ShareSetupFeature.State(profile: try profile())
+
+        let store = setupStore(state, dependency: .testValue)
+
+        await store.send(.cancelTapped)
+        #expect(store.state.share == nil)
+        await store.receive(.delegate(.cancelled))
+    }
+
+    @Test
+    func setupForwardsShareCompletionAndRecovery() async throws {
         let target = try profile()
         var state = SetupFeature.State()
         state.step = .share
@@ -220,10 +221,17 @@ struct SetupCoverageTests {
         )
         await store.receive(.delegate(.profileReady(target, notice: notice)))
         #expect(store.state.notice == notice)
+
+        let recovery = "reset required"
+        await store.send(
+            .share(.delegate(.localResetRequired(notice: recovery)))
+        )
+        await store.receive(.delegate(.localResetRequired(notice: recovery)))
+        #expect(store.state.notice == recovery)
     }
 
     @Test
-    func setupPrivacyRoutesToInstanceShareAndOwnOperation() async throws {
+    func setupPrivacyRoutesOnlyToActiveChild() async throws {
         let target = try profile()
 
         var instanceState = SetupFeature.State()
@@ -235,62 +243,59 @@ struct SetupCoverageTests {
         #expect(!instanceStore.state.instance.isCheckingConnection)
         #expect(instanceStore.state.instance.notice == "Connection check interrupted. Try again.")
 
-        let shareCounter = CallCounter()
-        var shareDependency = SealbreakClient.testValue
-        shareDependency.cancelSensitiveOperation = {
-            await shareCounter.increment()
+        let counter = CallCounter()
+        var dependency = SealbreakClient.testValue
+        dependency.cancelSensitiveOperation = {
+            await counter.increment()
         }
+
         var shareState = SetupFeature.State()
         shareState.step = .share
         shareState.share = ShareSetupFeature.State(profile: target)
         shareState.share?.operation = .protecting
-        let shareStore = setupStore(shareState, dependency: shareDependency)
+        let shareStore = setupStore(shareState, dependency: dependency)
 
         await shareStore.send(.privacyInterrupted).finish()
         await shareStore.skipReceivedActions()
-        #expect(shareStore.state.share?.operation == nil)
-        #expect(await shareCounter.count == 1)
-
-        let ownCounter = CallCounter()
-        var ownDependency = SealbreakClient.testValue
-        ownDependency.cancelSensitiveOperation = {
-            await ownCounter.increment()
-        }
-        var ownState = SetupFeature.State()
-        ownState.operation = .removingLocalData
-        ownState.confirmDelete = true
-        let ownStore = setupStore(ownState, dependency: ownDependency)
-
-        await ownStore.send(.privacyInterrupted).finish()
-        #expect(ownStore.state.operation == nil)
-        #expect(!ownStore.state.confirmDelete)
-        #expect(ownStore.state.notice.contains("Operation interrupted"))
-        #expect(await ownCounter.count == 1)
+        #expect(shareStore.state.share?.operation == .protecting)
+        #expect(await counter.count == 1)
     }
 
     @Test
-    func setupBusyStateBlocksRemove() async {
+    func setupBlocksDiscardWhileShareProtectionIsRunning() async throws {
         var state = SetupFeature.State()
+        state.step = .share
+        state.share = ShareSetupFeature.State(profile: try profile())
+        state.share?.operation = .protecting
+
+        let store = setupStore(state, dependency: .testValue)
+
+        await store.send(.cancelTapped)
+
+        #expect(store.state.step == .share)
+        #expect(store.state.share?.operation == .protecting)
+    }
+
+    @Test
+    func setupActivityMapsOnlyReachableOperations() throws {
+        var state = SetupFeature.State()
+
         state.instance.isCheckingConnection = true
-        let store = setupStore(state, dependency: .testValue)
+        #expect(state.activity == "Checking connection…")
+        #expect(state.isBusy)
+        #expect(!state.blocksSetupExit)
 
-        await store.send(.removeLocalDataTapped)
-        #expect(!store.state.confirmDelete)
+        state.instance.isCheckingConnection = false
+        state.step = .share
+        state.share = ShareSetupFeature.State(profile: try profile())
+        state.share?.operation = .protecting
+        #expect(state.activity == "Protecting share…")
+        #expect(state.isBusy)
+        #expect(state.blocksSetupExit)
 
-        await store.send(.confirmRemoveLocalDataTapped)
-        #expect(store.state.operation == nil)
-    }
-
-    @Test
-    func setupRejectsRemovalWithoutAssociatedProfile() async {
-        var state = SetupFeature.State()
-        state.confirmDelete = true
-        let store = setupStore(state, dependency: .testValue)
-
-        await store.send(.confirmRemoveLocalDataTapped)
-        #expect(!store.state.confirmDelete)
-        #expect(store.state.operation == nil)
-        #expect(store.state.notice == "No protected share is associated with this setup.")
+        state.share?.operation = nil
+        #expect(state.activity.isEmpty)
+        #expect(!state.isBusy)
     }
 
     private func instanceStore(

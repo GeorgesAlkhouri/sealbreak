@@ -130,7 +130,7 @@ struct WelcomeView: View {
             }
         } message: {
             Text(
-                "This removes every protected share stored by Sealbreak on this iPhone and the local profile catalog. You need an independent share copy to set up again."
+                "This removes every protected share stored by Sealbreak on this iPhone and all local Sealbreak configuration. You need an independent share copy to set up again."
             )
         }
     }

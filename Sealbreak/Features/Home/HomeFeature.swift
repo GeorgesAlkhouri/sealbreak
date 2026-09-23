@@ -60,11 +60,6 @@ struct HomeFeature {
         }
     }
 
-    struct LocalDataRemovalResult: Equatable, Sendable {
-        let notice: String
-        let requiresLocalReset: Bool
-    }
-
     enum Action: Equatable {
         enum Delegate: Equatable {
             case localDataRemoved(notice: String, requiresLocalReset: Bool)
@@ -86,7 +81,7 @@ struct HomeFeature {
         case replaceShareTapped
         case removeLocalDataTapped
         case confirmRemoveLocalDataTapped
-        case removeLocalDataResponse(Result<LocalDataRemovalResult, AppFailure>)
+        case removeLocalDataResponse(Result<LocalPersistenceOutcome, AppFailure>)
         case privacyInterrupted
         case serverDetails(PresentationAction<ServerDetailsFeature.Action>)
         case replaceShare(PresentationAction<ReplaceShareFeature.Action>)
@@ -276,25 +271,11 @@ struct HomeFeature {
                 let client = self.client
                 return .run { send in
                     do {
-                        try await client.waitForForeground()
-                        try await client.deleteShare(
+                        let outcome = try await client.removeLocalProfile(
                             profileID,
                             "Permanently remove Sealbreak’s local share; independent recovery will be required"
                         )
-                        let result: LocalDataRemovalResult
-                        do {
-                            try await client.deleteProfile(profileID)
-                            result = LocalDataRemovalResult(
-                                notice: "Local share removed. Copies elsewhere remain valid; only server-side rekeying replaces the server’s Shamir shares.",
-                                requiresLocalReset: false
-                            )
-                        } catch {
-                            result = LocalDataRemovalResult(
-                                notice: "The protected share was removed, but the local profile could not be removed. Reset local Sealbreak data before setting up another server.",
-                                requiresLocalReset: true
-                            )
-                        }
-                        await send(.removeLocalDataResponse(.success(result)))
+                        await send(.removeLocalDataResponse(.success(outcome)))
                     } catch is CancellationError {
                         await send(.operationCancelled)
                     } catch {
@@ -303,17 +284,33 @@ struct HomeFeature {
                 }
                 .cancellable(id: CancelID.operation)
 
-            case .removeLocalDataResponse(.success(let result)):
+            case .removeLocalDataResponse(.success(.completed)):
+                let notice = "Local share removed. Copies elsewhere remain valid; only server-side rekeying replaces the server’s Shamir shares."
                 state.operation = nil
                 state.status = nil
-                state.notice = result.notice
+                state.notice = notice
                 state.serverDetails = nil
                 state.replaceShare = nil
                 return .send(
                     .delegate(
                         .localDataRemoved(
-                            notice: result.notice,
-                            requiresLocalReset: result.requiresLocalReset
+                            notice: notice,
+                            requiresLocalReset: false
+                        )
+                    )
+                )
+
+            case .removeLocalDataResponse(.success(.recoveryRequired(let notice))):
+                state.operation = nil
+                state.status = nil
+                state.notice = notice
+                state.serverDetails = nil
+                state.replaceShare = nil
+                return .send(
+                    .delegate(
+                        .localDataRemoved(
+                            notice: notice,
+                            requiresLocalReset: true
                         )
                     )
                 )
@@ -327,16 +324,23 @@ struct HomeFeature {
                 return .none
 
             case .privacyInterrupted:
-                let wasBusy = state.isBusy
-                state.operation = nil
                 state.status = nil
                 state.confirmation = nil
                 state.replaceShare = nil
                 state.serverDetails = nil
+
+                let client = self.client
+                if state.operation == .removingLocalData {
+                    return .run { _ in
+                        await client.cancelSensitiveOperation()
+                    }
+                }
+
+                let wasBusy = state.isBusy
+                state.operation = nil
                 if wasBusy {
                     state.notice = "Operation interrupted. Check status on return; an already submitted request cannot be recalled."
                 }
-                let client = self.client
                 return .merge(
                     .cancel(id: CancelID.operation),
                     .run { _ in await client.cancelSensitiveOperation() }
