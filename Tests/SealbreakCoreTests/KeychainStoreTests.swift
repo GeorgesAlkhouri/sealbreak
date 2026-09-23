@@ -209,68 +209,68 @@ struct KeychainStoreTests {
     }
 
     @Test
-    func profileStorePersistsCollectionAndDeletesOnlySelectedProfile() throws {
+    func profileStorePersistsPendingThenReadyAndDeletes() throws {
         let root = temporaryRoot()
         defer { try? FileManager.default.removeItem(at: root) }
         let store = ProfileStore(baseDirectory: root)
-        let first = try ServerProfile(id: UUID(), name: "Test", address: origin, product: .openBao)
-        let second = try ServerProfile(
+        let profile = try ServerProfile(
             id: UUID(),
-            name: "Production",
-            address: "https://prod.example.com",
-            product: .vault
+            name: "Test",
+            address: origin,
+            product: .openBao
         )
 
         #expect(try store.loadAll().isEmpty)
-        try store.save(first)
-        #expect(try store.loadAll() == [first])
 
-        try store.save(second)
-        #expect(try store.loadAll() == [first, second])
-
-        let renamedFirst = try ServerProfile(
-            id: first.id,
-            name: "Renamed",
-            address: first.origin,
-            product: first.product
+        try store.begin(profile)
+        #expect(
+            try store.loadAll() == [
+                StoredProfile(profile: profile, state: .pending)
+            ]
         )
-        try store.save(renamedFirst)
-        #expect(try store.loadAll() == [renamedFirst, second])
 
-        try store.delete(id: first.id)
-        #expect(try store.loadAll() == [second])
+        try store.commit(id: profile.id)
+        #expect(
+            try store.loadAll() == [
+                StoredProfile(profile: profile, state: .ready)
+            ]
+        )
 
-        try store.delete(id: second.id)
+        try store.delete(id: profile.id)
         #expect(try store.loadAll().isEmpty)
-        try store.delete(id: second.id)
+
+        try store.delete(id: profile.id)
     }
 
     @Test
-    func profileStoreInsertIsCreateOnlyAndPreservesExistingCatalog() throws {
+    func profileStoreRejectsInvalidLifecycleTransitions() throws {
         let root = temporaryRoot()
         defer { try? FileManager.default.removeItem(at: root) }
         let store = ProfileStore(baseDirectory: root)
-        let existing = try ServerProfile(
+        let profile = try ServerProfile(
             id: UUID(),
-            name: "Existing",
+            name: "Test",
             address: origin
         )
-        try store.insert(existing)
 
         #expect(throws: AppFailure.self) {
-            try store.insert(existing)
+            try store.commit(id: profile.id)
         }
-        #expect(try store.loadAll() == [existing])
 
-        let sameOrigin = try ServerProfile(
-            id: UUID(),
-            name: "Same origin",
-            address: existing.origin
+        try store.begin(profile)
+
+        #expect(throws: AppFailure.self) {
+            try store.begin(profile)
+        }
+        #expect(throws: AppFailure.self) {
+            try store.commit(id: UUID())
+        }
+
+        #expect(
+            try store.loadAll() == [
+                StoredProfile(profile: profile, state: .pending)
+            ]
         )
-        #expect(throws: AppFailure.self) {
-            try store.insert(sameOrigin)
-        }
-        #expect(try store.loadAll() == [existing])
     }
 
     @Test
@@ -357,31 +357,6 @@ struct KeychainStoreTests {
     }
 
     @Test
-    func profileStoreRejectsDuplicateOriginAndRetargeting() throws {
-        let root = temporaryRoot()
-        defer { try? FileManager.default.removeItem(at: root) }
-        let store = ProfileStore(baseDirectory: root)
-        let profile = try ServerProfile(id: UUID(), name: "Test", address: origin)
-
-        try store.save(profile)
-
-        let duplicateOrigin = try ServerProfile(id: UUID(), name: "Duplicate", address: origin)
-        #expect(throws: AppFailure.self) {
-            try store.save(duplicateOrigin)
-        }
-
-        let retargeted = try ServerProfile(
-            id: profile.id,
-            name: profile.name,
-            address: "https://other.example.com",
-            product: profile.product
-        )
-        #expect(throws: AppFailure.self) {
-            try store.save(retargeted)
-        }
-    }
-
-    @Test
     func profileStoreRejectsOversizedCatalog() throws {
         let root = temporaryRoot()
         defer { try? FileManager.default.removeItem(at: root) }
@@ -396,7 +371,7 @@ struct KeychainStoreTests {
     }
 
     @Test
-    func profileStoreRejectsMalformedAndUnsupportedCatalogs() throws {
+    func profileStoreRejectsMalformedUnsupportedAndLegacyCatalogs() throws {
         let malformedRoot = temporaryRoot()
         defer { try? FileManager.default.removeItem(at: malformedRoot) }
         try writeCatalogData(Data("{}".utf8), to: malformedRoot)
@@ -405,15 +380,36 @@ struct KeychainStoreTests {
             try ProfileStore(baseDirectory: malformedRoot).loadAll()
         }
 
-        let versionRoot = temporaryRoot()
-        defer { try? FileManager.default.removeItem(at: versionRoot) }
+        let unsupportedRoot = temporaryRoot()
+        defer { try? FileManager.default.removeItem(at: unsupportedRoot) }
         try writeCatalog(
-            TestProfileCatalog(version: 2, profiles: []),
-            to: versionRoot
+            TestProfileCatalog(version: 99, profiles: []),
+            to: unsupportedRoot
         )
 
         #expect(throws: AppFailure.self) {
-            try ProfileStore(baseDirectory: versionRoot).loadAll()
+            try ProfileStore(baseDirectory: unsupportedRoot).loadAll()
+        }
+
+        let legacyRoot = temporaryRoot()
+        defer { try? FileManager.default.removeItem(at: legacyRoot) }
+        let legacyProfile = try ServerProfile(
+            id: UUID(),
+            name: "Legacy",
+            address: origin
+        )
+        try writeCatalogData(
+            try JSONEncoder().encode(
+                LegacyProfileCatalog(
+                    version: 1,
+                    profiles: [legacyProfile]
+                )
+            ),
+            to: legacyRoot
+        )
+
+        #expect(throws: AppFailure.self) {
+            try ProfileStore(baseDirectory: legacyRoot).loadAll()
         }
     }
 
@@ -434,7 +430,13 @@ struct KeychainStoreTests {
         let duplicateIDRoot = temporaryRoot()
         defer { try? FileManager.default.removeItem(at: duplicateIDRoot) }
         try writeCatalog(
-            TestProfileCatalog(version: 1, profiles: [first, duplicateID]),
+            TestProfileCatalog(
+                version: 2,
+                profiles: [
+                    StoredProfile(profile: first, state: .ready),
+                    StoredProfile(profile: duplicateID, state: .ready)
+                ]
+            ),
             to: duplicateIDRoot
         )
 
@@ -450,7 +452,13 @@ struct KeychainStoreTests {
         let duplicateOriginRoot = temporaryRoot()
         defer { try? FileManager.default.removeItem(at: duplicateOriginRoot) }
         try writeCatalog(
-            TestProfileCatalog(version: 1, profiles: [first, duplicateOrigin]),
+            TestProfileCatalog(
+                version: 2,
+                profiles: [
+                    StoredProfile(profile: first, state: .ready),
+                    StoredProfile(profile: duplicateOrigin, state: .ready)
+                ]
+            ),
             to: duplicateOriginRoot
         )
 
@@ -472,7 +480,12 @@ struct KeychainStoreTests {
         let root = temporaryRoot()
         defer { try? FileManager.default.removeItem(at: root) }
         try writeCatalog(
-            TestProfileCatalog(version: 1, profiles: [profile]),
+            TestProfileCatalog(
+                version: 2,
+                profiles: [
+                    StoredProfile(profile: profile, state: .ready)
+                ]
+            ),
             to: root
         )
 
@@ -481,51 +494,12 @@ struct KeychainStoreTests {
         }
     }
 
-    @Test
-    func setupStateStoreRejectsInvalidTransitions() throws {
-        let root = temporaryRoot()
-        defer { try? FileManager.default.removeItem(at: root) }
-        let store = SetupStateStore(baseDirectory: root)
-        let profileID = UUID()
-
-        #expect(throws: AppFailure.self) {
-            try store.commit(profileID: profileID)
-        }
-
-        try store.begin(profileID: profileID)
-
-        #expect(throws: AppFailure.self) {
-            try store.begin(profileID: UUID())
-        }
-        #expect(throws: AppFailure.self) {
-            try store.commit(profileID: UUID())
-        }
-
-        #expect(try store.load() == .pending(profileID))
-    }
-
-    @Test
-    func setupStateStoreRequiresExplicitCommit() throws {
-        let root = temporaryRoot()
-        defer { try? FileManager.default.removeItem(at: root) }
-        let store = SetupStateStore(baseDirectory: root)
-        let profileID = UUID()
-
-        #expect(try store.load() == nil)
-
-        try store.begin(profileID: profileID)
-        #expect(try store.load() == .pending(profileID))
-
-        try store.commit(profileID: profileID)
-        #expect(try store.load() == .ready(profileID))
-
-        try store.reset()
-        #expect(try store.load() == nil)
-
-        try store.reset()
-    }
-
     private struct TestProfileCatalog: Codable {
+        let version: Int
+        let profiles: [StoredProfile]
+    }
+
+    private struct LegacyProfileCatalog: Codable {
         let version: Int
         let profiles: [ServerProfile]
     }
