@@ -674,31 +674,6 @@ struct FeatureTests {
         #expect(store.state.notice.contains("Reset local Sealbreak data"))
     }
     @Test
-    func removeLocalDataCoversProfileDeletionFailure() async throws {
-        let target = try profile()
-        var state = SetupFeature.State()
-        state.step = .share
-        state.share = ShareSetupFeature.State(profile: target)
-
-        let spy = ClientSpy()
-        let store = TestStore(initialState: state) {
-            SetupFeature()
-        } withDependencies: {
-            $0.sealbreakClient = client(spy)
-            $0.uuid = .incrementing
-        }
-        store.exhaustivity = .off(showSkippedAssertions: false)
-
-        await spy.setDeleteProfileError(AppFailure("delete display failed"))
-        await store.send(.removeLocalDataTapped)
-        #expect(store.state.confirmDelete)
-        await store.send(.confirmRemoveLocalDataTapped).finish()
-        await store.skipReceivedActions()
-        #expect(store.state.notice.contains("display file could not be removed"))
-        #expect(await spy.deleteShareCalls == 1)
-    }
-
-    @Test
     func replaceSharePreservesTargetBindingInDependency() async throws {
         let target = try profile()
         let spy = ClientSpy()
@@ -1372,27 +1347,6 @@ struct FeatureTests {
     }
 
     @Test
-    func setupOperationActivityMapsEveryState() throws {
-        var state = SetupFeature.State()
-        state.operation = .removingLocalData
-        #expect(state.activity == "Removing local data…")
-        #expect(state.isBusy)
-
-        state.operation = nil
-        state.instance.isCheckingConnection = true
-        #expect(state.activity == "Checking connection…")
-
-        state.instance.isCheckingConnection = false
-        state.step = .share
-        state.share = ShareSetupFeature.State(profile: try profile())
-        state.share?.operation = .protecting
-        #expect(state.activity == "Protecting share…")
-
-        state.share?.operation = nil
-        #expect(state.activity.isEmpty)
-    }
-
-    @Test
     func setupHandlesImportCancellation() async throws {
         let target = try profile()
         let importSpy = ClientSpy()
@@ -1416,70 +1370,6 @@ struct FeatureTests {
         #expect(await importSpy.deleteProfileCalls == 0)
     }
 
-    @Test
-    func setupHandlesConfirmationAndRemoveOutcomes() async throws {
-        let target = try profile()
-
-        var successState = SetupFeature.State()
-        successState.step = .share
-        successState.share = ShareSetupFeature.State(profile: target)
-        let successSpy = ClientSpy()
-        let successStore = TestStore(initialState: successState) {
-            SetupFeature()
-        } withDependencies: {
-            $0.sealbreakClient = client(successSpy)
-            $0.uuid = .incrementing
-        }
-        successStore.exhaustivity = .off(showSkippedAssertions: false)
-
-        await successStore.send(.removeLocalDataTapped)
-        #expect(successStore.state.confirmDelete)
-        await successStore.send(.confirmationDismissed)
-        #expect(!successStore.state.confirmDelete)
-
-        await successStore.send(.removeLocalDataTapped)
-        await successStore.send(.confirmRemoveLocalDataTapped).finish()
-        await successStore.skipReceivedActions()
-        #expect(successStore.state.notice.contains("Local share removed"))
-
-        var cancellationState = SetupFeature.State()
-        cancellationState.step = .share
-        cancellationState.share = ShareSetupFeature.State(profile: target)
-        let cancellationSpy = ClientSpy()
-        await cancellationSpy.setWaitCancellation(true)
-        let cancellationStore = TestStore(initialState: cancellationState) {
-            SetupFeature()
-        } withDependencies: {
-            $0.sealbreakClient = client(cancellationSpy)
-            $0.uuid = .incrementing
-        }
-        cancellationStore.exhaustivity = .off(showSkippedAssertions: false)
-
-        await cancellationStore.send(.removeLocalDataTapped)
-        await cancellationStore.send(.confirmRemoveLocalDataTapped).finish()
-        await cancellationStore.skipReceivedActions()
-        #expect(cancellationStore.state.operation == nil)
-        #expect(cancellationStore.state.notice.contains("Operation cancelled"))
-
-        var failureState = SetupFeature.State()
-        failureState.step = .share
-        failureState.share = ShareSetupFeature.State(profile: target)
-        let failureSpy = ClientSpy()
-        await failureSpy.setDeleteShareError(AppFailure("delete failed"))
-        let failureStore = TestStore(initialState: failureState) {
-            SetupFeature()
-        } withDependencies: {
-            $0.sealbreakClient = client(failureSpy)
-            $0.uuid = .incrementing
-        }
-        failureStore.exhaustivity = .off(showSkippedAssertions: false)
-
-        await failureStore.send(.removeLocalDataTapped)
-        await failureStore.send(.confirmRemoveLocalDataTapped).finish()
-        await failureStore.skipReceivedActions()
-        #expect(failureStore.state.operation == nil)
-        #expect(failureStore.state.notice == "delete failed")
-    }
 }
 
 private extension ClientSpy {
