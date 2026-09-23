@@ -106,6 +106,14 @@ private actor ClientSpy {
         deleteProfileCalls += 1
         if let deleteProfileError { throw deleteProfileError }
         loadedProfiles.removeAll { $0.id == profileID }
+
+        switch persistedSetupState {
+        case .pending(let storedProfileID), .ready(let storedProfileID)
+            where storedProfileID == profileID:
+            persistedSetupState = nil
+        default:
+            break
+        }
     }
 
     func resetLocalData() throws {
