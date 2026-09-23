@@ -96,28 +96,22 @@ private final class LiveSealbreakClientController {
                         "Local Sealbreak setup already exists or did not finish. Reset local data before continuing."
                     )
                 }
-            } catch {
-                return .recoveryRequired(
-                    "Local setup state could not be validated. Reset local Sealbreak data before continuing."
-                )
-            }
 
-            let storedProfiles = try profiles.loadAll()
-            guard storedProfiles.isEmpty else {
-                return .recoveryRequired(
-                    "Local profile data exists without a committed setup. Reset local Sealbreak data before continuing."
-                )
-            }
+                let storedProfiles = try profiles.loadAll()
+                guard storedProfiles.isEmpty else {
+                    return .recoveryRequired(
+                        "Local profile data exists without a committed setup. Reset local Sealbreak data before continuing."
+                    )
+                }
 
-            try setupState.begin(profileID: profile.id)
-            do {
+                try setupState.begin(profileID: profile.id)
                 try profiles.insert(profile)
                 try keychain.insert(record, context: context)
                 try setupState.commit(profileID: profile.id)
                 return .protected
             } catch {
                 return .recoveryRequired(
-                    "Local setup did not finish safely. Reset local Sealbreak data before continuing."
+                    "Local setup could not be completed safely. Reset local Sealbreak data before continuing."
                 )
             }
         }
