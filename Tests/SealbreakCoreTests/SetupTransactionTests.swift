@@ -8,26 +8,22 @@ struct SetupTransactionTests {
     private let share = String(repeating: "a", count: 64)
 
     @Test
-    func localSetupStateRequiresExplicitReadyCommit() throws {
+    func localSetupStateRequiresReadyProfile() throws {
         let profile = try ServerProfile(
             id: UUID(),
             name: "Server",
             address: "https://bao.example.com"
         )
 
-        #expect(resolveLocalSetupState(persistedState: nil, profiles: []) == .empty)
+        #expect(resolveLocalSetupState(profiles: []) == .empty)
 
         guard case .recoveryRequired = resolveLocalSetupState(
-            persistedState: nil,
-            profiles: [profile]
-        ) else {
-            Issue.record("Profile data without an explicit ready commit must require recovery.")
-            return
-        }
-
-        guard case .recoveryRequired = resolveLocalSetupState(
-            persistedState: .pending(profile.id),
-            profiles: [profile]
+            profiles: [
+                StoredProfile(
+                    profile: profile,
+                    state: .pending
+                )
+            ]
         ) else {
             Issue.record("Pending setup must require recovery.")
             return
@@ -35,33 +31,36 @@ struct SetupTransactionTests {
 
         #expect(
             resolveLocalSetupState(
-                persistedState: .ready(profile.id),
-                profiles: [profile]
+                profiles: [
+                    StoredProfile(
+                        profile: profile,
+                        state: .ready
+                    )
+                ]
             ) == .ready(profile)
         )
     }
 
     @Test
-    func localSetupStateRejectsCommittedProfileMismatch() throws {
-        let profile = try ServerProfile(
+    func multipleStoredProfilesRequireRecovery() throws {
+        let first = try ServerProfile(
             id: UUID(),
-            name: "Server",
-            address: "https://bao.example.com"
+            name: "First",
+            address: "https://first.example.com"
+        )
+        let second = try ServerProfile(
+            id: UUID(),
+            name: "Second",
+            address: "https://second.example.com"
         )
 
         guard case .recoveryRequired = resolveLocalSetupState(
-            persistedState: .ready(UUID()),
-            profiles: [profile]
+            profiles: [
+                StoredProfile(profile: first, state: .ready),
+                StoredProfile(profile: second, state: .ready)
+            ]
         ) else {
-            Issue.record("Mismatched ready state must require recovery.")
-            return
-        }
-
-        guard case .recoveryRequired = resolveLocalSetupState(
-            persistedState: .ready(profile.id),
-            profiles: []
-        ) else {
-            Issue.record("Ready state without its profile must require recovery.")
+            Issue.record("Multiple local profiles must require recovery.")
             return
         }
     }
