@@ -10,7 +10,6 @@ private actor ClientSpy {
     var protectOutcome: SetupProtectionOutcome?
     var protectError: AppFailure?
     var insertProfileError: AppFailure?
-    var saveProfileError: AppFailure?
     var deleteProfileError: AppFailure?
     var resetLocalDataError: AppFailure?
     var detectedProduct: ServerProduct = .generic
@@ -103,25 +102,6 @@ private actor ClientSpy {
         return .protected
     }
 
-    func insertProfile(_ profile: ServerProfile) throws {
-        if let insertProfileError { throw insertProfileError }
-        guard !loadedProfiles.contains(where: { $0.id == profile.id }) else {
-            throw AppFailure("A server profile with this identifier already exists.")
-        }
-        guard !loadedProfiles.contains(where: { $0.origin == profile.origin }) else {
-            throw AppFailure("A server profile for this origin already exists.")
-        }
-        savedProfiles.append(profile)
-        loadedProfiles.append(profile)
-    }
-
-    func saveProfile(_ profile: ServerProfile) throws {
-        if let saveProfileError { throw saveProfileError }
-        savedProfiles.append(profile)
-        loadedProfiles.removeAll { $0.id == profile.id }
-        loadedProfiles.append(profile)
-    }
-
     func deleteProfile(_ profileID: UUID) throws {
         deleteProfileCalls += 1
         if let deleteProfileError { throw deleteProfileError }
@@ -160,12 +140,6 @@ private actor ClientSpy {
             throw AppFailure("Protected share belongs to a different profile.")
         }
         return readRecord
-    }
-
-    func insert(_ record: ShareRecord) throws {
-        if let insertError { throw insertError }
-        insertedRecords.append(record)
-        readRecord = record
     }
 
     func replace(_ record: ShareRecord) throws {
