@@ -84,7 +84,7 @@ struct SetupFeature {
                 return .none
 
             case .cancelTapped:
-                guard state.share?.isBusy != true else { return .none }
+                guard !state.blocksSetupExit else { return .none }
                 state.share = nil
                 return .send(.delegate(.cancelled))
 

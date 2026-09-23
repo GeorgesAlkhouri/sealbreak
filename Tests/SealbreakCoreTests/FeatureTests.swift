@@ -833,6 +833,29 @@ struct FeatureTests {
     }
 
     @Test
+    func appRoutesSetupRecoveryDelegateToResetWelcome() async {
+        var initialState = AppFeature.State()
+        initialState.isLoading = false
+        initialState.didLoad = true
+        initialState.setup = SetupFeature.State()
+
+        let store = TestStore(initialState: initialState) {
+            AppFeature()
+        }
+        store.exhaustivity = .off(showSkippedAssertions: false)
+
+        let notice = "Local setup requires a reset."
+        await store.send(
+            .setup(.delegate(.localResetRequired(notice: notice)))
+        )
+
+        #expect(store.state.home == nil)
+        #expect(store.state.setup == nil)
+        #expect(store.state.welcome?.notice == notice)
+        #expect(store.state.welcome?.requiresLocalReset == true)
+    }
+
+    @Test
     func appRoutesPrivacyEventsToVisibleFeatures() async throws {
         let target = try profile()
         let refreshed = status(progress: 2)

@@ -351,6 +351,44 @@ struct KeychainStoreTests {
     }
 
     @Test
+    func createLocalProfileTransactionLeavesCreatingWhenCommitFails() throws {
+        let root = temporaryRoot()
+        defer { try? FileManager.default.removeItem(at: root) }
+        let store = ProfileStore(baseDirectory: root)
+        let profile = try ServerProfile(
+            id: UUID(),
+            name: "Test",
+            address: origin
+        )
+
+        let outcome = createLocalProfileTransaction(
+            beginProfile: {
+                try store.begin(profile)
+            },
+            insertShare: {},
+            commitProfile: {
+                throw AppFailure("commit failed")
+            }
+        )
+
+        guard case .recoveryRequired = outcome else {
+            Issue.record("Failed profile commit must require recovery.")
+            return
+        }
+
+        let stored = try store.loadAll()
+        #expect(
+            stored == [
+                StoredProfile(profile: profile, state: .creating)
+            ]
+        )
+        guard case .recoveryRequired = resolveLocalSetupState(profiles: stored) else {
+            Issue.record("A failed profile commit must remain recovery-required.")
+            return
+        }
+    }
+
+    @Test
     func removeLocalProfileTransactionMarksRemovingBeforeDelete() throws {
         let root = temporaryRoot()
         defer { try? FileManager.default.removeItem(at: root) }
@@ -820,6 +858,42 @@ struct KeychainStoreTests {
         #expect(throws: AppFailure.self) {
             try ProfileStore(baseDirectory: duplicateOriginRoot).loadAll()
         }
+    }
+
+    @Test
+    func profileStoreDeleteRewritesRemainingEntries() throws {
+        let first = try ServerProfile(
+            id: UUID(),
+            name: "First",
+            address: "https://first.example.com"
+        )
+        let second = try ServerProfile(
+            id: UUID(),
+            name: "Second",
+            address: "https://second.example.com"
+        )
+        let root = temporaryRoot()
+        defer { try? FileManager.default.removeItem(at: root) }
+
+        try writeCatalog(
+            TestProfileCatalog(
+                version: 3,
+                profiles: [
+                    StoredProfile(profile: first, state: .ready),
+                    StoredProfile(profile: second, state: .ready)
+                ]
+            ),
+            to: root
+        )
+
+        let store = ProfileStore(baseDirectory: root)
+        try store.delete(id: first.id)
+
+        #expect(
+            try store.loadAll() == [
+                StoredProfile(profile: second, state: .ready)
+            ]
+        )
     }
 
     @Test

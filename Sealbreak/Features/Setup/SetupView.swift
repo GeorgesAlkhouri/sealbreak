@@ -72,7 +72,7 @@ struct SetupView: View {
                             .frame(width: 44, height: 44)
                     }
                     .accessibilityLabel("Back")
-                    .disabled(store.share?.isBusy == true)
+                    .disabled(store.blocksSetupExit)
                 } else {
                     Color.clear
                         .frame(width: 44, height: 44)
