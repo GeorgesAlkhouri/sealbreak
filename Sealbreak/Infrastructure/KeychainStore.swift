@@ -312,7 +312,12 @@ struct ProfileStore {
     }
 }
 
-struct SetupTransactionStore {
+enum PersistedSetupState: Equatable, Codable {
+    case pending(UUID)
+    case ready(UUID)
+}
+
+struct SetupStateStore {
     private let baseDirectory: URL
 
     init(baseDirectory: URL? = nil) {
@@ -327,14 +332,40 @@ struct SetupTransactionStore {
     }
 
     private var file: URL {
-        directory.appendingPathComponent("setup-pending")
+        directory.appendingPathComponent("setup-state.json")
     }
 
-    func isPending() -> Bool {
-        FileManager.default.fileExists(atPath: file.path)
+    func load() throws -> PersistedSetupState? {
+        guard FileManager.default.fileExists(atPath: file.path) else {
+            return nil
+        }
+
+        let data = try Data(contentsOf: file)
+        do {
+            return try JSONDecoder().decode(PersistedSetupState.self, from: data)
+        } catch {
+            throw AppFailure(
+                "Invalid local setup state. Reset local Sealbreak data before continuing."
+            )
+        }
     }
 
-    func begin() throws {
+    func begin(profileID: UUID) throws {
+        try write(.pending(profileID))
+    }
+
+    func commit(profileID: UUID) throws {
+        try write(.ready(profileID))
+    }
+
+    func reset() throws {
+        guard FileManager.default.fileExists(atPath: file.path) else {
+            return
+        }
+        try FileManager.default.removeItem(at: file)
+    }
+
+    private func write(_ state: PersistedSetupState) throws {
         var folder = directory
         try FileManager.default.createDirectory(
             at: folder,
@@ -344,17 +375,10 @@ struct SetupTransactionStore {
         var values = URLResourceValues()
         values.isExcludedFromBackup = true
         try folder.setResourceValues(values)
-        try Data([1]).write(
+        try JSONEncoder().encode(state).write(
             to: file,
             options: [.atomic, .completeFileProtection]
         )
-    }
-
-    func clear() throws {
-        guard FileManager.default.fileExists(atPath: file.path) else {
-            return
-        }
-        try FileManager.default.removeItem(at: file)
     }
 }
 
