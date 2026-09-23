@@ -786,7 +786,7 @@ struct KeychainStoreTests {
         defer { try? FileManager.default.removeItem(at: duplicateIDRoot) }
         try writeCatalog(
             TestProfileCatalog(
-                version: 2,
+                version: 3,
                 profiles: [
                     StoredProfile(profile: first, state: .ready),
                     StoredProfile(profile: duplicateID, state: .ready)
@@ -808,7 +808,7 @@ struct KeychainStoreTests {
         defer { try? FileManager.default.removeItem(at: duplicateOriginRoot) }
         try writeCatalog(
             TestProfileCatalog(
-                version: 2,
+                version: 3,
                 profiles: [
                     StoredProfile(profile: first, state: .ready),
                     StoredProfile(profile: duplicateOrigin, state: .ready)
@@ -836,7 +836,7 @@ struct KeychainStoreTests {
         defer { try? FileManager.default.removeItem(at: root) }
         try writeCatalog(
             TestProfileCatalog(
-                version: 2,
+                version: 3,
                 profiles: [
                     StoredProfile(profile: profile, state: .ready)
                 ]
