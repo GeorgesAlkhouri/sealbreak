@@ -351,10 +351,20 @@ struct SetupStateStore {
     }
 
     func begin(profileID: UUID) throws {
+        guard try load() == nil else {
+            throw AppFailure(
+                "A local setup transaction is already recorded. Reset local Sealbreak data before continuing."
+            )
+        }
         try write(.pending(profileID))
     }
 
     func commit(profileID: UUID) throws {
+        guard try load() == .pending(profileID) else {
+            throw AppFailure(
+                "Local setup state cannot be committed. Reset local Sealbreak data before continuing."
+            )
+        }
         try write(.ready(profileID))
     }
 
