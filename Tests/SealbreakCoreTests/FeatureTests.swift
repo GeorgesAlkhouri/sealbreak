@@ -6,6 +6,9 @@ import Testing
 private actor ClientSpy {
     var loadedProfiles: [ServerProfile] = []
     var loadError: AppFailure?
+    var setupRecoveryRequired = false
+    var protectOutcome: SetupProtectionOutcome?
+    var protectError: AppFailure?
     var insertProfileError: AppFailure?
     var saveProfileError: AppFailure?
     var deleteProfileError: AppFailure?
@@ -38,6 +41,66 @@ private actor ClientSpy {
     func loadProfiles() throws -> [ServerProfile] {
         if let loadError { throw loadError }
         return loadedProfiles
+    }
+
+    func loadLocalSetupState() throws -> LocalSetupState {
+        if setupRecoveryRequired {
+            return .recoveryRequired
+        }
+
+        let profiles = try loadProfiles()
+        guard profiles.count <= 1 else {
+            return .recoveryRequired
+        }
+        if let profile = profiles.first {
+            return .ready(profile)
+        }
+        return .empty
+    }
+
+    func protectNewProfile(
+        _ profile: ServerProfile,
+        record: ShareRecord
+    ) throws -> SetupProtectionOutcome {
+        if waitCancellation {
+            throw CancellationError()
+        }
+        if let waitError {
+            throw waitError
+        }
+        if let protectError {
+            throw protectError
+        }
+        if let protectOutcome {
+            return protectOutcome
+        }
+
+        let profiles = try loadProfiles()
+        guard profiles.isEmpty else {
+            return .recoveryRequired(
+                "A local server profile already exists. Reset local Sealbreak data before setting up another server."
+            )
+        }
+        if insertProfileError != nil {
+            setupRecoveryRequired = true
+            return .recoveryRequired(
+                "Local setup did not finish safely. Reset local Sealbreak data before continuing."
+            )
+        }
+
+        savedProfiles.append(profile)
+        loadedProfiles.append(profile)
+
+        if insertError != nil {
+            setupRecoveryRequired = true
+            return .recoveryRequired(
+                "Local setup did not finish safely. Reset local Sealbreak data before continuing."
+            )
+        }
+
+        insertedRecords.append(record)
+        readRecord = record
+        return .protected
     }
 
     func insertProfile(_ profile: ServerProfile) throws {
@@ -136,6 +199,10 @@ private actor ClientSpy {
 private func client(_ spy: ClientSpy) -> SealbreakClient {
     SealbreakClient(
         loadProfiles: { try await spy.loadProfiles() },
+        loadLocalSetupState: { try await spy.loadLocalSetupState() },
+        protectNewProfile: { profile, record, _ in
+            try await spy.protectNewProfile(profile, record: record)
+        },
         insertProfile: { try await spy.insertProfile($0) },
         saveProfile: { try await spy.saveProfile($0) },
         deleteProfile: { try await spy.deleteProfile($0) },
@@ -625,7 +692,7 @@ struct FeatureTests {
         await store.skipReceivedActions()
 
         #expect(await spy.insertedCount == 0)
-        #expect(store.state.notice == "insert failed")
+        #expect(store.state.notice.contains("Reset local Sealbreak data"))
     }
     @Test
     func removeLocalDataCoversProfileDeletionFailure() async throws {
@@ -1367,7 +1434,7 @@ struct FeatureTests {
         await importStore.skipReceivedActions()
         #expect(importStore.state.operation == nil)
         #expect(importStore.state.notice.contains("Operation cancelled"))
-        #expect(await importSpy.deleteProfileCalls == 1)
+        #expect(await importSpy.deleteProfileCalls == 0)
     }
 
     @Test
@@ -1440,6 +1507,9 @@ private extension ClientSpy {
     func setLoadedProfile(_ value: ServerProfile?) { loadedProfiles = value.map { [$0] } ?? [] }
     func setLoadedProfiles(_ value: [ServerProfile]) { loadedProfiles = value }
     func setLoadError(_ value: AppFailure?) { loadError = value }
+    func setSetupRecoveryRequired(_ value: Bool) { setupRecoveryRequired = value }
+    func setProtectOutcome(_ value: SetupProtectionOutcome?) { protectOutcome = value }
+    func setProtectError(_ value: AppFailure?) { protectError = value }
     func setInsertProfileError(_ value: AppFailure?) { insertProfileError = value }
     func setSaveProfileError(_ value: AppFailure?) { saveProfileError = value }
     func setDeleteProfileError(_ value: AppFailure?) { deleteProfileError = value }
