@@ -86,10 +86,14 @@ private final class LiveSealbreakClientController {
     ) async throws -> LocalPersistenceOutcome {
         try await withAuthorizedContext(reason: reason) { context in
             createLocalProfileTransaction(
-                profile: profile,
-                profiles: profiles,
+                beginProfile: {
+                    try profiles.begin(profile)
+                },
                 insertShare: {
                     try keychain.insert(record, context: context)
+                },
+                commitProfile: {
+                    try profiles.commit(id: profile.id)
                 }
             )
         }
@@ -101,10 +105,14 @@ private final class LiveSealbreakClientController {
     ) async throws -> LocalPersistenceOutcome {
         try await withAuthorizedContext(reason: reason) { context in
             removeLocalProfileTransaction(
-                profileID: profileID,
-                profiles: profiles,
+                beginRemoval: {
+                    try profiles.beginRemoval(id: profileID)
+                },
                 deleteShare: {
                     try keychain.delete(profileID: profileID, context: context)
+                },
+                deleteProfile: {
+                    try profiles.delete(id: profileID)
                 }
             )
         }
