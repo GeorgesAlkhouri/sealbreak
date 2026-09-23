@@ -41,6 +41,7 @@ struct ShareSetupFeature {
 
         case saveTapped(share: String)
         case importResponse(Result<ProfileResult, AppFailure>)
+        case localResetRequired(String)
         case operationCancelled
         case privacyInterrupted
         case delegate(Delegate)
@@ -90,11 +91,7 @@ struct ShareSetupFeature {
                             )
 
                         case .recoveryRequired(let notice):
-                            await send(
-                                .delegate(
-                                    .localResetRequired(notice: notice)
-                                )
-                            )
+                            await send(.localResetRequired(notice))
                         }
                     } catch is CancellationError {
                         await send(.operationCancelled)
@@ -123,6 +120,15 @@ struct ShareSetupFeature {
                 state.operation = nil
                 state.notice = failure.message
                 return .none
+
+            case .localResetRequired(let notice):
+                state.operation = nil
+                state.notice = notice
+                return .send(
+                    .delegate(
+                        .localResetRequired(notice: notice)
+                    )
+                )
 
             case .operationCancelled:
                 state.operation = nil
