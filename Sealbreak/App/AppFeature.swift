@@ -61,12 +61,12 @@ struct AppFeature {
                 state.home = HomeFeature.State(profile: profile)
                 return .send(.home(.refreshRequested))
 
-            case .localSetupStateLoaded(.success(.recoveryRequired)):
+            case .localSetupStateLoaded(.success(.recoveryRequired(let notice))):
                 state.isLoading = false
                 state.home = nil
                 state.setup = nil
                 state.welcome = WelcomeFeature.State(
-                    notice: "Local Sealbreak setup did not finish cleanly. Reset local data to continue, then set up again using your independent share copy.",
+                    notice: notice,
                     requiresLocalReset: true
                 )
                 return .none
