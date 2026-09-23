@@ -312,7 +312,6 @@ struct ProfileStore {
     }
 }
 
-
 struct SetupTransactionStore {
     private let baseDirectory: URL
 
