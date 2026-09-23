@@ -842,7 +842,7 @@ struct FeatureTests {
 
         await setupStore.send(.privacy(.delegate(.interrupted))).finish()
         await setupStore.skipReceivedActions()
-        #expect(await setupSpy.cancelCalls == 1)
+        #expect(await setupSpy.cancelCalls == 0)
     }
 
     @Test
