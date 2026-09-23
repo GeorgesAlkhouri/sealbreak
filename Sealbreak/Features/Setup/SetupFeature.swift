@@ -33,6 +33,10 @@ struct SetupFeature {
             }
             return ""
         }
+
+        var blocksSetupExit: Bool {
+            share?.isBusy == true
+        }
     }
 
     enum Action: Equatable {
@@ -74,7 +78,7 @@ struct SetupFeature {
                 return .send(.delegate(.localResetRequired(notice: notice)))
 
             case .backTapped:
-                guard state.share?.isBusy != true else { return .none }
+                guard !state.blocksSetupExit else { return .none }
                 state.share = nil
                 state.step = .instance
                 return .none
