@@ -164,8 +164,9 @@ struct KeychainStore {
 }
 
 enum StoredProfileState: String, Codable, Equatable {
-    case pending
+    case creating
     case ready
+    case removing
 }
 
 struct StoredProfile: Codable, Equatable {
@@ -266,7 +267,7 @@ struct ProfileStore {
         entries.append(
             StoredProfile(
                 profile: profile,
-                state: .pending
+                state: .creating
             )
         )
         try write(entries)
@@ -276,13 +277,27 @@ struct ProfileStore {
         var entries = try loadAll()
         guard entries.count == 1,
               entries[0].profile.id == id,
-              entries[0].state == .pending else {
+              entries[0].state == .creating else {
             throw AppFailure(
                 "Local setup state cannot be committed. Reset local Sealbreak data before continuing."
             )
         }
 
         entries[0].state = .ready
+        try write(entries)
+    }
+
+    func beginRemoval(id: UUID) throws {
+        var entries = try loadAll()
+        guard entries.count == 1,
+              entries[0].profile.id == id,
+              entries[0].state == .ready else {
+            throw AppFailure(
+                "Local removal state cannot be started. Reset local Sealbreak data before continuing."
+            )
+        }
+
+        entries[0].state = .removing
         try write(entries)
     }
 
@@ -345,13 +360,52 @@ func resolveLocalSetupState(
     }
 
     switch entry.state {
-    case .pending:
+    case .creating:
         return .recoveryRequired(
             "Local Sealbreak setup did not finish cleanly. Reset local data to continue, then set up again using your independent share copy."
         )
 
     case .ready:
         return .ready(entry.profile)
+
+    case .removing:
+        return .recoveryRequired(
+            "Local Sealbreak removal did not finish cleanly. Reset local data to continue."
+        )
+    }
+}
+
+func createLocalProfileTransaction(
+    profile: ServerProfile,
+    profiles: ProfileStore,
+    insertShare: () throws -> Void
+) -> LocalPersistenceOutcome {
+    do {
+        try profiles.begin(profile)
+        try insertShare()
+        try profiles.commit(id: profile.id)
+        return .completed
+    } catch {
+        return .recoveryRequired(
+            "Local setup could not be completed safely. Reset local Sealbreak data before continuing."
+        )
+    }
+}
+
+func removeLocalProfileTransaction(
+    profileID: UUID,
+    profiles: ProfileStore,
+    deleteShare: () throws -> Void
+) -> LocalPersistenceOutcome {
+    do {
+        try profiles.beginRemoval(id: profileID)
+        try deleteShare()
+        try profiles.delete(id: profileID)
+        return .completed
+    } catch {
+        return .recoveryRequired(
+            "Local removal could not be completed safely. Reset local Sealbreak data before continuing."
+        )
     }
 }
 
