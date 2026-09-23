@@ -284,37 +284,3 @@ private final class LiveSealbreakClientController {
         return try operation(context)
     }
 }
-
-func resolveLocalSetupState(
-    persistedState: PersistedSetupState?,
-    profiles: [ServerProfile]
-) -> LocalSetupState {
-    guard profiles.count <= 1 else {
-        return .recoveryRequired(
-            "Local Sealbreak data contains multiple server profiles, but this app version supports one. Reset local data to continue."
-        )
-    }
-
-    switch persistedState {
-    case nil:
-        guard profiles.isEmpty else {
-            return .recoveryRequired(
-                "Local profile data exists without a committed setup. Reset local Sealbreak data before continuing."
-            )
-        }
-        return .empty
-
-    case .pending:
-        return .recoveryRequired(
-            "Local Sealbreak setup did not finish cleanly. Reset local data to continue, then set up again using your independent share copy."
-        )
-
-    case .ready(let profileID):
-        guard profiles.count == 1, let profile = profiles.first, profile.id == profileID else {
-            return .recoveryRequired(
-                "Local setup state and profile data do not match. Reset local Sealbreak data before continuing."
-            )
-        }
-        return .ready(profile)
-    }
-}
