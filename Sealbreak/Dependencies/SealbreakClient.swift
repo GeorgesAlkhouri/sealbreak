@@ -13,7 +13,7 @@ enum DNSSECStatus: Equatable, Sendable {
 enum LocalSetupState: Equatable, Sendable {
     case empty
     case ready(ServerProfile)
-    case recoveryRequired
+    case recoveryRequired(String)
 }
 
 enum SetupProtectionOutcome: Equatable, Sendable {
