@@ -95,12 +95,16 @@ private final class LiveSealbreakClientController {
 
     func loadLocalSetupState() throws -> LocalSetupState {
         if setupTransaction.isPending() {
-            return .recoveryRequired
+            return .recoveryRequired(
+                "Local Sealbreak setup did not finish cleanly. Reset local data to continue, then set up again using your independent share copy."
+            )
         }
 
         let storedProfiles = try profiles.loadAll()
         guard storedProfiles.count <= 1 else {
-            return .recoveryRequired
+            return .recoveryRequired(
+                "Local Sealbreak data contains multiple server profiles, but this app version supports one. Reset local data to continue."
+            )
         }
         if let profile = storedProfiles.first {
             return .ready(profile)
