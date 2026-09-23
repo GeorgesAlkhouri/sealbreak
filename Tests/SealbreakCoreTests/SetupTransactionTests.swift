@@ -8,6 +8,65 @@ struct SetupTransactionTests {
     private let share = String(repeating: "a", count: 64)
 
     @Test
+    func localSetupStateRequiresExplicitReadyCommit() throws {
+        let profile = try ServerProfile(
+            id: UUID(),
+            name: "Server",
+            address: "https://bao.example.com"
+        )
+
+        #expect(resolveLocalSetupState(persistedState: nil, profiles: []) == .empty)
+
+        guard case .recoveryRequired = resolveLocalSetupState(
+            persistedState: nil,
+            profiles: [profile]
+        ) else {
+            Issue.record("Profile data without an explicit ready commit must require recovery.")
+            return
+        }
+
+        guard case .recoveryRequired = resolveLocalSetupState(
+            persistedState: .pending(profile.id),
+            profiles: [profile]
+        ) else {
+            Issue.record("Pending setup must require recovery.")
+            return
+        }
+
+        #expect(
+            resolveLocalSetupState(
+                persistedState: .ready(profile.id),
+                profiles: [profile]
+            ) == .ready(profile)
+        )
+    }
+
+    @Test
+    func localSetupStateRejectsCommittedProfileMismatch() throws {
+        let profile = try ServerProfile(
+            id: UUID(),
+            name: "Server",
+            address: "https://bao.example.com"
+        )
+
+        guard case .recoveryRequired = resolveLocalSetupState(
+            persistedState: .ready(UUID()),
+            profiles: [profile]
+        ) else {
+            Issue.record("Mismatched ready state must require recovery.")
+            return
+        }
+
+        guard case .recoveryRequired = resolveLocalSetupState(
+            persistedState: .ready(profile.id),
+            profiles: []
+        ) else {
+            Issue.record("Ready state without its profile must require recovery.")
+            return
+        }
+    }
+
+    @Test
     func privacyInterruptionLetsProtectionReportCancellation() async throws {
         let profile = try ServerProfile(
             id: UUID(),
