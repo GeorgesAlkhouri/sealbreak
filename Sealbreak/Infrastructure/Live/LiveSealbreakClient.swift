@@ -279,7 +279,6 @@ private final class LiveSealbreakClientController {
     }
 }
 
-
 func resolveLocalSetupState(
     persistedState: PersistedSetupState?,
     profiles: [ServerProfile]
