@@ -50,7 +50,7 @@ struct SetupView: View {
             Button("Discard setup", role: .destructive) {
                 store.send(.cancelTapped)
             }
-            .disabled(store.isBusy)
+            .disabled(store.share?.isBusy == true)
 
             Button("Keep setting up", role: .cancel) {
                 // The cancel role dismisses the confirmation dialog without changing setup state.
