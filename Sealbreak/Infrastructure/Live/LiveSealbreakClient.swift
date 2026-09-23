@@ -6,9 +6,6 @@ import UIKit
 extension SealbreakClient: DependencyKey {
     static var liveValue: Self {
         Self(
-            loadProfiles: {
-                try await LiveSealbreakClientController.shared.loadProfiles()
-            },
             loadLocalSetupState: {
                 try await LiveSealbreakClientController.shared.loadLocalSetupState()
             },
@@ -18,12 +15,6 @@ extension SealbreakClient: DependencyKey {
                     record: record,
                     reason: reason
                 )
-            },
-            insertProfile: { profile in
-                try await LiveSealbreakClientController.shared.insertProfile(profile)
-            },
-            saveProfile: { profile in
-                try await LiveSealbreakClientController.shared.saveProfile(profile)
             },
             deleteProfile: { profileID in
                 try await LiveSealbreakClientController.shared.deleteProfile(profileID)
@@ -48,9 +39,6 @@ extension SealbreakClient: DependencyKey {
                     profileID: profileID,
                     reason: reason
                 )
-            },
-            insertShare: { record, reason in
-                try await LiveSealbreakClientController.shared.insertShare(record, reason: reason)
             },
             replaceShare: { expectedProfile, replacement, reason in
                 try await LiveSealbreakClientController.shared.replaceShare(
@@ -88,10 +76,6 @@ private final class LiveSealbreakClientController {
     private let client = SealServerClient()
     private let dnssecResolver = DNSSECResolver.live
     private var activeContext: LAContext?
-
-    func loadProfiles() throws -> [ServerProfile] {
-        try profiles.loadAll()
-    }
 
     func loadLocalSetupState() throws -> LocalSetupState {
         if setupTransaction.isPending() {
@@ -145,14 +129,6 @@ private final class LiveSealbreakClientController {
         }
     }
 
-    func insertProfile(_ profile: ServerProfile) throws {
-        try profiles.insert(profile)
-    }
-
-    func saveProfile(_ profile: ServerProfile) throws {
-        try profiles.save(profile)
-    }
-
     func deleteProfile(_ profileID: UUID) throws {
         try profiles.delete(id: profileID)
     }
@@ -189,13 +165,6 @@ private final class LiveSealbreakClientController {
     func readShare(profileID: UUID, reason: String) async throws -> ShareRecord {
         try await withAuthorizedContext(reason: reason) { context in
             try keychain.read(profileID: profileID, context: context)
-        }
-    }
-
-    func insertShare(_ record: ShareRecord, reason: String) async throws {
-        try await withAuthorizedContext(reason: reason) { context in
-            try requireForeground()
-            try keychain.insert(record, context: context)
         }
     }
 
