@@ -163,11 +163,21 @@ struct KeychainStore {
     }
 }
 
+enum StoredProfileState: String, Codable, Equatable {
+    case pending
+    case ready
+}
+
+struct StoredProfile: Codable, Equatable {
+    let profile: ServerProfile
+    var state: StoredProfileState
+}
+
 private struct ProfileCatalog: Codable {
-    static let currentVersion = 1
+    static let currentVersion = 2
 
     let version: Int
-    var profiles: [ServerProfile]
+    var profiles: [StoredProfile]
 }
 
 struct ProfileStore {
@@ -188,7 +198,7 @@ struct ProfileStore {
         directory.appendingPathComponent("profiles.json")
     }
 
-    func loadAll() throws -> [ServerProfile] {
+    func loadAll() throws -> [StoredProfile] {
         guard FileManager.default.fileExists(atPath: file.path) else {
             return []
         }
@@ -199,26 +209,32 @@ struct ProfileStore {
         }
         let data = try handle.read(upToCount: StorageLimits.maxProfileCatalogBytes + 1) ?? Data()
         guard data.count <= StorageLimits.maxProfileCatalogBytes else {
-            throw AppFailure("Invalid profile catalog. Reset local Sealbreak data before setting up again using your independent share copies.")
+            throw AppFailure(
+                "Invalid profile catalog. Reset local Sealbreak data before setting up again using your independent share copies."
+            )
         }
 
         let catalog: ProfileCatalog
         do {
             catalog = try JSONDecoder().decode(ProfileCatalog.self, from: data)
         } catch {
-            throw AppFailure("Invalid profile catalog. Reset local Sealbreak data before setting up again using your independent share copies.")
+            throw AppFailure(
+                "Invalid profile catalog. Reset local Sealbreak data before setting up again using your independent share copies."
+            )
         }
         guard catalog.version == ProfileCatalog.currentVersion else {
-            throw AppFailure("Unsupported profile catalog version. Reset local Sealbreak data before setting up again using your independent share copies.")
+            throw AppFailure(
+                "Unsupported profile catalog version. Reset local Sealbreak data before setting up again using your independent share copies."
+            )
         }
 
         var ids = Set<UUID>()
         var origins = Set<String>()
-        var validated: [ServerProfile] = []
+        var validated: [StoredProfile] = []
         validated.reserveCapacity(catalog.profiles.count)
 
-        for profile in catalog.profiles {
-            let profile = try profile.validated()
+        for entry in catalog.profiles {
+            let profile = try entry.profile.validated()
             try StorageLimits.validateEncodedSize(JSONEncoder().encode(profile))
             guard ids.insert(profile.id).inserted else {
                 throw AppFailure("The profile catalog contains a duplicate profile identifier.")
@@ -226,59 +242,62 @@ struct ProfileStore {
             guard origins.insert(profile.origin).inserted else {
                 throw AppFailure("The profile catalog contains the same server origin more than once.")
             }
-            validated.append(profile)
+            validated.append(
+                StoredProfile(
+                    profile: profile,
+                    state: entry.state
+                )
+            )
         }
 
         return validated
     }
 
-    func insert(_ profile: ServerProfile) throws {
+    func begin(_ profile: ServerProfile) throws {
         let profile = try profile.validated()
         try StorageLimits.validateEncodedSize(JSONEncoder().encode(profile))
 
-        var profiles = try loadAll()
-        guard !profiles.contains(where: { $0.id == profile.id }) else {
-            throw AppFailure("A server profile with this identifier already exists.")
+        var entries = try loadAll()
+        guard entries.isEmpty else {
+            throw AppFailure(
+                "Local profile data already exists. Reset local Sealbreak data before continuing."
+            )
         }
-        guard !profiles.contains(where: { $0.origin == profile.origin }) else {
-            throw AppFailure("A server profile for this origin already exists.")
-        }
-        profiles.append(profile)
-        try write(profiles)
+        entries.append(
+            StoredProfile(
+                profile: profile,
+                state: .pending
+            )
+        )
+        try write(entries)
     }
 
-    func save(_ profile: ServerProfile) throws {
-        let profile = try profile.validated()
-        try StorageLimits.validateEncodedSize(JSONEncoder().encode(profile))
-
-        var profiles = try loadAll()
-        if let index = profiles.firstIndex(where: { $0.id == profile.id }) {
-            guard profiles[index].origin == profile.origin else {
-                throw AppFailure("A server profile cannot be retargeted. Create a new profile for a different origin.")
-            }
-            profiles[index] = profile
-        } else {
-            guard !profiles.contains(where: { $0.origin == profile.origin }) else {
-                throw AppFailure("A server profile for this origin already exists.")
-            }
-            profiles.append(profile)
+    func commit(id: UUID) throws {
+        var entries = try loadAll()
+        guard entries.count == 1,
+              entries[0].profile.id == id,
+              entries[0].state == .pending else {
+            throw AppFailure(
+                "Local setup state cannot be committed. Reset local Sealbreak data before continuing."
+            )
         }
 
-        try write(profiles)
+        entries[0].state = .ready
+        try write(entries)
     }
 
     func delete(id: UUID) throws {
-        var profiles = try loadAll()
-        profiles.removeAll { $0.id == id }
+        var entries = try loadAll()
+        entries.removeAll { $0.profile.id == id }
 
-        if profiles.isEmpty {
+        if entries.isEmpty {
             if FileManager.default.fileExists(atPath: file.path) {
                 try FileManager.default.removeItem(at: file)
             }
             return
         }
 
-        try write(profiles)
+        try write(entries)
     }
 
     func reset() throws {
@@ -288,7 +307,7 @@ struct ProfileStore {
         try FileManager.default.removeItem(at: file)
     }
 
-    private func write(_ profiles: [ServerProfile]) throws {
+    private func write(_ profiles: [StoredProfile]) throws {
         let catalog = ProfileCatalog(
             version: ProfileCatalog.currentVersion,
             profiles: profiles
@@ -312,90 +331,8 @@ struct ProfileStore {
     }
 }
 
-enum PersistedSetupState: Equatable, Codable {
-    case pending(UUID)
-    case ready(UUID)
-}
-
-struct SetupStateStore {
-    private let baseDirectory: URL
-
-    init(baseDirectory: URL? = nil) {
-        self.baseDirectory = baseDirectory ?? FileManager.default.urls(
-            for: .applicationSupportDirectory,
-            in: .userDomainMask
-        )[0]
-    }
-
-    private var directory: URL {
-        baseDirectory.appendingPathComponent("Sealbreak", isDirectory: true)
-    }
-
-    private var file: URL {
-        directory.appendingPathComponent("setup-state.json")
-    }
-
-    func load() throws -> PersistedSetupState? {
-        guard FileManager.default.fileExists(atPath: file.path) else {
-            return nil
-        }
-
-        let data = try Data(contentsOf: file)
-        do {
-            return try JSONDecoder().decode(PersistedSetupState.self, from: data)
-        } catch {
-            throw AppFailure(
-                "Invalid local setup state. Reset local Sealbreak data before continuing."
-            )
-        }
-    }
-
-    func begin(profileID: UUID) throws {
-        guard try load() == nil else {
-            throw AppFailure(
-                "A local setup transaction is already recorded. Reset local Sealbreak data before continuing."
-            )
-        }
-        try write(.pending(profileID))
-    }
-
-    func commit(profileID: UUID) throws {
-        guard try load() == .pending(profileID) else {
-            throw AppFailure(
-                "Local setup state cannot be committed. Reset local Sealbreak data before continuing."
-            )
-        }
-        try write(.ready(profileID))
-    }
-
-    func reset() throws {
-        guard FileManager.default.fileExists(atPath: file.path) else {
-            return
-        }
-        try FileManager.default.removeItem(at: file)
-    }
-
-    private func write(_ state: PersistedSetupState) throws {
-        var folder = directory
-        try FileManager.default.createDirectory(
-            at: folder,
-            withIntermediateDirectories: true,
-            attributes: [.protectionKey: FileProtectionType.complete]
-        )
-        var values = URLResourceValues()
-        values.isExcludedFromBackup = true
-        try folder.setResourceValues(values)
-        try JSONEncoder().encode(state).write(
-            to: file,
-            options: [.atomic, .completeFileProtection]
-        )
-    }
-}
-
-
 func resolveLocalSetupState(
-    persistedState: PersistedSetupState?,
-    profiles: [ServerProfile]
+    profiles: [StoredProfile]
 ) -> LocalSetupState {
     guard profiles.count <= 1 else {
         return .recoveryRequired(
@@ -403,27 +340,18 @@ func resolveLocalSetupState(
         )
     }
 
-    switch persistedState {
-    case nil:
-        guard profiles.isEmpty else {
-            return .recoveryRequired(
-                "Local profile data exists without a committed setup. Reset local Sealbreak data before continuing."
-            )
-        }
+    guard let entry = profiles.first else {
         return .empty
+    }
 
+    switch entry.state {
     case .pending:
         return .recoveryRequired(
             "Local Sealbreak setup did not finish cleanly. Reset local data to continue, then set up again using your independent share copy."
         )
 
-    case .ready(let profileID):
-        guard profiles.count == 1, let profile = profiles.first, profile.id == profileID else {
-            return .recoveryRequired(
-                "Local setup state and profile data do not match. Reset local Sealbreak data before continuing."
-            )
-        }
-        return .ready(profile)
+    case .ready:
+        return .ready(entry.profile)
     }
 }
 
