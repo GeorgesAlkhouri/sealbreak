@@ -174,10 +174,16 @@ struct StoredProfile: Codable, Equatable {
     var state: StoredProfileState
 }
 
+enum ProfileCatalogState: String, Codable, Equatable {
+    case active
+    case resetting
+}
+
 private struct ProfileCatalog: Codable {
-    static let currentVersion = 2
+    static let currentVersion = 3
 
     let version: Int
+    let state: ProfileCatalogState
     var profiles: [StoredProfile]
 }
 
@@ -226,6 +232,11 @@ struct ProfileStore {
         guard catalog.version == ProfileCatalog.currentVersion else {
             throw AppFailure(
                 "Unsupported profile catalog version. Reset local Sealbreak data before setting up again using your independent share copies."
+            )
+        }
+        guard catalog.state == .active else {
+            throw AppFailure(
+                "Local Sealbreak reset did not finish. Reset local data to continue."
             )
         }
 
@@ -315,6 +326,16 @@ struct ProfileStore {
         try write(entries)
     }
 
+    func prepareForReset() throws {
+        try writeCatalog(
+            ProfileCatalog(
+                version: ProfileCatalog.currentVersion,
+                state: .resetting,
+                profiles: []
+            )
+        )
+    }
+
     func reset() throws {
         guard FileManager.default.fileExists(atPath: file.path) else {
             return
@@ -323,10 +344,16 @@ struct ProfileStore {
     }
 
     private func write(_ profiles: [StoredProfile]) throws {
-        let catalog = ProfileCatalog(
-            version: ProfileCatalog.currentVersion,
-            profiles: profiles
+        try writeCatalog(
+            ProfileCatalog(
+                version: ProfileCatalog.currentVersion,
+                state: .active,
+                profiles: profiles
+            )
         )
+    }
+
+    private func writeCatalog(_ catalog: ProfileCatalog) throws {
         let data = try JSONEncoder().encode(catalog)
         try StorageLimits.validateProfileCatalogSize(data)
 
@@ -410,9 +437,11 @@ func removeLocalProfileTransaction(
 }
 
 func resetLocalStorage(
+    prepareReset: () throws -> Void,
     deleteShares: () throws -> Void,
     resetProfiles: () throws -> Void
 ) throws {
+    try prepareReset()
     try deleteShares()
     try resetProfiles()
 }

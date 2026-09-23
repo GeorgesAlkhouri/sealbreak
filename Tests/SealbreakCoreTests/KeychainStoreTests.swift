@@ -561,6 +561,9 @@ struct KeychainStoreTests {
         let profiles = ProfileStore(baseDirectory: root)
 
         try resetLocalStorage(
+            prepareReset: {
+                try profiles.prepareForReset()
+            },
             deleteShares: {
                 try keychain.deleteAll()
             },
@@ -578,6 +581,9 @@ struct KeychainStoreTests {
 
         #expect(throws: AppFailure.self) {
             try resetLocalStorage(
+                prepareReset: {
+                    try profiles.prepareForReset()
+                },
                 deleteShares: {
                     try keychain.deleteAll()
                 },
@@ -592,10 +598,13 @@ struct KeychainStoreTests {
     }
 
     @Test
-    func localResetDeletesSharesBeforeProfileCatalog() throws {
+    func localResetPreparesBeforeDeletingShares() throws {
         var events: [String] = []
 
         try resetLocalStorage(
+            prepareReset: {
+                events.append("prepare")
+            },
             deleteShares: {
                 events.append("shares")
             },
@@ -603,21 +612,82 @@ struct KeychainStoreTests {
                 events.append("profiles")
             }
         )
-        #expect(events == ["shares", "profiles"])
+        #expect(events == ["prepare", "shares", "profiles"])
 
         events = []
         #expect(throws: AppFailure.self) {
             try resetLocalStorage(
+                prepareReset: {
+                    events.append("prepare")
+                    throw AppFailure("prepare failed")
+                },
                 deleteShares: {
                     events.append("shares")
-                    throw AppFailure("keychain delete failed")
                 },
                 resetProfiles: {
                     events.append("profiles")
                 }
             )
         }
-        #expect(events == ["shares"])
+        #expect(events == ["prepare"])
+    }
+
+    @Test
+    func localResetLeavesResettingStateWhenProfileResetFails() throws {
+        let root = temporaryRoot()
+        defer { try? FileManager.default.removeItem(at: root) }
+        let profiles = ProfileStore(baseDirectory: root)
+        let profile = try ServerProfile(
+            id: UUID(),
+            name: "Test",
+            address: origin
+        )
+        try profiles.begin(profile)
+        try profiles.commit(id: profile.id)
+
+        #expect(throws: AppFailure.self) {
+            try resetLocalStorage(
+                prepareReset: {
+                    try profiles.prepareForReset()
+                },
+                deleteShares: {},
+                resetProfiles: {
+                    throw AppFailure("profile reset failed")
+                }
+            )
+        }
+
+        #expect(throws: AppFailure.self) {
+            try profiles.loadAll()
+        }
+
+        try resetLocalStorage(
+            prepareReset: {
+                try profiles.prepareForReset()
+            },
+            deleteShares: {},
+            resetProfiles: {
+                try profiles.reset()
+            }
+        )
+        #expect(try profiles.loadAll().isEmpty)
+    }
+
+    @Test
+    func prepareForResetOverwritesMalformedCatalogWithoutReadingIt() throws {
+        let root = temporaryRoot()
+        defer { try? FileManager.default.removeItem(at: root) }
+        try writeCatalogData(Data("{}".utf8), to: root)
+
+        let profiles = ProfileStore(baseDirectory: root)
+        try profiles.prepareForReset()
+
+        #expect(throws: AppFailure.self) {
+            try profiles.loadAll()
+        }
+
+        try profiles.reset()
+        #expect(try profiles.loadAll().isEmpty)
     }
 
     @Test
@@ -674,6 +744,27 @@ struct KeychainStoreTests {
 
         #expect(throws: AppFailure.self) {
             try ProfileStore(baseDirectory: legacyRoot).loadAll()
+        }
+
+        let previousLifecycleRoot = temporaryRoot()
+        defer { try? FileManager.default.removeItem(at: previousLifecycleRoot) }
+        try writeCatalogData(
+            try JSONEncoder().encode(
+                PreviousLifecycleCatalog(
+                    version: 2,
+                    profiles: [
+                        StoredProfile(
+                            profile: legacyProfile,
+                            state: .ready
+                        )
+                    ]
+                )
+            ),
+            to: previousLifecycleRoot
+        )
+
+        #expect(throws: AppFailure.self) {
+            try ProfileStore(baseDirectory: previousLifecycleRoot).loadAll()
         }
     }
 
@@ -760,12 +851,28 @@ struct KeychainStoreTests {
 
     private struct TestProfileCatalog: Codable {
         let version: Int
+        let state: ProfileCatalogState
         let profiles: [StoredProfile]
+
+        init(
+            version: Int,
+            state: ProfileCatalogState = .active,
+            profiles: [StoredProfile]
+        ) {
+            self.version = version
+            self.state = state
+            self.profiles = profiles
+        }
     }
 
     private struct LegacyProfileCatalog: Codable {
         let version: Int
         let profiles: [ServerProfile]
+    }
+
+    private struct PreviousLifecycleCatalog: Codable {
+        let version: Int
+        let profiles: [StoredProfile]
     }
 
     private func writeCatalog(_ catalog: TestProfileCatalog, to root: URL) throws {

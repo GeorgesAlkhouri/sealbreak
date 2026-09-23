@@ -121,6 +121,9 @@ private final class LiveSealbreakClientController {
     func resetLocalData() throws {
         try requireForeground()
         try resetLocalStorage(
+            prepareReset: {
+                try profiles.prepareForReset()
+            },
             deleteShares: {
                 try keychain.deleteAll()
             },
