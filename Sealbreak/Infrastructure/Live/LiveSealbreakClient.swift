@@ -120,12 +120,18 @@ private final class LiveSealbreakClientController {
     func deleteProfile(_ profileID: UUID) throws {
         try profiles.delete(id: profileID)
 
-        switch try setupState.load() {
-        case .pending(let storedProfileID), .ready(let storedProfileID)
-            where storedProfileID == profileID:
+        guard let state = try setupState.load() else {
+            return
+        }
+
+        let storedProfileID: UUID
+        switch state {
+        case .pending(let id), .ready(let id):
+            storedProfileID = id
+        }
+
+        if storedProfileID == profileID {
             try setupState.reset()
-        default:
-            break
         }
     }
 
