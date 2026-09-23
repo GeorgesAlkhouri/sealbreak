@@ -22,10 +22,6 @@ struct SealbreakClientTests {
                 == "Unimplemented setup protection dependency."
         )
         #expect(
-            await failureMessage { try await dependency.deleteProfile(profile.id) }
-                == "Unimplemented profile delete dependency."
-        )
-        #expect(
             await failureMessage { try await dependency.resetLocalData() }
                 == "Unimplemented local-data reset dependency."
         )
@@ -54,8 +50,8 @@ struct SealbreakClientTests {
                 == "Unimplemented protected-share dependency."
         )
         #expect(
-            await failureMessage { try await dependency.deleteShare(profile.id, "Test") }
-                == "Unimplemented protected-share dependency."
+            await failureMessage { try await dependency.removeLocalProfile(profile.id, "Test") }
+                == "Unimplemented local removal dependency."
         )
         #expect(
             await failureMessage { try await dependency.requireForeground() }
