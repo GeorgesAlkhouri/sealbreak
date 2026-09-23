@@ -72,28 +72,16 @@ private final class LiveSealbreakClientController {
 
     private let keychain = KeychainStore()
     private let profiles = ProfileStore()
-    private let setupTransaction = SetupTransactionStore()
+    private let setupState = SetupStateStore()
     private let client = SealServerClient()
     private let dnssecResolver = DNSSECResolver.live
     private var activeContext: LAContext?
 
     func loadLocalSetupState() throws -> LocalSetupState {
-        if setupTransaction.isPending() {
-            return .recoveryRequired(
-                "Local Sealbreak setup did not finish cleanly. Reset local data to continue, then set up again using your independent share copy."
-            )
-        }
-
-        let storedProfiles = try profiles.loadAll()
-        guard storedProfiles.count <= 1 else {
-            return .recoveryRequired(
-                "Local Sealbreak data contains multiple server profiles, but this app version supports one. Reset local data to continue."
-            )
-        }
-        if let profile = storedProfiles.first {
-            return .ready(profile)
-        }
-        return .empty
+        try resolveLocalSetupState(
+            persistedState: setupState.load(),
+            profiles: profiles.loadAll()
+        )
     }
 
     func protectNewProfile(
@@ -102,24 +90,30 @@ private final class LiveSealbreakClientController {
         reason: String
     ) async throws -> SetupProtectionOutcome {
         try await withAuthorizedContext(reason: reason) { context in
-            guard !setupTransaction.isPending() else {
+            do {
+                guard try setupState.load() == nil else {
+                    return .recoveryRequired(
+                        "Local Sealbreak setup already exists or did not finish. Reset local data before continuing."
+                    )
+                }
+            } catch {
                 return .recoveryRequired(
-                    "A previous local setup did not finish. Reset local Sealbreak data before continuing."
+                    "Local setup state could not be validated. Reset local Sealbreak data before continuing."
                 )
             }
 
             let storedProfiles = try profiles.loadAll()
             guard storedProfiles.isEmpty else {
                 return .recoveryRequired(
-                    "A local server profile already exists. Reset local Sealbreak data before setting up another server."
+                    "Local profile data exists without a committed setup. Reset local Sealbreak data before continuing."
                 )
             }
 
-            try setupTransaction.begin()
+            try setupState.begin(profileID: profile.id)
             do {
                 try profiles.insert(profile)
                 try keychain.insert(record, context: context)
-                try setupTransaction.clear()
+                try setupState.commit(profileID: profile.id)
                 return .protected
             } catch {
                 return .recoveryRequired(
@@ -143,7 +137,7 @@ private final class LiveSealbreakClientController {
                 try profiles.reset()
             }
         )
-        try setupTransaction.clear()
+        try setupState.reset()
     }
 
     func detectProduct(_ profile: ServerProfile) async throws -> ServerProduct {
@@ -280,5 +274,34 @@ private final class LiveSealbreakClientController {
         context.interactionNotAllowed = true
         try requireForeground()
         return try operation(context)
+    }
+}
+
+
+func resolveLocalSetupState(
+    persistedState: PersistedSetupState?,
+    profiles: [ServerProfile]
+) -> LocalSetupState {
+    switch persistedState {
+    case nil:
+        guard profiles.isEmpty else {
+            return .recoveryRequired(
+                "Local profile data exists without a committed setup. Reset local Sealbreak data before continuing."
+            )
+        }
+        return .empty
+
+    case .pending:
+        return .recoveryRequired(
+            "Local Sealbreak setup did not finish cleanly. Reset local data to continue, then set up again using your independent share copy."
+        )
+
+    case .ready(let profileID):
+        guard profiles.count == 1, let profile = profiles.first, profile.id == profileID else {
+            return .recoveryRequired(
+                "Local setup state and profile data do not match. Reset local Sealbreak data before continuing."
+            )
+        }
+        return .ready(profile)
     }
 }
