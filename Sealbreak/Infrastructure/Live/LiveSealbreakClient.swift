@@ -290,6 +290,12 @@ func resolveLocalSetupState(
     persistedState: PersistedSetupState?,
     profiles: [ServerProfile]
 ) -> LocalSetupState {
+    guard profiles.count <= 1 else {
+        return .recoveryRequired(
+            "Local Sealbreak data contains multiple server profiles, but this app version supports one. Reset local data to continue."
+        )
+    }
+
     switch persistedState {
     case nil:
         guard profiles.isEmpty else {
