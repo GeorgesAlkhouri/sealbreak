@@ -482,6 +482,29 @@ struct KeychainStoreTests {
     }
 
     @Test
+    func setupStateStoreRejectsInvalidTransitions() throws {
+        let root = temporaryRoot()
+        defer { try? FileManager.default.removeItem(at: root) }
+        let store = SetupStateStore(baseDirectory: root)
+        let profileID = UUID()
+
+        #expect(throws: AppFailure.self) {
+            try store.commit(profileID: profileID)
+        }
+
+        try store.begin(profileID: profileID)
+
+        #expect(throws: AppFailure.self) {
+            try store.begin(profileID: UUID())
+        }
+        #expect(throws: AppFailure.self) {
+            try store.commit(profileID: UUID())
+        }
+
+        #expect(try store.load() == .pending(profileID))
+    }
+
+    @Test
     func setupStateStoreRequiresExplicitCommit() throws {
         let root = temporaryRoot()
         defer { try? FileManager.default.removeItem(at: root) }
