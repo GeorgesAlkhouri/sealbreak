@@ -1,0 +1,94 @@
+import ComposableArchitecture
+import Foundation
+import Testing
+@testable import SealbreakCore
+
+@MainActor
+struct SetupTransactionTests {
+    private let share = String(repeating: "a", count: 64)
+
+    @Test
+    func privacyInterruptionLetsProtectionReportCancellation() async throws {
+        let profile = try ServerProfile(
+            id: UUID(),
+            name: "Server",
+            address: "https://bao.example.com"
+        )
+        let gate = ProtectionGate()
+
+        var dependency = SealbreakClient.testValue
+        dependency.protectNewProfile = { _, _, _ in
+            try await gate.run()
+        }
+        dependency.cancelSensitiveOperation = {
+            await gate.cancel()
+        }
+
+        let store = TestStore(
+            initialState: ShareSetupFeature.State(profile: profile)
+        ) {
+            ShareSetupFeature()
+        } withDependencies: {
+            $0.sealbreakClient = dependency
+        }
+        store.exhaustivity = .off(showSkippedAssertions: false)
+
+        let protection = await store.send(.saveTapped(share: share))
+        await gate.waitUntilStarted()
+
+        await store.send(.privacyInterrupted).finish()
+        await protection.finish()
+        await store.skipReceivedActions()
+
+        #expect(store.state.operation == nil)
+        #expect(store.state.notice.contains("Operation cancelled"))
+    }
+
+    @Test
+    func pendingSetupStateRoutesAppToConfirmedReset() async {
+        var dependency = SealbreakClient.testValue
+        dependency.loadLocalSetupState = {
+            .recoveryRequired(
+                "Local setup did not finish cleanly. Reset local data to continue."
+            )
+        }
+
+        let store = TestStore(initialState: AppFeature.State()) {
+            AppFeature()
+        } withDependencies: {
+            $0.sealbreakClient = dependency
+        }
+        store.exhaustivity = .off(showSkippedAssertions: false)
+
+        await store.send(.task).finish()
+        await store.skipReceivedActions()
+
+        #expect(store.state.home == nil)
+        #expect(store.state.setup == nil)
+        #expect(store.state.welcome?.requiresLocalReset == true)
+        #expect(store.state.welcome?.notice?.contains("did not finish cleanly") == true)
+    }
+}
+
+private actor ProtectionGate {
+    private var started = false
+    private var continuation: CheckedContinuation<SetupProtectionOutcome, any Error>?
+
+    func run() async throws -> SetupProtectionOutcome {
+        started = true
+        return try await withCheckedThrowingContinuation { continuation in
+            self.continuation = continuation
+        }
+    }
+
+    func waitUntilStarted() async {
+        while !started {
+            await Task.yield()
+        }
+    }
+
+    func cancel() {
+        continuation?.resume(throwing: CancellationError())
+        continuation = nil
+    }
+}
