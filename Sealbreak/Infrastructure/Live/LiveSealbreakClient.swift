@@ -16,9 +16,6 @@ extension SealbreakClient: DependencyKey {
                     reason: reason
                 )
             },
-            deleteProfile: { profileID in
-                try await LiveSealbreakClientController.shared.deleteProfile(profileID)
-            },
             resetLocalData: {
                 try await LiveSealbreakClientController.shared.resetLocalData()
             },
@@ -47,8 +44,8 @@ extension SealbreakClient: DependencyKey {
                     reason: reason
                 )
             },
-            deleteShare: { profileID, reason in
-                try await LiveSealbreakClientController.shared.deleteShare(
+            removeLocalProfile: { profileID, reason in
+                try await LiveSealbreakClientController.shared.removeLocalProfile(
                     profileID: profileID,
                     reason: reason
                 )
@@ -86,29 +83,31 @@ private final class LiveSealbreakClientController {
         profile: ServerProfile,
         record: ShareRecord,
         reason: String
-    ) async throws -> SetupProtectionOutcome {
+    ) async throws -> LocalPersistenceOutcome {
         try await withAuthorizedContext(reason: reason) { context in
-            do {
-                guard try profiles.loadAll().isEmpty else {
-                    return .recoveryRequired(
-                        "Local profile data already exists. Reset local Sealbreak data before continuing."
-                    )
+            createLocalProfileTransaction(
+                profile: profile,
+                profiles: profiles,
+                insertShare: {
+                    try keychain.insert(record, context: context)
                 }
-
-                try profiles.begin(profile)
-                try keychain.insert(record, context: context)
-                try profiles.commit(id: profile.id)
-                return .protected
-            } catch {
-                return .recoveryRequired(
-                    "Local setup could not be completed safely. Reset local Sealbreak data before continuing."
-                )
-            }
+            )
         }
     }
 
-    func deleteProfile(_ profileID: UUID) throws {
-        try profiles.delete(id: profileID)
+    func removeLocalProfile(
+        profileID: UUID,
+        reason: String
+    ) async throws -> LocalPersistenceOutcome {
+        try await withAuthorizedContext(reason: reason) { context in
+            removeLocalProfileTransaction(
+                profileID: profileID,
+                profiles: profiles,
+                deleteShare: {
+                    try keychain.delete(profileID: profileID, context: context)
+                }
+            )
+        }
     }
 
     func resetLocalData() throws {
@@ -164,13 +163,6 @@ private final class LiveSealbreakClientController {
                     try keychain.replace(record, context: context)
                 }
             )
-        }
-    }
-
-    func deleteShare(profileID: UUID, reason: String) async throws {
-        try await withAuthorizedContext(reason: reason) { context in
-            try requireForeground()
-            try keychain.delete(profileID: profileID, context: context)
         }
     }
 
