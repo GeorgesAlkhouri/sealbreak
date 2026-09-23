@@ -1102,17 +1102,17 @@ struct FeatureTests {
         #expect(store.state.operation == nil)
         #expect(store.state.notice.contains("share"))
 
-        await spy.setInsertError(AppFailure("insert failed"))
+        await spy.setProtectError(AppFailure("protect failed"))
         await store.send(
             .saveTapped(share: share)
         ).finish()
         await store.skipReceivedActions()
         #expect(store.state.operation == nil)
-        #expect(store.state.notice == "insert failed")
+        #expect(store.state.notice == "protect failed")
     }
 
     @Test
-    func setupPrivacyInterruptionClearsSensitiveShareState() async throws {
+    func setupPrivacyInterruptionKeepsProtectionStateUntilOutcomeArrives() async throws {
         let spy = ClientSpy()
         let target = try profile()
         var interruptedState = SetupFeature.State()
@@ -1129,7 +1129,7 @@ struct FeatureTests {
 
         await interruptionStore.send(.privacyInterrupted).finish()
         await interruptionStore.skipReceivedActions()
-        #expect(interruptionStore.state.share?.operation == nil)
+        #expect(interruptionStore.state.share?.operation == .protecting)
         #expect(await spy.cancelCalls == 1)
     }
 
