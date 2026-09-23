@@ -9,6 +9,16 @@ extension SealbreakClient: DependencyKey {
             loadProfiles: {
                 try await LiveSealbreakClientController.shared.loadProfiles()
             },
+            loadLocalSetupState: {
+                try await LiveSealbreakClientController.shared.loadLocalSetupState()
+            },
+            protectNewProfile: { profile, record, reason in
+                try await LiveSealbreakClientController.shared.protectNewProfile(
+                    profile: profile,
+                    record: record,
+                    reason: reason
+                )
+            },
             insertProfile: { profile in
                 try await LiveSealbreakClientController.shared.insertProfile(profile)
             },
@@ -74,12 +84,61 @@ private final class LiveSealbreakClientController {
 
     private let keychain = KeychainStore()
     private let profiles = ProfileStore()
+    private let setupTransaction = SetupTransactionStore()
     private let client = SealServerClient()
     private let dnssecResolver = DNSSECResolver.live
     private var activeContext: LAContext?
 
     func loadProfiles() throws -> [ServerProfile] {
         try profiles.loadAll()
+    }
+
+    func loadLocalSetupState() throws -> LocalSetupState {
+        if setupTransaction.isPending() {
+            return .recoveryRequired
+        }
+
+        let storedProfiles = try profiles.loadAll()
+        guard storedProfiles.count <= 1 else {
+            return .recoveryRequired
+        }
+        if let profile = storedProfiles.first {
+            return .ready(profile)
+        }
+        return .empty
+    }
+
+    func protectNewProfile(
+        profile: ServerProfile,
+        record: ShareRecord,
+        reason: String
+    ) async throws -> SetupProtectionOutcome {
+        try await withAuthorizedContext(reason: reason) { context in
+            guard !setupTransaction.isPending() else {
+                return .recoveryRequired(
+                    "A previous local setup did not finish. Reset local Sealbreak data before continuing."
+                )
+            }
+
+            let storedProfiles = try profiles.loadAll()
+            guard storedProfiles.isEmpty else {
+                return .recoveryRequired(
+                    "A local server profile already exists. Reset local Sealbreak data before setting up another server."
+                )
+            }
+
+            try setupTransaction.begin()
+            do {
+                try profiles.insert(profile)
+                try keychain.insert(record, context: context)
+                try setupTransaction.clear()
+                return .protected
+            } catch {
+                return .recoveryRequired(
+                    "Local setup did not finish safely. Reset local Sealbreak data before continuing."
+                )
+            }
+        }
     }
 
     func insertProfile(_ profile: ServerProfile) throws {
@@ -104,6 +163,7 @@ private final class LiveSealbreakClientController {
                 try profiles.reset()
             }
         )
+        try setupTransaction.clear()
     }
 
     func detectProduct(_ profile: ServerProfile) async throws -> ServerProduct {
@@ -241,6 +301,9 @@ private final class LiveSealbreakClientController {
         }
 
         try await waitForForeground()
+        guard activeContext === context else {
+            throw CancellationError()
+        }
         context.interactionNotAllowed = true
         try requireForeground()
         return try operation(context)
