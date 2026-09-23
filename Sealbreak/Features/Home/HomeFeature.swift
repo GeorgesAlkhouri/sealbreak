@@ -324,16 +324,23 @@ struct HomeFeature {
                 return .none
 
             case .privacyInterrupted:
-                let wasBusy = state.isBusy
-                state.operation = nil
                 state.status = nil
                 state.confirmation = nil
                 state.replaceShare = nil
                 state.serverDetails = nil
+
+                let client = self.client
+                if state.operation == .removingLocalData {
+                    return .run { _ in
+                        await client.cancelSensitiveOperation()
+                    }
+                }
+
+                let wasBusy = state.isBusy
+                state.operation = nil
                 if wasBusy {
                     state.notice = "Operation interrupted. Check status on return; an already submitted request cannot be recalled."
                 }
-                let client = self.client
                 return .merge(
                     .cancel(id: CancelID.operation),
                     .run { _ in await client.cancelSensitiveOperation() }
