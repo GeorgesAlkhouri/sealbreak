@@ -296,10 +296,14 @@ struct KeychainStoreTests {
         var stateDuringShareWrite: StoredProfileState?
 
         let outcome = createLocalProfileTransaction(
-            profile: profile,
-            profiles: store,
+            beginProfile: {
+                try store.begin(profile)
+            },
             insertShare: {
                 stateDuringShareWrite = try store.loadAll().first?.state
+            },
+            commitProfile: {
+                try store.commit(id: profile.id)
             }
         )
 
@@ -324,10 +328,14 @@ struct KeychainStoreTests {
         )
 
         let outcome = createLocalProfileTransaction(
-            profile: profile,
-            profiles: store,
+            beginProfile: {
+                try store.begin(profile)
+            },
             insertShare: {
                 throw AppFailure("share write failed")
+            },
+            commitProfile: {
+                try store.commit(id: profile.id)
             }
         )
 
@@ -357,10 +365,14 @@ struct KeychainStoreTests {
 
         var stateDuringShareDelete: StoredProfileState?
         let outcome = removeLocalProfileTransaction(
-            profileID: profile.id,
-            profiles: store,
+            beginRemoval: {
+                try store.beginRemoval(id: profile.id)
+            },
             deleteShare: {
                 stateDuringShareDelete = try store.loadAll().first?.state
+            },
+            deleteProfile: {
+                try store.delete(id: profile.id)
             }
         )
 
@@ -383,10 +395,14 @@ struct KeychainStoreTests {
         try store.commit(id: profile.id)
 
         let outcome = removeLocalProfileTransaction(
-            profileID: profile.id,
-            profiles: store,
+            beginRemoval: {
+                try store.beginRemoval(id: profile.id)
+            },
             deleteShare: {
                 throw AppFailure("share delete failed")
+            },
+            deleteProfile: {
+                try store.delete(id: profile.id)
             }
         )
 
@@ -399,6 +415,126 @@ struct KeychainStoreTests {
                 StoredProfile(profile: profile, state: .removing)
             ]
         )
+    }
+
+    @Test
+    func createLocalProfileTransactionDoesNotRunLaterStepsAfterBeginFailure() {
+        var events: [String] = []
+
+        let outcome = createLocalProfileTransaction(
+            beginProfile: {
+                events.append("begin")
+                throw AppFailure("begin failed")
+            },
+            insertShare: {
+                events.append("share")
+            },
+            commitProfile: {
+                events.append("commit")
+            }
+        )
+
+        guard case .recoveryRequired = outcome else {
+            Issue.record("Failed begin must require recovery.")
+            return
+        }
+        #expect(events == ["begin"])
+    }
+
+    @Test
+    func createLocalProfileTransactionDoesNotCommitAfterShareFailure() {
+        var events: [String] = []
+
+        let outcome = createLocalProfileTransaction(
+            beginProfile: {
+                events.append("begin")
+            },
+            insertShare: {
+                events.append("share")
+                throw AppFailure("share failed")
+            },
+            commitProfile: {
+                events.append("commit")
+            }
+        )
+
+        guard case .recoveryRequired = outcome else {
+            Issue.record("Failed share write must require recovery.")
+            return
+        }
+        #expect(events == ["begin", "share"])
+    }
+
+    @Test
+    func removeLocalProfileTransactionDoesNotDeleteBeforeRemovingMarker() {
+        var events: [String] = []
+
+        let outcome = removeLocalProfileTransaction(
+            beginRemoval: {
+                events.append("mark")
+                throw AppFailure("mark failed")
+            },
+            deleteShare: {
+                events.append("share")
+            },
+            deleteProfile: {
+                events.append("profile")
+            }
+        )
+
+        guard case .recoveryRequired = outcome else {
+            Issue.record("Failed removal marker must require recovery.")
+            return
+        }
+        #expect(events == ["mark"])
+    }
+
+    @Test
+    func removeLocalProfileTransactionLeavesProfileWhenShareDeleteFails() {
+        var events: [String] = []
+
+        let outcome = removeLocalProfileTransaction(
+            beginRemoval: {
+                events.append("mark")
+            },
+            deleteShare: {
+                events.append("share")
+                throw AppFailure("share failed")
+            },
+            deleteProfile: {
+                events.append("profile")
+            }
+        )
+
+        guard case .recoveryRequired = outcome else {
+            Issue.record("Failed share deletion must require recovery.")
+            return
+        }
+        #expect(events == ["mark", "share"])
+    }
+
+    @Test
+    func removeLocalProfileTransactionReportsProfileDeleteFailure() {
+        var events: [String] = []
+
+        let outcome = removeLocalProfileTransaction(
+            beginRemoval: {
+                events.append("mark")
+            },
+            deleteShare: {
+                events.append("share")
+            },
+            deleteProfile: {
+                events.append("profile")
+                throw AppFailure("profile failed")
+            }
+        )
+
+        guard case .recoveryRequired = outcome else {
+            Issue.record("Failed profile deletion must require recovery.")
+            return
+        }
+        #expect(events == ["mark", "share", "profile"])
     }
 
     @Test
