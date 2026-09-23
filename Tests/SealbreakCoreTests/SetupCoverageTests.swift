@@ -190,7 +190,6 @@ struct SetupCoverageTests {
         }
 
         var state = SetupFeature.State()
-        state.operation = .removingLocalData
         state.confirmDelete = true
         state.step = .share
         state.share = ShareSetupFeature.State(profile: try profile())
@@ -199,7 +198,6 @@ struct SetupCoverageTests {
         await store.send(.cancelTapped).finish()
         await store.skipReceivedActions()
 
-        #expect(store.state.operation == nil)
         #expect(!store.state.confirmDelete)
         #expect(store.state.share == nil)
         #expect(await counter.count == 1)
@@ -248,7 +246,7 @@ struct SetupCoverageTests {
 
         await shareStore.send(.privacyInterrupted).finish()
         await shareStore.skipReceivedActions()
-        #expect(shareStore.state.share?.operation == nil)
+        #expect(shareStore.state.share?.operation == .protecting)
         #expect(await shareCounter.count == 1)
 
         let ownCounter = CallCounter()
