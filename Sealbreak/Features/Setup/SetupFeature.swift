@@ -49,6 +49,7 @@ struct SetupFeature {
         enum Delegate: Equatable {
             case cancelled
             case profileReady(ServerProfile, notice: String)
+            case localResetRequired(notice: String)
         }
 
         case instance(InstanceSetupFeature.Action)
@@ -89,6 +90,10 @@ struct SetupFeature {
                 state.notice = notice
                 return .send(.delegate(.profileReady(profile, notice: notice)))
 
+            case .share(.delegate(.localResetRequired(let notice))):
+                state.notice = notice
+                return .send(.delegate(.localResetRequired(notice: notice)))
+
             case .backTapped:
                 guard state.share?.isBusy != true else { return .none }
                 state.share = nil
@@ -96,12 +101,11 @@ struct SetupFeature {
                 return .none
 
             case .cancelTapped:
-                state.operation = nil
+                guard !state.isBusy else { return .none }
                 state.confirmDelete = false
                 state.share = nil
                 let client = self.client
                 return .merge(
-                    .cancel(id: CancelID.operation),
                     .run { _ in await client.cancelSensitiveOperation() },
                     .send(.delegate(.cancelled))
                 )
