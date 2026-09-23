@@ -928,6 +928,8 @@ struct FeatureTests {
     func homeRemovesLocalDataAndClearsPresentedState() async throws {
         let target = try profile()
         let spy = ClientSpy()
+        await spy.setLoadedProfile(target)
+        await spy.setReadRecord(try record(target))
         let store = TestStore(initialState: HomeFeature.State(profile: target, status: status())) {
             HomeFeature()
         } withDependencies: {
@@ -951,22 +953,23 @@ struct FeatureTests {
         #expect(store.state.serverDetails == nil)
         #expect(store.state.replaceShare == nil)
         #expect(store.state.notice.contains("Local share removed"))
-        #expect(await spy.deleteShareCalls == 1)
-        #expect(await spy.deleteProfileCalls == 1)
+        #expect(await spy.removeLocalProfileCalls == 1)
+        #expect(await spy.currentProfiles.isEmpty)
+        #expect(await spy.currentReadRecord == nil)
     }
 
     @Test
     func homeSurfacesRemoveFailure() async throws {
         let target = try profile()
         let spy = ClientSpy()
-        await spy.setDeleteShareError(AppFailure("delete failed"))
+        await spy.setRemoveError(AppFailure("remove failed"))
         let store = homeStore(profile: target, status: status(), spy: spy)
 
         await store.send(.removeLocalDataTapped)
         await store.send(.confirmRemoveLocalDataTapped).finish()
         await store.skipReceivedActions()
         #expect(store.state.operation == nil)
-        #expect(store.state.notice == "delete failed")
+        #expect(store.state.notice == "remove failed")
     }
 
     @Test
@@ -1282,6 +1285,8 @@ struct FeatureTests {
     func homeHandlesRemovalPersistenceFallbackAndCancellation() async throws {
         let target = try profile()
         let persistenceSpy = ClientSpy()
+        await persistenceSpy.setLoadedProfile(target)
+        await persistenceSpy.setReadRecord(try record(target))
         await persistenceSpy.setDeleteProfileError(AppFailure("delete profile failed"))
         let persistenceStore = homeStore(profile: target, status: status(), spy: persistenceSpy)
 
@@ -1335,6 +1340,7 @@ struct FeatureTests {
         #expect(appStore.state.welcome?.requiresLocalReset == true)
         #expect(appStore.state.welcome?.notice?.contains("Reset local Sealbreak data") == true)
         #expect(await spy.currentProfiles == [first])
+        #expect(await spy.currentStoredProfileState == .removing)
         #expect(await spy.currentReadRecord == nil)
 
         await appStore.send(.welcome(.setUpTapped))
@@ -1422,6 +1428,7 @@ private extension ClientSpy {
     func setWaitCancellation(_ value: Bool) { waitCancellation = value }
 
     var currentProfiles: [ServerProfile] { storedProfiles.map(\.profile) }
+    var currentStoredProfileState: StoredProfileState? { storedProfiles.first?.state }
     var currentReadRecord: ShareRecord? { readRecord }
     var submittedCount: Int { submittedRecords.count }
     var insertedCount: Int { insertedRecords.count }
