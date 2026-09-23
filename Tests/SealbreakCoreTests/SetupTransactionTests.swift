@@ -155,7 +155,7 @@ struct SetupTransactionTests {
     }
 
     @Test
-    func pendingSetupStateRoutesAppToConfirmedReset() async {
+    func incompleteSetupStateRoutesAppToConfirmedReset() async {
         var dependency = SealbreakClient.testValue
         dependency.loadLocalSetupState = {
             .recoveryRequired(
