@@ -6,8 +6,10 @@ import Testing
 private actor ClientSpy {
     var storedProfiles: [StoredProfile] = []
     var loadError: AppFailure?
-    var protectOutcome: SetupProtectionOutcome?
+    var protectOutcome: LocalPersistenceOutcome?
     var protectError: AppFailure?
+    var removeOutcome: LocalPersistenceOutcome?
+    var removeError: AppFailure?
     var insertProfileError: AppFailure?
     var deleteProfileError: AppFailure?
     var resetLocalDataError: AppFailure?
@@ -31,8 +33,7 @@ private actor ClientSpy {
     var statusCalls = 0
     var detectProductCalls = 0
     var dnssecCalls = 0
-    var deleteProfileCalls = 0
-    var deleteShareCalls = 0
+    var removeLocalProfileCalls = 0
     var resetLocalDataCalls = 0
     var cancelCalls = 0
 
@@ -50,7 +51,7 @@ private actor ClientSpy {
     func protectNewProfile(
         _ profile: ServerProfile,
         record: ShareRecord
-    ) throws -> SetupProtectionOutcome {
+    ) throws -> LocalPersistenceOutcome {
         if waitCancellation {
             throw CancellationError()
         }
@@ -81,7 +82,7 @@ private actor ClientSpy {
         storedProfiles = [
             StoredProfile(
                 profile: profile,
-                state: .pending
+                state: .creating
             )
         ]
 
@@ -94,13 +95,7 @@ private actor ClientSpy {
         insertedRecords.append(record)
         readRecord = record
         storedProfiles[0].state = .ready
-        return .protected
-    }
-
-    func deleteProfile(_ profileID: UUID) throws {
-        deleteProfileCalls += 1
-        if let deleteProfileError { throw deleteProfileError }
-        storedProfiles.removeAll { $0.profile.id == profileID }
+        return .completed
     }
 
     func resetLocalData() throws {
@@ -142,12 +137,48 @@ private actor ClientSpy {
         readRecord = record
     }
 
-    func deleteShare(_ profileID: UUID) throws {
-        deleteShareCalls += 1
-        if let deleteShareError { throw deleteShareError }
+    func removeLocalProfile(_ profileID: UUID) throws -> LocalPersistenceOutcome {
+        removeLocalProfileCalls += 1
+        if waitCancellation {
+            throw CancellationError()
+        }
+        if let waitError {
+            throw waitError
+        }
+        if let removeError {
+            throw removeError
+        }
+        if let removeOutcome {
+            return removeOutcome
+        }
+
+        guard storedProfiles.count == 1,
+              storedProfiles[0].profile.id == profileID,
+              storedProfiles[0].state == .ready else {
+            return .recoveryRequired(
+                "Local removal could not be completed safely. Reset local Sealbreak data before continuing."
+            )
+        }
+
+        storedProfiles[0].state = .removing
+
+        if deleteShareError != nil {
+            return .recoveryRequired(
+                "Local removal could not be completed safely. Reset local Sealbreak data before continuing."
+            )
+        }
         if readRecord?.profileID == profileID {
             readRecord = nil
         }
+
+        if deleteProfileError != nil {
+            return .recoveryRequired(
+                "Local removal could not be completed safely. Reset local Sealbreak data before continuing."
+            )
+        }
+
+        storedProfiles.removeAll { $0.profile.id == profileID }
+        return .completed
     }
 
     func submit(_ record: ShareRecord) throws {
@@ -171,7 +202,6 @@ private func client(_ spy: ClientSpy) -> SealbreakClient {
         protectNewProfile: { profile, record, _ in
             try await spy.protectNewProfile(profile, record: record)
         },
-        deleteProfile: { try await spy.deleteProfile($0) },
         resetLocalData: { try await spy.resetLocalData() },
         detectProduct: { _ in try await spy.detectProduct() },
         dnssecStatus: { _ in await spy.dnssecStatus() },
@@ -179,7 +209,9 @@ private func client(_ spy: ClientSpy) -> SealbreakClient {
         submit: { try await spy.submit($0) },
         readShare: { profileID, _ in try await spy.readShare(profileID) },
         replaceShare: { _, replacement, _ in try await spy.replace(replacement) },
-        deleteShare: { profileID, _ in try await spy.deleteShare(profileID) },
+        removeLocalProfile: { profileID, _ in
+            try await spy.removeLocalProfile(profileID)
+        },
         requireForeground: {},
         waitForForeground: { try await spy.waitForForeground() },
         cancelSensitiveOperation: { await spy.cancel() }
@@ -605,7 +637,7 @@ struct FeatureTests {
 
         #expect(store.state.operation == nil)
         #expect(store.state.notice.contains("already exists"))
-        #expect(await spy.deleteProfileCalls == 0)
+        #expect(await spy.removeLocalProfileCalls == 0)
         #expect(await spy.insertedCount == 0)
         #expect(await spy.currentProfiles == [target])
         #expect(await spy.currentReadRecord == originalRecord)
@@ -1353,7 +1385,7 @@ struct FeatureTests {
         await importStore.skipReceivedActions()
         #expect(importStore.state.operation == nil)
         #expect(importStore.state.notice.contains("Operation cancelled"))
-        #expect(await importSpy.deleteProfileCalls == 0)
+        #expect(await importSpy.removeLocalProfileCalls == 0)
     }
 
 }
@@ -1370,8 +1402,10 @@ private extension ClientSpy {
         }
     }
     func setLoadError(_ value: AppFailure?) { loadError = value }
-    func setProtectOutcome(_ value: SetupProtectionOutcome?) { protectOutcome = value }
+    func setProtectOutcome(_ value: LocalPersistenceOutcome?) { protectOutcome = value }
     func setProtectError(_ value: AppFailure?) { protectError = value }
+    func setRemoveOutcome(_ value: LocalPersistenceOutcome?) { removeOutcome = value }
+    func setRemoveError(_ value: AppFailure?) { removeError = value }
     func setInsertProfileError(_ value: AppFailure?) { insertProfileError = value }
     func setDeleteProfileError(_ value: AppFailure?) { deleteProfileError = value }
     func setResetLocalDataError(_ value: AppFailure?) { resetLocalDataError = value }
