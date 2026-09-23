@@ -481,6 +481,23 @@ struct KeychainStoreTests {
         }
     }
 
+    @Test
+    func setupTransactionStorePersistsPendingStateUntilCleared() throws {
+        let root = temporaryRoot()
+        defer { try? FileManager.default.removeItem(at: root) }
+        let store = SetupTransactionStore(baseDirectory: root)
+
+        #expect(!store.isPending())
+
+        try store.begin()
+        #expect(store.isPending())
+
+        try store.clear()
+        #expect(!store.isPending())
+
+        try store.clear()
+    }
+
     private struct TestProfileCatalog: Codable {
         let version: Int
         let profiles: [ServerProfile]
