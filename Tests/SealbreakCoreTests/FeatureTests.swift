@@ -203,13 +203,10 @@ private actor ClientSpy {
 
 private func client(_ spy: ClientSpy) -> SealbreakClient {
     SealbreakClient(
-        loadProfiles: { try await spy.loadProfiles() },
         loadLocalSetupState: { try await spy.loadLocalSetupState() },
         protectNewProfile: { profile, record, _ in
             try await spy.protectNewProfile(profile, record: record)
         },
-        insertProfile: { try await spy.insertProfile($0) },
-        saveProfile: { try await spy.saveProfile($0) },
         deleteProfile: { try await spy.deleteProfile($0) },
         resetLocalData: { try await spy.resetLocalData() },
         detectProduct: { _ in try await spy.detectProduct() },
@@ -217,7 +214,6 @@ private func client(_ spy: ClientSpy) -> SealbreakClient {
         status: { _ in try await spy.status() },
         submit: { try await spy.submit($0) },
         readShare: { profileID, _ in try await spy.readShare(profileID) },
-        insertShare: { record, _ in try await spy.insert(record) },
         replaceShare: { _, replacement, _ in try await spy.replace(replacement) },
         deleteShare: { profileID, _ in try await spy.deleteShare(profileID) },
         requireForeground: {},
