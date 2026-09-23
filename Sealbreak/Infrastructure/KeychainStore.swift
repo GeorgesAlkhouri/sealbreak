@@ -312,6 +312,53 @@ struct ProfileStore {
     }
 }
 
+
+struct SetupTransactionStore {
+    private let baseDirectory: URL
+
+    init(baseDirectory: URL? = nil) {
+        self.baseDirectory = baseDirectory ?? FileManager.default.urls(
+            for: .applicationSupportDirectory,
+            in: .userDomainMask
+        )[0]
+    }
+
+    private var directory: URL {
+        baseDirectory.appendingPathComponent("Sealbreak", isDirectory: true)
+    }
+
+    private var file: URL {
+        directory.appendingPathComponent("setup-pending")
+    }
+
+    func isPending() -> Bool {
+        FileManager.default.fileExists(atPath: file.path)
+    }
+
+    func begin() throws {
+        var folder = directory
+        try FileManager.default.createDirectory(
+            at: folder,
+            withIntermediateDirectories: true,
+            attributes: [.protectionKey: FileProtectionType.complete]
+        )
+        var values = URLResourceValues()
+        values.isExcludedFromBackup = true
+        try folder.setResourceValues(values)
+        try Data([1]).write(
+            to: file,
+            options: [.atomic, .completeFileProtection]
+        )
+    }
+
+    func clear() throws {
+        guard FileManager.default.fileExists(atPath: file.path) else {
+            return
+        }
+        try FileManager.default.removeItem(at: file)
+    }
+}
+
 func resetLocalStorage(
     deleteShares: () throws -> Void,
     resetProfiles: () throws -> Void
