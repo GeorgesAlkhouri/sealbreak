@@ -4,9 +4,8 @@ import Testing
 @testable import SealbreakCore
 
 private actor ClientSpy {
-    var loadedProfiles: [ServerProfile] = []
+    var storedProfiles: [StoredProfile] = []
     var loadError: AppFailure?
-    var persistedSetupState: PersistedSetupState?
     var protectOutcome: SetupProtectionOutcome?
     var protectError: AppFailure?
     var insertProfileError: AppFailure?
@@ -37,14 +36,13 @@ private actor ClientSpy {
     var resetLocalDataCalls = 0
     var cancelCalls = 0
 
-    func loadProfiles() throws -> [ServerProfile] {
+    func loadProfiles() throws -> [StoredProfile] {
         if let loadError { throw loadError }
-        return loadedProfiles
+        return storedProfiles
     }
 
     func loadLocalSetupState() throws -> LocalSetupState {
         try resolveLocalSetupState(
-            persistedState: persistedSetupState,
             profiles: loadProfiles()
         )
     }
@@ -66,20 +64,12 @@ private actor ClientSpy {
             return protectOutcome
         }
 
-        guard persistedSetupState == nil else {
-            return .recoveryRequired(
-                "Local Sealbreak setup already exists or did not finish. Reset local data before continuing."
-            )
-        }
-
         let profiles = try loadProfiles()
         guard profiles.isEmpty else {
             return .recoveryRequired(
-                "Local profile data exists without a committed setup. Reset local Sealbreak data before continuing."
+                "Local profile data already exists. Reset local Sealbreak data before continuing."
             )
         }
-
-        persistedSetupState = .pending(profile.id)
 
         if insertProfileError != nil {
             return .recoveryRequired(
@@ -88,7 +78,12 @@ private actor ClientSpy {
         }
 
         savedProfiles.append(profile)
-        loadedProfiles.append(profile)
+        storedProfiles = [
+            StoredProfile(
+                profile: profile,
+                state: .pending
+            )
+        ]
 
         if insertError != nil {
             return .recoveryRequired(
@@ -98,30 +93,21 @@ private actor ClientSpy {
 
         insertedRecords.append(record)
         readRecord = record
-        persistedSetupState = .ready(profile.id)
+        storedProfiles[0].state = .ready
         return .protected
     }
 
     func deleteProfile(_ profileID: UUID) throws {
         deleteProfileCalls += 1
         if let deleteProfileError { throw deleteProfileError }
-        loadedProfiles.removeAll { $0.id == profileID }
-
-        switch persistedSetupState {
-        case .pending(let storedProfileID), .ready(let storedProfileID)
-            where storedProfileID == profileID:
-            persistedSetupState = nil
-        default:
-            break
-        }
+        storedProfiles.removeAll { $0.profile.id == profileID }
     }
 
     func resetLocalData() throws {
         resetLocalDataCalls += 1
         if let resetLocalDataError { throw resetLocalDataError }
-        loadedProfiles = []
+        storedProfiles = []
         readRecord = nil
-        persistedSetupState = nil
     }
 
     func detectProduct() throws -> ServerProduct {
@@ -1374,15 +1360,16 @@ struct FeatureTests {
 
 private extension ClientSpy {
     func setLoadedProfile(_ value: ServerProfile?) {
-        loadedProfiles = value.map { [$0] } ?? []
-        persistedSetupState = value.map { .ready($0.id) }
+        storedProfiles = value.map {
+            [StoredProfile(profile: $0, state: .ready)]
+        } ?? []
     }
     func setLoadedProfiles(_ value: [ServerProfile]) {
-        loadedProfiles = value
-        persistedSetupState = value.count == 1 ? .ready(value[0].id) : nil
+        storedProfiles = value.map {
+            StoredProfile(profile: $0, state: .ready)
+        }
     }
     func setLoadError(_ value: AppFailure?) { loadError = value }
-    func setPersistedSetupState(_ value: PersistedSetupState?) { persistedSetupState = value }
     func setProtectOutcome(_ value: SetupProtectionOutcome?) { protectOutcome = value }
     func setProtectError(_ value: AppFailure?) { protectError = value }
     func setInsertProfileError(_ value: AppFailure?) { insertProfileError = value }
@@ -1400,7 +1387,7 @@ private extension ClientSpy {
     func setSubmitError(_ value: AppFailure?) { submitError = value }
     func setWaitCancellation(_ value: Bool) { waitCancellation = value }
 
-    var currentProfiles: [ServerProfile] { loadedProfiles }
+    var currentProfiles: [ServerProfile] { storedProfiles.map(\.profile) }
     var currentReadRecord: ShareRecord? { readRecord }
     var submittedCount: Int { submittedRecords.count }
     var insertedCount: Int { insertedRecords.count }
