@@ -16,6 +16,16 @@ struct SealbreakClientTests {
                 == "Unimplemented profile load dependency."
         )
         #expect(
+            await failureMessage { try await dependency.loadLocalSetupState() }
+                == "Unimplemented local setup state dependency."
+        )
+        #expect(
+            await failureMessage {
+                try await dependency.protectNewProfile(profile, record, "Test")
+            }
+                == "Unimplemented setup protection dependency."
+        )
+        #expect(
             await failureMessage { try await dependency.insertProfile(profile) }
                 == "Unimplemented profile insert dependency."
         )
