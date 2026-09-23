@@ -376,14 +376,14 @@ func resolveLocalSetupState(
 }
 
 func createLocalProfileTransaction(
-    profile: ServerProfile,
-    profiles: ProfileStore,
-    insertShare: () throws -> Void
+    beginProfile: () throws -> Void,
+    insertShare: () throws -> Void,
+    commitProfile: () throws -> Void
 ) -> LocalPersistenceOutcome {
     do {
-        try profiles.begin(profile)
+        try beginProfile()
         try insertShare()
-        try profiles.commit(id: profile.id)
+        try commitProfile()
         return .completed
     } catch {
         return .recoveryRequired(
@@ -393,14 +393,14 @@ func createLocalProfileTransaction(
 }
 
 func removeLocalProfileTransaction(
-    profileID: UUID,
-    profiles: ProfileStore,
-    deleteShare: () throws -> Void
+    beginRemoval: () throws -> Void,
+    deleteShare: () throws -> Void,
+    deleteProfile: () throws -> Void
 ) -> LocalPersistenceOutcome {
     do {
-        try profiles.beginRemoval(id: profileID)
+        try beginRemoval()
         try deleteShare()
-        try profiles.delete(id: profileID)
+        try deleteProfile()
         return .completed
     } catch {
         return .recoveryRequired(
