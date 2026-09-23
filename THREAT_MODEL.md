@@ -66,7 +66,7 @@ flowchart TB
         subgraph APP["Sealbreak app process and sandbox"]
             UI["UI and state machine"]
             MODEL["Operation and authorization lifecycle"]
-            DISPLAY[("Non-secret profile catalog + setup lifecycle")]
+            DISPLAY[("Non-secret profile catalog + persistence lifecycle")]
             MEM["Transient plaintext share / request body"]
             NET["OpenBao network client"]
         end
@@ -190,11 +190,11 @@ Affected assets: **A03, A05**
 
 Controls: **M05**
 
-#### T05 — Broken share lifecycle
+#### T05 — Local lifecycle state integrity failure
 
-A failed replacement or deletion path could corrupt or destroy the local share.
+A failed, interrupted, or partially completed local share operation could leave protected share storage and profile metadata inconsistent, causing the application to treat incomplete state as valid or making recovery harder.
 
-Replacement updates the existing Keychain item rather than deleting it first. Initial setup authenticates with Face ID before persistent mutation, then creates the profile catalog entry in a `creating` lifecycle state before creating the profile-scoped Keychain item. Setup becomes usable only after that same catalog entry is atomically rewritten as `ready`. Local removal first rewrites the entry from `ready` to `removing`, then deletes the Keychain item and finally removes the profile entry. A `creating` or `removing` entry, unreadable catalog, unsupported catalog version, or multiple profiles is treated as recovery-required and never as a valid configured app. Version-1 and version-2 profile catalogs are deliberately not migrated. Setup and removal do not attempt rollback from cancelled feature effects; interrupted persistence remains fail-closed until the user performs the confirmed full local reset. Before a full reset deletes any Keychain item, Sealbreak atomically replaces the profile catalog with a catalog-wide `resetting` marker. A restart while that marker remains is recovery-required, so a partially completed reset cannot reopen Home with a deleted share. The reset marker can overwrite a malformed or unsupported catalog without first decoding it, then the reset deletes all Keychain items in Sealbreak's unseal service namespace and finally removes the profile catalog. All readers and writers use a common encoded-record size limit, and an oversized replacement is rejected before the Keychain update. Replacement and reset still cannot prove that an independent recovery copy exists or is usable.
+Sealbreak persists a non-ready lifecycle state before operations that could leave the Keychain and profile catalog inconsistent. Only fully committed local state is treated as configured. Interrupted, incomplete, unreadable, unsupported, or otherwise inconsistent local state fails closed into the recovery path instead of reopening normal operation. Replacement updates the existing Keychain item in place, and destructive reset operations establish a persistent recovery state before deleting protected shares. All readers and writers enforce a common encoded-record size limit. Sealbreak still cannot prove that an independent recovery copy exists or is usable.
 
 Affected assets: **A01, A04**
 
@@ -378,7 +378,7 @@ A residual risk rating does not imply risk acceptance. This threat model does no
 | **T02** Manipulated target binding | 1 | 5 | **5 Medium** | M04 | Authoritative profile stored with share and compared before submission |
 | **T03** Biometric access-control bypass | 1 | 5 | **5 Medium** | M01, M02 | Device-bound Keychain protection and fresh Face ID context; physical-device validation still relevant |
 | **T04** Incorrect seal status | 2 | 3 | **6 Medium** | M05 | Typed, bounded, validated status with post-submit re-check; compromised server can still lie |
-| **T05** Broken share lifecycle | 2 | 3 | **6 Medium** | M08, M09 | In-place replacement and common encoded-size invariant; independent recovery still required |
+| **T05** Local lifecycle state integrity failure | 2 | 3 | **6 Medium** | M08, M09 | Fail-closed lifecycle state, in-place replacement, bounded storage, and independent recovery |
 | **T06** Reuse of stolen share | 2 | 5 | **10 High** | M02, M05, M06, M09 | Copied Shamir share remains reusable outside Sealbreak |
 | **T07** Weak actor attribution | 3 | 2 | **6 Medium** | M12 | OpenBao receives no cryptographic proof of local Face ID or specific human identity |
 | **T08** External import/recovery copy stolen | 2 | 5 | **10 High** | M07, M09 | Sealbreak cannot control copies that exist outside the app |
@@ -403,7 +403,7 @@ A residual risk rating does not imply risk acceptance. This threat model does no
 | **M05 — State machine and request discipline** | Application | Validate seal state, permit only supported Shamir states, perform one explicit submission per action, never automatically retry, and verify state afterwards |
 | **M06 — Data minimization** | Application | Do not log, analyze, cache, export, or persist the share outside the protected record; minimize diagnostic detail and clear mutable buffers where practical |
 | **M07 — Secure import** | Application | Do not read the clipboard automatically and do not provide share export functionality |
-| **M08 — Safe share lifecycle** | Application | Require fresh authorization for sensitive operations, require explicit creating/ready/removing profile lifecycle plus a catalog-wide resetting state, reject incomplete or unsupported local state, use safe in-place updates, and enforce one encoded storage-size invariant across readers and writers |
+| **M08 — Safe local lifecycle** | Application | Require fresh authorization for sensitive local-share operations, persist a fail-closed lifecycle marker before changes that could leave protected share storage and profile metadata inconsistent, treat only fully committed local state as configured, reject incomplete or unsupported local state, use safe in-place updates, and enforce one encoded storage-size invariant across readers and writers |
 | **M09 — Recovery and incident response** | Operator / deployment | Maintain independent recovery and use OpenBao rekeying to replace compromised server-side shares |
 | **M10 — Secure infrastructure** | Operator / deployment | Protect OpenBao, TLS proxies, VPN, DNS, certificates, node routing, and bootstrap dependencies outside the application |
 | **M11 — Software supply chain** | Project / release | Protect signing rights and developer systems, keep dependencies minimal, and review distributed builds and updates |
