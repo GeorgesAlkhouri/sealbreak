@@ -267,6 +267,28 @@ struct SetupCoverageTests {
     }
 
     @Test
+    func setupBlocksDiscardWhileShareProtectionIsRunning() async throws {
+        let counter = CallCounter()
+        var dependency = SealbreakClient.testValue
+        dependency.cancelSensitiveOperation = {
+            await counter.increment()
+        }
+
+        var state = SetupFeature.State()
+        state.step = .share
+        state.share = ShareSetupFeature.State(profile: try profile())
+        state.share?.operation = .protecting
+
+        let store = setupStore(state, dependency: dependency)
+
+        await store.send(.cancelTapped)
+
+        #expect(store.state.step == .share)
+        #expect(store.state.share?.operation == .protecting)
+        #expect(await counter.count == 0)
+    }
+
+    @Test
     func setupBusyStateBlocksRemove() async {
         var state = SetupFeature.State()
         state.instance.isCheckingConnection = true
