@@ -78,7 +78,7 @@ struct ShareSetupFeature {
                         )
 
                         switch outcome {
-                        case .protected:
+                        case .completed:
                             await send(
                                 .importResponse(
                                     .success(
