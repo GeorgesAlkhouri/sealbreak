@@ -72,14 +72,12 @@ private final class LiveSealbreakClientController {
 
     private let keychain = KeychainStore()
     private let profiles = ProfileStore()
-    private let setupState = SetupStateStore()
     private let client = SealServerClient()
     private let dnssecResolver = DNSSECResolver.live
     private var activeContext: LAContext?
 
     func loadLocalSetupState() throws -> LocalSetupState {
         try resolveLocalSetupState(
-            persistedState: setupState.load(),
             profiles: profiles.loadAll()
         )
     }
@@ -91,23 +89,15 @@ private final class LiveSealbreakClientController {
     ) async throws -> SetupProtectionOutcome {
         try await withAuthorizedContext(reason: reason) { context in
             do {
-                guard try setupState.load() == nil else {
+                guard try profiles.loadAll().isEmpty else {
                     return .recoveryRequired(
-                        "Local Sealbreak setup already exists or did not finish. Reset local data before continuing."
+                        "Local profile data already exists. Reset local Sealbreak data before continuing."
                     )
                 }
 
-                let storedProfiles = try profiles.loadAll()
-                guard storedProfiles.isEmpty else {
-                    return .recoveryRequired(
-                        "Local profile data exists without a committed setup. Reset local Sealbreak data before continuing."
-                    )
-                }
-
-                try setupState.begin(profileID: profile.id)
-                try profiles.insert(profile)
+                try profiles.begin(profile)
                 try keychain.insert(record, context: context)
-                try setupState.commit(profileID: profile.id)
+                try profiles.commit(id: profile.id)
                 return .protected
             } catch {
                 return .recoveryRequired(
@@ -119,20 +109,6 @@ private final class LiveSealbreakClientController {
 
     func deleteProfile(_ profileID: UUID) throws {
         try profiles.delete(id: profileID)
-
-        guard let state = try setupState.load() else {
-            return
-        }
-
-        let storedProfileID: UUID
-        switch state {
-        case .pending(let id), .ready(let id):
-            storedProfileID = id
-        }
-
-        if storedProfileID == profileID {
-            try setupState.reset()
-        }
     }
 
     func resetLocalData() throws {
@@ -145,7 +121,6 @@ private final class LiveSealbreakClientController {
                 try profiles.reset()
             }
         )
-        try setupState.reset()
     }
 
     func detectProduct(_ profile: ServerProfile) async throws -> ServerProduct {
