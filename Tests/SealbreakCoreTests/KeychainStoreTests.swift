@@ -482,20 +482,24 @@ struct KeychainStoreTests {
     }
 
     @Test
-    func setupTransactionStorePersistsPendingStateUntilCleared() throws {
+    func setupStateStoreRequiresExplicitCommit() throws {
         let root = temporaryRoot()
         defer { try? FileManager.default.removeItem(at: root) }
-        let store = SetupTransactionStore(baseDirectory: root)
+        let store = SetupStateStore(baseDirectory: root)
+        let profileID = UUID()
 
-        #expect(!store.isPending())
+        #expect(try store.load() == nil)
 
-        try store.begin()
-        #expect(store.isPending())
+        try store.begin(profileID: profileID)
+        #expect(try store.load() == .pending(profileID))
 
-        try store.clear()
-        #expect(!store.isPending())
+        try store.commit(profileID: profileID)
+        #expect(try store.load() == .ready(profileID))
 
-        try store.clear()
+        try store.reset()
+        #expect(try store.load() == nil)
+
+        try store.reset()
     }
 
     private struct TestProfileCatalog: Codable {
