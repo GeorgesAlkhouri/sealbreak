@@ -10,8 +10,25 @@ enum DNSSECStatus: Equatable, Sendable {
     case unavailable
 }
 
+enum LocalSetupState: Equatable, Sendable {
+    case empty
+    case ready(ServerProfile)
+    case recoveryRequired
+}
+
+enum SetupProtectionOutcome: Equatable, Sendable {
+    case protected
+    case recoveryRequired(String)
+}
+
 struct SealbreakClient: Sendable {
     var loadProfiles: @Sendable () async throws -> [ServerProfile]
+    var loadLocalSetupState: @Sendable () async throws -> LocalSetupState
+    var protectNewProfile: @Sendable (
+        _ profile: ServerProfile,
+        _ record: ShareRecord,
+        _ reason: String
+    ) async throws -> SetupProtectionOutcome
     var insertProfile: @Sendable (ServerProfile) async throws -> Void
     var saveProfile: @Sendable (ServerProfile) async throws -> Void
     var deleteProfile: @Sendable (UUID) async throws -> Void
@@ -47,6 +64,10 @@ extension DependencyValues {
 extension SealbreakClient {
     static let unimplemented = Self(
         loadProfiles: { throw AppFailure("Unimplemented profile load dependency.") },
+        loadLocalSetupState: { throw AppFailure("Unimplemented local setup state dependency.") },
+        protectNewProfile: { _, _, _ in
+            throw AppFailure("Unimplemented setup protection dependency.")
+        },
         insertProfile: { _ in throw AppFailure("Unimplemented profile insert dependency.") },
         saveProfile: { _ in throw AppFailure("Unimplemented profile save dependency.") },
         deleteProfile: { _ in throw AppFailure("Unimplemented profile delete dependency.") },
