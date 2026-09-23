@@ -16,8 +16,8 @@ enum LocalSetupState: Equatable, Sendable {
     case recoveryRequired(String)
 }
 
-enum SetupProtectionOutcome: Equatable, Sendable {
-    case protected
+enum LocalPersistenceOutcome: Equatable, Sendable {
+    case completed
     case recoveryRequired(String)
 }
 
@@ -27,8 +27,7 @@ struct SealbreakClient: Sendable {
         _ profile: ServerProfile,
         _ record: ShareRecord,
         _ reason: String
-    ) async throws -> SetupProtectionOutcome
-    var deleteProfile: @Sendable (UUID) async throws -> Void
+    ) async throws -> LocalPersistenceOutcome
     var resetLocalData: @Sendable () async throws -> Void
     var detectProduct: @Sendable (ServerProfile) async throws -> ServerProduct
     var dnssecStatus: @Sendable (String) async throws -> DNSSECStatus
@@ -40,7 +39,10 @@ struct SealbreakClient: Sendable {
         _ replacement: ShareRecord,
         _ reason: String
     ) async throws -> Void
-    var deleteShare: @Sendable (_ profileID: UUID, _ reason: String) async throws -> Void
+    var removeLocalProfile: @Sendable (
+        _ profileID: UUID,
+        _ reason: String
+    ) async throws -> LocalPersistenceOutcome
     var requireForeground: @Sendable () async throws -> Void
     var waitForForeground: @Sendable () async throws -> Void
     var cancelSensitiveOperation: @Sendable () async -> Void
@@ -63,7 +65,6 @@ extension SealbreakClient {
         protectNewProfile: { _, _, _ in
             throw AppFailure("Unimplemented setup protection dependency.")
         },
-        deleteProfile: { _ in throw AppFailure("Unimplemented profile delete dependency.") },
         resetLocalData: { throw AppFailure("Unimplemented local-data reset dependency.") },
         detectProduct: { _ in throw AppFailure("Unimplemented server-product detection dependency.") },
         dnssecStatus: { _ in throw AppFailure("Unimplemented DNSSEC status dependency.") },
@@ -71,7 +72,9 @@ extension SealbreakClient {
         submit: { _ in throw AppFailure("Unimplemented share submission dependency.") },
         readShare: { _, _ in throw AppFailure("Unimplemented protected-share dependency.") },
         replaceShare: { _, _, _ in throw AppFailure("Unimplemented protected-share dependency.") },
-        deleteShare: { _, _ in throw AppFailure("Unimplemented protected-share dependency.") },
+        removeLocalProfile: { _, _ in
+            throw AppFailure("Unimplemented local removal dependency.")
+        },
         requireForeground: { throw AppFailure("Unimplemented foreground dependency.") },
         waitForForeground: { throw AppFailure("Unimplemented foreground dependency.") },
         cancelSensitiveOperation: {
