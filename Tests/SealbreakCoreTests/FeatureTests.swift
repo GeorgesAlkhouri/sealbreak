@@ -1343,6 +1343,20 @@ struct FeatureTests {
         #expect(await spy.currentStoredProfileState == .removing)
         #expect(await spy.currentReadRecord == nil)
 
+        let restartStore = TestStore(initialState: AppFeature.State()) {
+            AppFeature()
+        } withDependencies: {
+            $0.sealbreakClient = client(spy)
+            $0.uuid = .incrementing
+        }
+        restartStore.exhaustivity = .off(showSkippedAssertions: false)
+
+        await restartStore.send(.task).finish()
+        await restartStore.skipReceivedActions()
+
+        #expect(restartStore.state.home == nil)
+        #expect(restartStore.state.welcome?.requiresLocalReset == true)
+
         await appStore.send(.welcome(.setUpTapped))
         #expect(appStore.state.setup == nil)
         #expect(appStore.state.welcome?.requiresLocalReset == true)
