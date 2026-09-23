@@ -115,6 +115,46 @@ struct SetupTransactionTests {
     }
 
     @Test
+    func privacyInterruptionLetsRemovalReportCancellation() async throws {
+        let profile = try ServerProfile(
+            id: UUID(),
+            name: "Server",
+            address: "https://bao.example.com"
+        )
+        let gate = ProtectionGate()
+
+        var dependency = SealbreakClient.testValue
+        dependency.removeLocalProfile = { _, _ in
+            try await gate.run()
+        }
+        dependency.cancelSensitiveOperation = {
+            await gate.cancel()
+        }
+
+        let store = TestStore(
+            initialState: HomeFeature.State(profile: profile)
+        ) {
+            HomeFeature()
+        } withDependencies: {
+            $0.sealbreakClient = dependency
+        }
+        store.exhaustivity = .off(showSkippedAssertions: false)
+
+        await store.send(.removeLocalDataTapped)
+        let removal = await store.send(.confirmRemoveLocalDataTapped)
+        await gate.waitUntilStarted()
+
+        await store.send(.privacyInterrupted).finish()
+        #expect(store.state.operation == .removingLocalData)
+
+        await removal.finish()
+        await store.skipReceivedActions()
+
+        #expect(store.state.operation == nil)
+        #expect(store.state.notice.contains("Operation cancelled"))
+    }
+
+    @Test
     func pendingSetupStateRoutesAppToConfirmedReset() async {
         var dependency = SealbreakClient.testValue
         dependency.loadLocalSetupState = {
