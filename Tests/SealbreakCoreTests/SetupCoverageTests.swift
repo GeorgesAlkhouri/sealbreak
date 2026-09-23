@@ -182,6 +182,18 @@ struct SetupCoverageTests {
     }
 
     @Test
+    func setupCancelRemainsAvailableDuringConnectionCheck() async {
+        var state = SetupFeature.State()
+        state.instance.isCheckingConnection = true
+
+        let store = setupStore(state, dependency: .testValue)
+
+        #expect(!store.state.blocksSetupExit)
+        await store.send(.cancelTapped)
+        await store.receive(.delegate(.cancelled))
+    }
+
+    @Test
     func setupCancelClearsIdleShareAndDelegates() async throws {
         var state = SetupFeature.State()
         state.step = .share
@@ -271,6 +283,7 @@ struct SetupCoverageTests {
         state.instance.isCheckingConnection = true
         #expect(state.activity == "Checking connection…")
         #expect(state.isBusy)
+        #expect(!state.blocksSetupExit)
 
         state.instance.isCheckingConnection = false
         state.step = .share
@@ -278,6 +291,7 @@ struct SetupCoverageTests {
         state.share?.operation = .protecting
         #expect(state.activity == "Protecting share…")
         #expect(state.isBusy)
+        #expect(state.blocksSetupExit)
 
         state.share?.operation = nil
         #expect(state.activity.isEmpty)
