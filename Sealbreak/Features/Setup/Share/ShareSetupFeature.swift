@@ -36,6 +36,7 @@ struct ShareSetupFeature {
     enum Action: Equatable {
         enum Delegate: Equatable {
             case profileReady(ServerProfile, notice: String)
+            case localResetRequired(notice: String)
         }
 
         case saveTapped(share: String)
@@ -43,10 +44,6 @@ struct ShareSetupFeature {
         case operationCancelled
         case privacyInterrupted
         case delegate(Delegate)
-    }
-
-    private enum CancelID: Hashable {
-        case importShare
     }
 
     @Dependency(\.sealbreakClient) private var client
@@ -72,48 +69,36 @@ struct ShareSetupFeature {
                     var record = record
                     defer { record.share.removeAll(keepingCapacity: false) }
 
-                    var profileInserted = false
                     do {
-                        // Keep the current app single-profile even though the
-                        // persistence layer is collection-capable for future multi-server UI.
-                        let existingProfiles = try await client.loadProfiles()
-                        guard existingProfiles.isEmpty else {
-                            throw AppFailure(
-                                "A local server profile already exists. Reset local Sealbreak data before setting up another server."
-                            )
-                        }
-
-                        // Create the non-secret profile identity before the Keychain item.
-                        // Setup is create-only: rollback is safe only for a profile this
-                        // operation inserted itself.
-                        try await client.insertProfile(profile)
-                        profileInserted = true
-
-                        try await client.waitForForeground()
-                        try await client.insertShare(
+                        let outcome = try await client.protectNewProfile(
+                            profile,
                             record,
                             "Protect this share for \(record.boundOrigin)"
                         )
 
-                        await send(
-                            .importResponse(
-                                .success(
-                                    ProfileResult(
-                                        profile: profile,
-                                        notice: "Share protected on this iPhone. Check status to begin."
+                        switch outcome {
+                        case .protected:
+                            await send(
+                                .importResponse(
+                                    .success(
+                                        ProfileResult(
+                                            profile: profile,
+                                            notice: "Share protected on this iPhone. Check status to begin."
+                                        )
                                     )
                                 )
                             )
-                        )
-                    } catch is CancellationError {
-                        if profileInserted {
-                            try? await client.deleteProfile(profile.id)
+
+                        case .recoveryRequired(let notice):
+                            await send(
+                                .delegate(
+                                    .localResetRequired(notice: notice)
+                                )
+                            )
                         }
+                    } catch is CancellationError {
                         await send(.operationCancelled)
                     } catch {
-                        if profileInserted {
-                            try? await client.deleteProfile(profile.id)
-                        }
                         await send(
                             .importResponse(
                                 .failure(normalizedAppFailure(error))
@@ -121,7 +106,6 @@ struct ShareSetupFeature {
                         )
                     }
                 }
-                .cancellable(id: CancelID.importShare)
 
             case .importResponse(.success(let result)):
                 state.operation = nil
@@ -146,19 +130,11 @@ struct ShareSetupFeature {
                 return .none
 
             case .privacyInterrupted:
-                let wasBusy = state.isBusy
-                state.operation = nil
-                if wasBusy {
-                    state.notice = "Operation interrupted. No new protected share should be assumed saved."
-                }
-
+                guard state.isBusy else { return .none }
                 let client = self.client
-                return .merge(
-                    .cancel(id: CancelID.importShare),
-                    .run { _ in
-                        await client.cancelSensitiveOperation()
-                    }
-                )
+                return .run { _ in
+                    await client.cancelSensitiveOperation()
+                }
 
             case .delegate:
                 return .none
