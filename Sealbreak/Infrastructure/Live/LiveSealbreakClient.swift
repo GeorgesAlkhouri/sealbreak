@@ -6,17 +6,15 @@ import UIKit
 extension SealbreakClient: DependencyKey {
     static var liveValue: Self {
         Self(
-            loadProfiles: {
-                try await LiveSealbreakClientController.shared.loadProfiles()
+            loadLocalSetupState: {
+                try await LiveSealbreakClientController.shared.loadLocalSetupState()
             },
-            insertProfile: { profile in
-                try await LiveSealbreakClientController.shared.insertProfile(profile)
-            },
-            saveProfile: { profile in
-                try await LiveSealbreakClientController.shared.saveProfile(profile)
-            },
-            deleteProfile: { profileID in
-                try await LiveSealbreakClientController.shared.deleteProfile(profileID)
+            protectNewProfile: { profile, record, reason in
+                try await LiveSealbreakClientController.shared.protectNewProfile(
+                    profile: profile,
+                    record: record,
+                    reason: reason
+                )
             },
             resetLocalData: {
                 try await LiveSealbreakClientController.shared.resetLocalData()
@@ -39,9 +37,6 @@ extension SealbreakClient: DependencyKey {
                     reason: reason
                 )
             },
-            insertShare: { record, reason in
-                try await LiveSealbreakClientController.shared.insertShare(record, reason: reason)
-            },
             replaceShare: { expectedProfile, replacement, reason in
                 try await LiveSealbreakClientController.shared.replaceShare(
                     expectedProfile: expectedProfile,
@@ -49,8 +44,8 @@ extension SealbreakClient: DependencyKey {
                     reason: reason
                 )
             },
-            deleteShare: { profileID, reason in
-                try await LiveSealbreakClientController.shared.deleteShare(
+            removeLocalProfile: { profileID, reason in
+                try await LiveSealbreakClientController.shared.removeLocalProfile(
                     profileID: profileID,
                     reason: reason
                 )
@@ -78,25 +73,57 @@ private final class LiveSealbreakClientController {
     private let dnssecResolver = DNSSECResolver.live
     private var activeContext: LAContext?
 
-    func loadProfiles() throws -> [ServerProfile] {
-        try profiles.loadAll()
+    func loadLocalSetupState() throws -> LocalSetupState {
+        try resolveLocalSetupState(
+            profiles: profiles.loadAll()
+        )
     }
 
-    func insertProfile(_ profile: ServerProfile) throws {
-        try profiles.insert(profile)
+    func protectNewProfile(
+        profile: ServerProfile,
+        record: ShareRecord,
+        reason: String
+    ) async throws -> LocalPersistenceOutcome {
+        try await withAuthorizedContext(reason: reason) { context in
+            createLocalProfileTransaction(
+                beginProfile: {
+                    try profiles.begin(profile)
+                },
+                insertShare: {
+                    try keychain.insert(record, context: context)
+                },
+                commitProfile: {
+                    try profiles.commit(id: profile.id)
+                }
+            )
+        }
     }
 
-    func saveProfile(_ profile: ServerProfile) throws {
-        try profiles.save(profile)
-    }
-
-    func deleteProfile(_ profileID: UUID) throws {
-        try profiles.delete(id: profileID)
+    func removeLocalProfile(
+        profileID: UUID,
+        reason: String
+    ) async throws -> LocalPersistenceOutcome {
+        try await withAuthorizedContext(reason: reason) { context in
+            removeLocalProfileTransaction(
+                beginRemoval: {
+                    try profiles.beginRemoval(id: profileID)
+                },
+                deleteShare: {
+                    try keychain.delete(profileID: profileID, context: context)
+                },
+                deleteProfile: {
+                    try profiles.delete(id: profileID)
+                }
+            )
+        }
     }
 
     func resetLocalData() throws {
         try requireForeground()
         try resetLocalStorage(
+            prepareReset: {
+                try profiles.prepareForReset()
+            },
             deleteShares: {
                 try keychain.deleteAll()
             },
@@ -128,13 +155,6 @@ private final class LiveSealbreakClientController {
         }
     }
 
-    func insertShare(_ record: ShareRecord, reason: String) async throws {
-        try await withAuthorizedContext(reason: reason) { context in
-            try requireForeground()
-            try keychain.insert(record, context: context)
-        }
-    }
-
     func replaceShare(
         expectedProfile: ServerProfile,
         replacement: ShareRecord,
@@ -154,13 +174,6 @@ private final class LiveSealbreakClientController {
                     try keychain.replace(record, context: context)
                 }
             )
-        }
-    }
-
-    func deleteShare(profileID: UUID, reason: String) async throws {
-        try await withAuthorizedContext(reason: reason) { context in
-            try requireForeground()
-            try keychain.delete(profileID: profileID, context: context)
         }
     }
 
@@ -241,6 +254,9 @@ private final class LiveSealbreakClientController {
         }
 
         try await waitForForeground()
+        guard activeContext === context else {
+            throw CancellationError()
+        }
         context.interactionNotAllowed = true
         try requireForeground()
         return try operation(context)

@@ -50,6 +50,7 @@ struct SetupView: View {
             Button("Discard setup", role: .destructive) {
                 store.send(.cancelTapped)
             }
+            .disabled(store.blocksSetupExit)
 
             Button("Keep setting up", role: .cancel) {
                 // The cancel role dismisses the confirmation dialog without changing setup state.
@@ -71,7 +72,7 @@ struct SetupView: View {
                             .frame(width: 44, height: 44)
                     }
                     .accessibilityLabel("Back")
-                    .disabled(store.share?.isBusy == true)
+                    .disabled(store.blocksSetupExit)
                 } else {
                     Color.clear
                         .frame(width: 44, height: 44)
@@ -97,6 +98,7 @@ struct SetupView: View {
             .font(.system(size: 16, weight: .semibold))
             .foregroundStyle(PapercutPalette.secondaryText)
             .frame(minWidth: 44, minHeight: 44)
+            .disabled(store.blocksSetupExit)
         }
     }
 
