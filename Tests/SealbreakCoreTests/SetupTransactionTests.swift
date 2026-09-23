@@ -21,11 +21,11 @@ struct SetupTransactionTests {
             profiles: [
                 StoredProfile(
                     profile: profile,
-                    state: .pending
+                    state: .creating
                 )
             ]
         ) else {
-            Issue.record("Pending setup must require recovery.")
+            Issue.record("Creating setup must require recovery.")
             return
         }
 
@@ -39,6 +39,18 @@ struct SetupTransactionTests {
                 ]
             ) == .ready(profile)
         )
+
+        guard case .recoveryRequired = resolveLocalSetupState(
+            profiles: [
+                StoredProfile(
+                    profile: profile,
+                    state: .removing
+                )
+            ]
+        ) else {
+            Issue.record("Removing profile must require recovery.")
+            return
+        }
     }
 
     @Test
@@ -130,9 +142,9 @@ struct SetupTransactionTests {
 
 private actor ProtectionGate {
     private var started = false
-    private var continuation: CheckedContinuation<SetupProtectionOutcome, any Error>?
+    private var continuation: CheckedContinuation<LocalPersistenceOutcome, any Error>?
 
-    func run() async throws -> SetupProtectionOutcome {
+    func run() async throws -> LocalPersistenceOutcome {
         started = true
         return try await withCheckedThrowingContinuation { continuation in
             self.continuation = continuation
