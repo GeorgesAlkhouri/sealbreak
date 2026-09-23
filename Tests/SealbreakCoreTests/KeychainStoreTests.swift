@@ -209,7 +209,7 @@ struct KeychainStoreTests {
     }
 
     @Test
-    func profileStorePersistsPendingThenReadyAndDeletes() throws {
+    func profileStorePersistsCreatingReadyRemovingAndDeletes() throws {
         let root = temporaryRoot()
         defer { try? FileManager.default.removeItem(at: root) }
         let store = ProfileStore(baseDirectory: root)
@@ -225,7 +225,7 @@ struct KeychainStoreTests {
         try store.begin(profile)
         #expect(
             try store.loadAll() == [
-                StoredProfile(profile: profile, state: .pending)
+                StoredProfile(profile: profile, state: .creating)
             ]
         )
 
@@ -233,6 +233,13 @@ struct KeychainStoreTests {
         #expect(
             try store.loadAll() == [
                 StoredProfile(profile: profile, state: .ready)
+            ]
+        )
+
+        try store.beginRemoval(id: profile.id)
+        #expect(
+            try store.loadAll() == [
+                StoredProfile(profile: profile, state: .removing)
             ]
         )
 
@@ -268,7 +275,128 @@ struct KeychainStoreTests {
 
         #expect(
             try store.loadAll() == [
-                StoredProfile(profile: profile, state: .pending)
+                StoredProfile(profile: profile, state: .creating)
+            ]
+        )
+        #expect(throws: AppFailure.self) {
+            try store.beginRemoval(id: profile.id)
+        }
+    }
+
+    @Test
+    func createLocalProfileTransactionPersistsReadyOnlyAfterShareWrite() throws {
+        let root = temporaryRoot()
+        defer { try? FileManager.default.removeItem(at: root) }
+        let store = ProfileStore(baseDirectory: root)
+        let profile = try ServerProfile(
+            id: UUID(),
+            name: "Test",
+            address: origin
+        )
+        var stateDuringShareWrite: StoredProfileState?
+
+        let outcome = createLocalProfileTransaction(
+            profile: profile,
+            profiles: store,
+            insertShare: {
+                stateDuringShareWrite = try store.loadAll().first?.state
+            }
+        )
+
+        #expect(outcome == .completed)
+        #expect(stateDuringShareWrite == .creating)
+        #expect(
+            try store.loadAll() == [
+                StoredProfile(profile: profile, state: .ready)
+            ]
+        )
+    }
+
+    @Test
+    func createLocalProfileTransactionLeavesCreatingOnShareFailure() throws {
+        let root = temporaryRoot()
+        defer { try? FileManager.default.removeItem(at: root) }
+        let store = ProfileStore(baseDirectory: root)
+        let profile = try ServerProfile(
+            id: UUID(),
+            name: "Test",
+            address: origin
+        )
+
+        let outcome = createLocalProfileTransaction(
+            profile: profile,
+            profiles: store,
+            insertShare: {
+                throw AppFailure("share write failed")
+            }
+        )
+
+        guard case .recoveryRequired = outcome else {
+            Issue.record("Failed share creation must require recovery.")
+            return
+        }
+        #expect(
+            try store.loadAll() == [
+                StoredProfile(profile: profile, state: .creating)
+            ]
+        )
+    }
+
+    @Test
+    func removeLocalProfileTransactionMarksRemovingBeforeDelete() throws {
+        let root = temporaryRoot()
+        defer { try? FileManager.default.removeItem(at: root) }
+        let store = ProfileStore(baseDirectory: root)
+        let profile = try ServerProfile(
+            id: UUID(),
+            name: "Test",
+            address: origin
+        )
+        try store.begin(profile)
+        try store.commit(id: profile.id)
+
+        var stateDuringShareDelete: StoredProfileState?
+        let outcome = removeLocalProfileTransaction(
+            profileID: profile.id,
+            profiles: store,
+            deleteShare: {
+                stateDuringShareDelete = try store.loadAll().first?.state
+            }
+        )
+
+        #expect(outcome == .completed)
+        #expect(stateDuringShareDelete == .removing)
+        #expect(try store.loadAll().isEmpty)
+    }
+
+    @Test
+    func removeLocalProfileTransactionLeavesRemovingOnDeleteFailure() throws {
+        let root = temporaryRoot()
+        defer { try? FileManager.default.removeItem(at: root) }
+        let store = ProfileStore(baseDirectory: root)
+        let profile = try ServerProfile(
+            id: UUID(),
+            name: "Test",
+            address: origin
+        )
+        try store.begin(profile)
+        try store.commit(id: profile.id)
+
+        let outcome = removeLocalProfileTransaction(
+            profileID: profile.id,
+            profiles: store,
+            deleteShare: {
+                throw AppFailure("share delete failed")
+            }
+        )
+
+        guard case .recoveryRequired = outcome else {
+            Issue.record("Failed local removal must require recovery.")
+            return
+        }
+        #expect(
+            try store.loadAll() == [
+                StoredProfile(profile: profile, state: .removing)
             ]
         )
     }
