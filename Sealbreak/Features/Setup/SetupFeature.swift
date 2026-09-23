@@ -101,11 +101,13 @@ struct SetupFeature {
                 return .none
 
             case .cancelTapped:
-                guard !state.isBusy else { return .none }
+                guard state.share?.isBusy != true else { return .none }
+                state.operation = nil
                 state.confirmDelete = false
                 state.share = nil
                 let client = self.client
                 return .merge(
+                    .cancel(id: CancelID.operation),
                     .run { _ in await client.cancelSensitiveOperation() },
                     .send(.delegate(.cancelled))
                 )
