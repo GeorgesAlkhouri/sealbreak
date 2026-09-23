@@ -125,6 +125,14 @@ private final class LiveSealbreakClientController {
 
     func deleteProfile(_ profileID: UUID) throws {
         try profiles.delete(id: profileID)
+
+        switch try setupState.load() {
+        case .pending(let storedProfileID), .ready(let storedProfileID)
+            where storedProfileID == profileID:
+            try setupState.reset()
+        default:
+            break
+        }
     }
 
     func resetLocalData() throws {
