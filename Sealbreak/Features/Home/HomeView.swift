@@ -1,4 +1,5 @@
 import ComposableArchitecture
+import Foundation
 import SwiftUI
 
 struct HomeView: View {
@@ -138,5 +139,53 @@ struct HomeView: View {
         case nil:
             return "Confirm"
         }
+    }
+}
+
+
+#Preview("Home — Sealed") {
+    if let profile = try? ServerProfile(
+        id: UUID(),
+        name: "Production OpenBao",
+        address: "https://bao.example.com:8200",
+        product: .openBao
+    ) {
+        let status = SealStatus(
+            type: "shamir",
+            initialized: true,
+            sealed: true,
+            t: 3,
+            n: 5,
+            progress: 1,
+            migration: false,
+            recoverySeal: false
+        )
+
+        let privacyState: PrivacyFeature.State = {
+            var state = PrivacyFeature.State()
+            state.phase = .active
+            return state
+        }()
+
+        NavigationStack {
+            HomeView(
+                store: Store(
+                    initialState: HomeFeature.State(
+                        profile: profile,
+                        status: status,
+                        notice: ""
+                    )
+                ) {
+                    HomeFeature()
+                } withDependencies: {
+                    $0.sealbreakClient = .unimplemented
+                },
+                privacyStore: Store(initialState: privacyState) {
+                    PrivacyFeature()
+                }
+            )
+        }
+    } else {
+        Text("Preview fixture unavailable")
     }
 }
