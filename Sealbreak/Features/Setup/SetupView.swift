@@ -1,4 +1,5 @@
 import ComposableArchitecture
+import Foundation
 import SwiftUI
 
 struct SetupView: View {
@@ -230,5 +231,57 @@ struct SetupView: View {
 
     private var hasDraft: Bool {
         store.step == .share || store.instance.hasDraft
+    }
+}
+
+
+#Preview("Setup — Instance") {
+    let state: SetupFeature.State = {
+        var state = SetupFeature.State(notice: "")
+        state.instance.name = "Production OpenBao"
+        state.instance.address = "https://bao.example.com:8200"
+        return state
+    }()
+
+    NavigationStack {
+        SetupView(
+            store: Store(initialState: state) {
+                SetupFeature()
+            } withDependencies: {
+                $0.sealbreakClient = .unimplemented
+            }
+        )
+    }
+}
+
+#Preview("Setup — Share") {
+    if let profile = try? ServerProfile(
+        id: UUID(),
+        name: "Production OpenBao",
+        address: "https://bao.example.com:8200",
+        product: .openBao
+    ) {
+        let state: SetupFeature.State = {
+            var state = SetupFeature.State(notice: "")
+            state.step = .share
+            state.instance.name = profile.name
+            state.instance.address = profile.origin
+            state.instance.checkedProfile = profile
+            state.instance.dnssecStatus = .secure
+            state.share = ShareSetupFeature.State(profile: profile, notice: "")
+            return state
+        }()
+
+        NavigationStack {
+            SetupView(
+                store: Store(initialState: state) {
+                    SetupFeature()
+                } withDependencies: {
+                    $0.sealbreakClient = .unimplemented
+                }
+            )
+        }
+    } else {
+        Text("Preview fixture unavailable")
     }
 }
