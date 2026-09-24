@@ -142,7 +142,6 @@ struct HomeView: View {
     }
 }
 
-
 #Preview("Home — Sealed") {
     if let profile = try? ServerProfile(
         id: UUID(),
