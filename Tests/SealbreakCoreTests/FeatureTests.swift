@@ -1433,7 +1433,6 @@ struct FeatureTests {
 
 }
 
-
 private func localizedContains(
     _ resource: LocalizedStringResource?,
     _ substring: String
