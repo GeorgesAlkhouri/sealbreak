@@ -172,22 +172,7 @@ struct ShareSetupView: View {
                     .multilineTextAlignment(.center)
                     .fixedSize(horizontal: false, vertical: true)
             }
-            .foregroundStyle(PapercutPalette.cream)
-            .padding(.horizontal, 16)
-            .padding(.vertical, 14)
-            .frame(maxWidth: .infinity)
-            .frame(minHeight: 62)
-            .background {
-                ZStack {
-                    RoundedRectangle(cornerRadius: 21, style: .continuous)
-                        .fill(PapercutPalette.buttonBack)
-                        .offset(x: 2, y: 5)
-
-                    RoundedRectangle(cornerRadius: 21, style: .continuous)
-                        .fill(PapercutPalette.button)
-                }
-            }
-            .shadow(color: .black.opacity(0.30), radius: 8, y: 8)
+            .papercutPrimaryButtonAppearance()
         }
         .buttonStyle(.plain)
         .disabled(store.isBusy || !isShareLocallyValid)
