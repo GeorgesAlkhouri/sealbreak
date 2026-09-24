@@ -9,9 +9,9 @@ struct HomeViewStateTests {
     func statusPresentationMapsEveryPhase() {
         let cases: [(
             status: HomeViewState.Status,
-            title: LocalizedStringResource,
-            primaryDetail: LocalizedStringResource,
-            secondaryDetail: LocalizedStringResource,
+            title: String,
+            primaryDetail: String,
+            secondaryDetail: String,
             progress: Double
         )] = [
             (.unknown, "UNKNOWN", "Status unknown", "Check status before sending", 0.20),
@@ -26,9 +26,9 @@ struct HomeViewStateTests {
         ]
 
         for item in cases {
-            #expect(item.status.title == item.title)
-            #expect(item.status.primaryDetail == item.primaryDetail)
-            #expect(item.status.secondaryDetail == item.secondaryDetail)
+            #expect(String(localized: item.status.title) == item.title)
+            #expect(String(localized: item.status.primaryDetail) == item.primaryDetail)
+            #expect(String(localized: item.status.secondaryDetail) == item.secondaryDetail)
             #expect(item.status.progressFraction == item.progress)
         }
     }
