@@ -1,4 +1,5 @@
 import ComposableArchitecture
+import Foundation
 import SwiftUI
 
 struct SetupView: View {
@@ -131,7 +132,7 @@ struct SetupView: View {
 
     private func progressStep(
         number: Int,
-        title: String,
+        title: LocalizedStringResource,
         active: Bool,
         complete: Bool
     ) -> some View {
@@ -148,7 +149,7 @@ struct SetupView: View {
                     Image(systemName: "checkmark")
                         .font(.system(size: 11, weight: .bold))
                 } else {
-                    Text(String(number))
+                    Text(verbatim: String(number))
                         .font(.system(size: 12, weight: .bold, design: .rounded))
                 }
             }

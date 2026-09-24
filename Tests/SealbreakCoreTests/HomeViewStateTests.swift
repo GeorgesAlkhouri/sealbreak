@@ -9,13 +9,13 @@ struct HomeViewStateTests {
     func statusPresentationMapsEveryPhase() {
         let cases: [(
             status: HomeViewState.Status,
-            title: String,
-            primaryDetail: String,
-            secondaryDetail: String,
+            title: LocalizedStringResource,
+            primaryDetail: LocalizedStringResource,
+            secondaryDetail: LocalizedStringResource,
             progress: Double
         )] = [
             (.unknown, "UNKNOWN", "Status unknown", "Check status before sending", 0.20),
-            (.checking(activity: ""), "CHECKING", "Working…", "Please keep the app open", 0.66),
+            (.checking(activity: ""), "CHECKING", "", "Please keep the app open", 0.66),
             (.checking(activity: "Checking target…"), "CHECKING", "Checking target…", "Please keep the app open", 0.66),
             (.sealed(progress: 1, threshold: 3, supportsUnseal: true), "SEALED", "1 of 3 shares submitted", "Shamir seal", 1.0 / 3.0),
             (.sealed(progress: 1, threshold: 0, supportsUnseal: false), "SEALED", "1 of 0 shares submitted", "Manual unseal unavailable", 0),
@@ -37,7 +37,7 @@ struct HomeViewStateTests {
     func primaryActionMapsLabelsIconsAndAvailability() {
         let cases: [(
             action: HomeViewState.PrimaryAction,
-            title: String,
+            title: LocalizedStringResource,
             systemImage: String,
             enabled: Bool
         )] = [
@@ -45,7 +45,7 @@ struct HomeViewStateTests {
             (.checkStatus(enabled: false), "Check status", "arrow.clockwise", false),
             (.unseal(enabled: true), "Unseal with Face ID", "faceid", true),
             (.unseal(enabled: false), "Unseal with Face ID", "faceid", false),
-            (.working(title: ""), "Working…", "hourglass", false),
+            (.working(title: ""), "", "hourglass", false),
             (.working(title: "Verifying seal status…"), "Verifying seal status…", "hourglass", false)
         ]
 
@@ -59,7 +59,7 @@ struct HomeViewStateTests {
     @Test
     func viewStateMapsEveryOperationToVisibleActivity() throws {
         let profile = try ServerProfile(id: UUID(), name: "Server", address: "https://bao.example.com/")
-        let operations: [(HomeFeature.State.Operation, HomeViewState.Status, String)] = [
+        let operations: [(HomeFeature.State.Operation, HomeViewState.Status, LocalizedStringResource)] = [
             (.checkingStatus, .checking(activity: "Checking seal status…"), "Checking seal status…"),
             (.checkingTarget, .unsealing(activity: "Checking target…"), "Checking target…"),
             (.waitingForFaceID, .unsealing(activity: "Waiting for Face ID…"), "Waiting for Face ID…"),
@@ -137,7 +137,7 @@ struct HomeViewStateTests {
                 profile: profile,
                 status: nil,
                 isBusy: false,
-                activity: "",
+                activity: nil,
                 notice: ""
             )
         ) {

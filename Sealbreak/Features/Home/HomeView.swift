@@ -1,4 +1,5 @@
 import ComposableArchitecture
+import Foundation
 import SwiftUI
 
 struct HomeView: View {
@@ -124,7 +125,7 @@ struct HomeView: View {
         )
     }
 
-    private var confirmationTitle: String {
+    private var confirmationTitle: LocalizedStringResource {
         switch store.confirmation {
         case .unseal:
             return "Send one Shamir share?"

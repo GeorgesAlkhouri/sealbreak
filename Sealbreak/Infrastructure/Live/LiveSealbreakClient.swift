@@ -82,7 +82,7 @@ private final class LiveSealbreakClientController {
     func protectNewProfile(
         profile: ServerProfile,
         record: ShareRecord,
-        reason: String
+        reason: LocalizedStringResource
     ) async throws -> LocalPersistenceOutcome {
         try await withAuthorizedContext(reason: reason) { context in
             createLocalProfileTransaction(
@@ -101,7 +101,7 @@ private final class LiveSealbreakClientController {
 
     func removeLocalProfile(
         profileID: UUID,
-        reason: String
+        reason: LocalizedStringResource
     ) async throws -> LocalPersistenceOutcome {
         try await withAuthorizedContext(reason: reason) { context in
             removeLocalProfileTransaction(
@@ -149,7 +149,7 @@ private final class LiveSealbreakClientController {
         try await client.submit(record)
     }
 
-    func readShare(profileID: UUID, reason: String) async throws -> ShareRecord {
+    func readShare(profileID: UUID, reason: LocalizedStringResource) async throws -> ShareRecord {
         try await withAuthorizedContext(reason: reason) { context in
             try keychain.read(profileID: profileID, context: context)
         }
@@ -158,7 +158,7 @@ private final class LiveSealbreakClientController {
     func replaceShare(
         expectedProfile: ServerProfile,
         replacement: ShareRecord,
-        reason: String
+        reason: LocalizedStringResource
     ) async throws {
         try await withAuthorizedContext(reason: reason) { context in
             try replaceShareIfBound(
@@ -214,7 +214,7 @@ private final class LiveSealbreakClientController {
     }
 
     private func withAuthorizedContext<Value>(
-        reason: String,
+        reason: LocalizedStringResource,
         operation: (LAContext) throws -> Value
     ) async throws -> Value {
         try requireForeground()
@@ -241,7 +241,7 @@ private final class LiveSealbreakClientController {
         do {
             guard try await context.evaluatePolicy(
                 .deviceOwnerAuthenticationWithBiometrics,
-                localizedReason: reason
+                localizedReason: String(localized: reason)
             ) else {
                 throw AppFailure("Face ID did not authorize this action.")
             }

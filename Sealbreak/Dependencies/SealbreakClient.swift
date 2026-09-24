@@ -13,12 +13,12 @@ enum DNSSECStatus: Equatable, Sendable {
 enum LocalSetupState: Equatable, Sendable {
     case empty
     case ready(ServerProfile)
-    case recoveryRequired(String)
+    case recoveryRequired(LocalizedStringResource)
 }
 
 enum LocalPersistenceOutcome: Equatable, Sendable {
     case completed
-    case recoveryRequired(String)
+    case recoveryRequired(LocalizedStringResource)
 }
 
 struct SealbreakClient: Sendable {
@@ -26,22 +26,22 @@ struct SealbreakClient: Sendable {
     var protectNewProfile: @Sendable (
         _ profile: ServerProfile,
         _ record: ShareRecord,
-        _ reason: String
+        _ reason: LocalizedStringResource
     ) async throws -> LocalPersistenceOutcome
     var resetLocalData: @Sendable () async throws -> Void
     var detectProduct: @Sendable (ServerProfile) async throws -> ServerProduct
     var dnssecStatus: @Sendable (String) async throws -> DNSSECStatus
     var status: @Sendable (ServerProfile) async throws -> SealStatus
     var submit: @Sendable (ShareRecord) async throws -> Void
-    var readShare: @Sendable (_ profileID: UUID, _ reason: String) async throws -> ShareRecord
+    var readShare: @Sendable (_ profileID: UUID, _ reason: LocalizedStringResource) async throws -> ShareRecord
     var replaceShare: @Sendable (
         _ expectedProfile: ServerProfile,
         _ replacement: ShareRecord,
-        _ reason: String
+        _ reason: LocalizedStringResource
     ) async throws -> Void
     var removeLocalProfile: @Sendable (
         _ profileID: UUID,
-        _ reason: String
+        _ reason: LocalizedStringResource
     ) async throws -> LocalPersistenceOutcome
     var requireForeground: @Sendable () async throws -> Void
     var waitForForeground: @Sendable () async throws -> Void

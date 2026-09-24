@@ -1,4 +1,5 @@
 import ComposableArchitecture
+import Foundation
 
 @Reducer
 struct ReplaceShareFeature {
@@ -6,8 +7,8 @@ struct ReplaceShareFeature {
     struct State: Equatable {
         var profile: ServerProfile
         var isBusy = false
-        var activity = ""
-        var notice = ""
+        var activity: LocalizedStringResource?
+        var notice: LocalizedStringResource?
     }
 
     enum Action: Equatable {
@@ -45,7 +46,7 @@ struct ReplaceShareFeature {
                 do {
                     replacement = try ShareRecord(profile: state.profile, input: input)
                 } catch {
-                    state.notice = normalizedAppFailure(error).message
+                    state.notice = normalizedAppFailure(error).resource
                     return .none
                 }
 
@@ -74,19 +75,19 @@ struct ReplaceShareFeature {
 
             case .saveSucceeded:
                 state.isBusy = false
-                state.activity = ""
-                state.notice = ""
+                state.activity = nil
+                state.notice = nil
                 return .send(.delegate(.saved))
 
             case .saveFailed(let failure):
                 state.isBusy = false
-                state.activity = ""
-                state.notice = failure.message
+                state.activity = nil
+                state.notice = failure.resource
                 return .none
 
             case .operationCancelled:
                 state.isBusy = false
-                state.activity = ""
+                state.activity = nil
                 state.notice = "Operation cancelled. Refresh status before retrying; a submitted request may already have been processed."
                 return .none
 
@@ -97,7 +98,7 @@ struct ReplaceShareFeature {
             case .privacyInterrupted:
                 let wasBusy = state.isBusy
                 state.isBusy = false
-                state.activity = ""
+                state.activity = nil
                 if wasBusy {
                     state.notice = "Operation interrupted. Check status on return; an already submitted request cannot be recalled."
                 }

@@ -48,6 +48,8 @@
 		000000000000000000000246 /* WelcomeFeature.swift in Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000146 /* WelcomeFeature.swift */; };
 		000000000000000000000247 /* WelcomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000147 /* WelcomeView.swift */; };
 		000000000000000000000248 /* Brand.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000148 /* Brand.xcassets */; };
+		000000000000000000000259 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000158 /* Localizable.xcstrings */; };
+		000000000000000000000260 /* InfoPlist.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000159 /* InfoPlist.xcstrings */; };
 		000000000000000000000249 /* LiveSealbreakClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000149 /* LiveSealbreakClient.swift */; };
 		000000000000000000000258 /* LiveDNSSECResolver.swift in Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000157 /* LiveDNSSECResolver.swift */; };
 		000000000000000000000250 /* ComposableArchitecture in Frameworks */ = {isa = PBXBuildFile; productRef = 000000000000000000000401 /* ComposableArchitecture */; };
@@ -101,6 +103,8 @@
 		000000000000000000000146 /* WelcomeFeature.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WelcomeFeature.swift; sourceTree = "<group>"; };
 		000000000000000000000147 /* WelcomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WelcomeView.swift; sourceTree = "<group>"; };
 		000000000000000000000148 /* Brand.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Resources/Brand.xcassets; sourceTree = "<group>"; };
+		000000000000000000000158 /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Resources/Localizable.xcstrings; sourceTree = "<group>"; };
+		000000000000000000000159 /* InfoPlist.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Resources/InfoPlist.xcstrings; sourceTree = "<group>"; };
 		000000000000000000000149 /* LiveSealbreakClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveSealbreakClient.swift; sourceTree = "<group>"; };
 		000000000000000000000157 /* LiveDNSSECResolver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveDNSSECResolver.swift; sourceTree = "<group>"; };
 		000000000000000000000501 /* SealbreakIntegrationTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = SealbreakIntegrationTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -145,6 +149,8 @@
 				000000000000000000000314 /* Dependencies */,
 				000000000000000000000311 /* Infrastructure */,
 				000000000000000000000148 /* Brand.xcassets */,
+				000000000000000000000158 /* Localizable.xcstrings */,
+				000000000000000000000159 /* InfoPlist.xcstrings */,
 				000000000000000000000106 /* Info.plist */,
 				000000000000000000000107 /* PrivacyInfo.xcprivacy */,
 			);
@@ -426,6 +432,8 @@
 			files = (
 				000000000000000000000206 /* PrivacyInfo.xcprivacy in Resources */,
 				000000000000000000000248 /* Brand.xcassets in Resources */,
+				000000000000000000000259 /* Localizable.xcstrings in Resources */,
+				000000000000000000000260 /* InfoPlist.xcstrings in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

@@ -6,14 +6,14 @@ struct ServerStatusCard: View {
     var body: some View {
         PapercutCard {
             VStack(spacing: 0) {
-                Text(state.serverName)
+                Text(verbatim: state.serverName)
                     .font(.system(size: 25, weight: .bold))
                     .foregroundStyle(PapercutPalette.cream)
                     .lineLimit(1)
                     .minimumScaleFactor(0.72)
                     .frame(maxWidth: .infinity, alignment: .center)
 
-                Text(state.origin)
+                Text(verbatim: state.origin)
                     .font(.system(size: 16, weight: .medium))
                     .foregroundStyle(PapercutPalette.secondaryText)
                     .lineLimit(1)
@@ -28,7 +28,7 @@ struct ServerStatusCard: View {
                 Spacer(minLength: 10)
 
                 Text(state.status.title)
-                    .font(.system(size: state.status.title == "UNSEALING" ? 34 : 40, weight: .bold))
+                    .font(.system(size: state.status.prefersCompactTitle ? 34 : 40, weight: .bold))
                     .foregroundStyle(SealStatusIndicator(status: state.status).accent)
                     .shadow(color: .black.opacity(0.28), radius: 4, y: 4)
                     .lineLimit(1)

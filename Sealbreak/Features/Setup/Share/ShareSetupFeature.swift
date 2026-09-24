@@ -1,4 +1,5 @@
 import ComposableArchitecture
+import Foundation
 
 @Reducer
 struct ShareSetupFeature {
@@ -7,41 +8,41 @@ struct ShareSetupFeature {
         enum Operation: Equatable {
             case protecting
 
-            var activity: String {
+            var activity: LocalizedStringResource {
                 "Protecting share…"
             }
         }
 
         let profile: ServerProfile
         var operation: Operation?
-        var notice: String
+        var notice: LocalizedStringResource
 
         init(
             profile: ServerProfile,
-            notice: String = "Prototype: use disposable test shares until the security checks in issue #1 have been completed."
+            notice: LocalizedStringResource = "Prototype: use disposable test shares until the security checks in issue #1 have been completed."
         ) {
             self.profile = profile
             self.notice = notice
         }
 
         var isBusy: Bool { operation != nil }
-        var activity: String { operation?.activity ?? "" }
+        var activity: LocalizedStringResource? { operation?.activity }
     }
 
     struct ProfileResult: Equatable, Sendable {
         let profile: ServerProfile
-        let notice: String
+        let notice: LocalizedStringResource
     }
 
     enum Action: Equatable {
         enum Delegate: Equatable {
-            case profileReady(ServerProfile, notice: String)
-            case localResetRequired(notice: String)
+            case profileReady(ServerProfile, notice: LocalizedStringResource)
+            case localResetRequired(notice: LocalizedStringResource)
         }
 
         case saveTapped(share: String)
         case importResponse(Result<ProfileResult, AppFailure>)
-        case localResetRequired(String)
+        case localResetRequired(LocalizedStringResource)
         case operationCancelled
         case privacyInterrupted
         case delegate(Delegate)
@@ -59,7 +60,7 @@ struct ShareSetupFeature {
                 do {
                     record = try ShareRecord(profile: state.profile, input: input)
                 } catch {
-                    state.notice = normalizedAppFailure(error).message
+                    state.notice = normalizedAppFailure(error).resource
                     return .none
                 }
 
@@ -118,7 +119,7 @@ struct ShareSetupFeature {
 
             case .importResponse(.failure(let failure)):
                 state.operation = nil
-                state.notice = failure.message
+                state.notice = failure.resource
                 return .none
 
             case .localResetRequired(let notice):

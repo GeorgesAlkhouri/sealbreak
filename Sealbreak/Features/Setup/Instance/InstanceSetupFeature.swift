@@ -9,7 +9,7 @@ struct InstanceSetupFeature {
         var address = ""
         var checkedProfile: ServerProfile?
         var dnssecStatus: DNSSECStatus?
-        var notice: String?
+        var notice: LocalizedStringResource?
         var isCheckingConnection = false
 
         var canCheckConnection: Bool {
@@ -81,7 +81,7 @@ struct InstanceSetupFeature {
                     profile = try ServerProfile(id: uuid(), name: state.name, address: state.address)
                 } catch {
                     state.invalidateConnectionCheck()
-                    state.notice = normalizedAppFailure(error).message
+                    state.notice = normalizedAppFailure(error).resource
                     return .none
                 }
 
@@ -154,7 +154,7 @@ struct InstanceSetupFeature {
             case .connectionResponse(.failure(let failure)):
                 state.isCheckingConnection = false
                 state.checkedProfile = nil
-                state.notice = failure.message
+                state.notice = failure.resource
                 return .none
 
             case .continueTapped:

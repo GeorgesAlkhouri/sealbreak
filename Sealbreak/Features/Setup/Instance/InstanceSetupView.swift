@@ -1,4 +1,5 @@
 import ComposableArchitecture
+import Foundation
 import SwiftUI
 import UIKit
 
@@ -165,7 +166,7 @@ struct InstanceSetupView: View {
 
     private func statusRow(
         icon: String,
-        text: String,
+        text: LocalizedStringResource,
         color: Color
     ) -> some View {
         HStack(spacing: 10) {
@@ -179,7 +180,7 @@ struct InstanceSetupView: View {
         }
     }
 
-    private var primaryButtonTitle: String {
+    private var primaryButtonTitle: LocalizedStringResource {
         if store.isCheckingConnection {
             return "Checking…"
         }
@@ -243,8 +244,8 @@ struct InstanceSetupView: View {
     }
 
     private func setupField(
-        title: String,
-        prompt: String,
+        title: LocalizedStringResource,
+        prompt: LocalizedStringResource,
         text: Binding<String>,
         keyboardType: UIKeyboardType
     ) -> some View {
@@ -294,7 +295,7 @@ struct InstanceSetupView: View {
         )
     }
 
-    private func productLabel(_ product: ServerProduct) -> String {
+    private func productLabel(_ product: ServerProduct) -> LocalizedStringResource {
         switch product {
         case .openBao:
             return "OpenBao detected"

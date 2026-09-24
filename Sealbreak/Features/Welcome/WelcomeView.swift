@@ -1,4 +1,5 @@
 import ComposableArchitecture
+import Foundation
 import SwiftUI
 
 struct WelcomeView: View {
@@ -128,7 +129,7 @@ struct WelcomeView: View {
         }
     }
 
-    private func primaryActionLabel(icon: String, title: String) -> some View {
+    private func primaryActionLabel(icon: String, title: LocalizedStringResource) -> some View {
         HStack(spacing: 12) {
             Image(systemName: icon)
                 .font(.system(size: 22, weight: .semibold))
@@ -179,7 +180,7 @@ struct WelcomeView: View {
                 .foregroundStyle(tint ?? PapercutPalette.secondaryText)
                 .accessibilityHidden(true)
 
-            Text(name)
+            Text(verbatim: name)
         }
     }
 

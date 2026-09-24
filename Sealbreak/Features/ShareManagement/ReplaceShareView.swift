@@ -1,4 +1,5 @@
 import ComposableArchitecture
+import Foundation
 import SwiftUI
 
 struct ReplaceShareView: View {
@@ -24,13 +25,13 @@ struct ReplaceShareView: View {
                         .foregroundStyle(.secondary)
                 }
 
-                if store.isBusy || !store.notice.isEmpty {
+                if store.isBusy || store.notice != nil {
                     Section("Result") {
-                        if store.isBusy {
-                            ProgressView(store.activity)
+                        if store.isBusy, let activity = store.activity {
+                            ProgressView(activity)
                         }
-                        if !store.notice.isEmpty {
-                            Text(store.notice)
+                        if let notice = store.notice {
+                            Text(notice)
                                 .font(.callout)
                         }
                     }

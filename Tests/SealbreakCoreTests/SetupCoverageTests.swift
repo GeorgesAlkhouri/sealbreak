@@ -39,7 +39,7 @@ struct SetupCoverageTests {
 
         await store.send(.addressChanged("http://not-https.example.com"))
         await store.send(.checkConnectionTapped)
-        #expect(store.state.notice?.contains("HTTPS origin") == true)
+        #expect(store.state.notice.map { String(localized: $0) }?.contains("HTTPS origin") == true)
         #expect(!store.state.isCheckingConnection)
         #expect(store.state.checkedProfile == nil)
     }
@@ -214,7 +214,7 @@ struct SetupCoverageTests {
         state.share = ShareSetupFeature.State(profile: target)
 
         let store = setupStore(state, dependency: .testValue)
-        let notice = "saved"
+        let notice: LocalizedStringResource = "saved"
 
         await store.send(
             .share(.delegate(.profileReady(target, notice: notice)))
@@ -222,7 +222,7 @@ struct SetupCoverageTests {
         await store.receive(.delegate(.profileReady(target, notice: notice)))
         #expect(store.state.notice == notice)
 
-        let recovery = "reset required"
+        let recovery: LocalizedStringResource = "reset required"
         await store.send(
             .share(.delegate(.localResetRequired(notice: recovery)))
         )
@@ -294,7 +294,7 @@ struct SetupCoverageTests {
         #expect(state.blocksSetupExit)
 
         state.share?.operation = nil
-        #expect(state.activity.isEmpty)
+        #expect(state.activity == nil)
         #expect(!state.isBusy)
     }
 
