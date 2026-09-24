@@ -32,8 +32,10 @@ struct ShareSetupView: View {
                         .fixedSize(horizontal: false, vertical: true)
 
                     SecureField(
-                        "Paste one Shamir share",
-                        text: $share
+                        "",
+                        text: $share,
+                        prompt: Text("Paste one Shamir share")
+                            .foregroundStyle(PapercutPalette.secondaryText)
                     )
                     .font(.system(.callout, design: .monospaced, weight: .semibold))
                     .foregroundStyle(PapercutPalette.cream)
