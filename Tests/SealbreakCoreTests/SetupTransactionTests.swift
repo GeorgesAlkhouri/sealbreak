@@ -151,7 +151,7 @@ struct SetupTransactionTests {
         await store.skipReceivedActions()
 
         #expect(store.state.operation == nil)
-        #expect(store.state.notice.contains("Operation cancelled"))
+        #expect(String(localized: store.state.notice).contains("Operation cancelled"))
     }
 
     @Test
