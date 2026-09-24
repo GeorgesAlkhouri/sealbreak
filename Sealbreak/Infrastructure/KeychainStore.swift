@@ -158,7 +158,8 @@ struct KeychainStore {
         case errSecAuthFailed, errSecInteractionNotAllowed, errSecUserCanceled:
             return AppFailure("Keychain access was denied. No passcode fallback is used. Try fresh Face ID; otherwise use independent recovery.")
         default:
-            return AppFailure("The Keychain operation failed (status \(status)). Existing data was not deliberately deleted.")
+            let statusCode = String(status)
+            return AppFailure("The Keychain operation failed (status \(statusCode)). Existing data was not deliberately deleted.")
         }
     }
 }
