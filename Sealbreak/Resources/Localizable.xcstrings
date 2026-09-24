@@ -1,7 +1,69 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
+    "and" : {
 
+    },
+    "and compatible Shamir seal servers." : {
+
+    },
+    "Checking connection…" : {
+
+    },
+    "Connect your instance" : {
+
+    },
+    "Enter the direct HTTPS address of one server node." : {
+
+    },
+    "Face ID will be required. Sealbreak will re-check the target before sending anything." : {
+
+    },
+    "Keep one Shamir unseal share protected on this iPhone." : {
+
+    },
+    "Paste is explicit. Existing clipboard/password-manager copies cannot be erased by this app. The share is never displayed or exported after saving." : {
+
+    },
+    "Protect your share" : {
+
+    },
+    "S E C U R E   A C C E S S" : {
+
+    },
+    "Sealbreak" : {
+
+    },
+    "Sealbreak checks the server using normal iOS certificate validation. DNSSEC is reported separately when the hostname can be validated." : {
+
+    },
+    "Setup" : {
+
+    },
+    "Status unknown — check before sending." : {
+
+    },
+    "Store one Shamir share on this iPhone." : {
+
+    },
+    "This removes every protected share stored by Sealbreak on this iPhone and all local Sealbreak configuration. You need an independent share copy to set up again." : {
+
+    },
+    "This removes the local Keychain share and display profile. Independent recovery will be required to restore access." : {
+
+    },
+    "This replaces only the locally stored share. It does not rotate server keys or change the configured target." : {
+
+    },
+    "Unseal share" : {
+
+    },
+    "Works with" : {
+
+    },
+    "Your current setup entries will not be saved." : {
+
+    }
   },
   "version" : "1.0"
 }
