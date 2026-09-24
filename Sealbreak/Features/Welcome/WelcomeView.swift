@@ -210,7 +210,7 @@ struct WelcomeView: View {
     }
 }
 
-#Preview {
+#Preview("Welcome") {
     NavigationStack {
         WelcomeView(
             store: Store(initialState: WelcomeFeature.State()) {
@@ -218,15 +218,4 @@ struct WelcomeView: View {
             }
         )
     }
-}
-
-#Preview("Largest accessibility text") {
-    NavigationStack {
-        WelcomeView(
-            store: Store(initialState: WelcomeFeature.State()) {
-                WelcomeFeature()
-            }
-        )
-    }
-    .dynamicTypeSize(.accessibility5)
 }
