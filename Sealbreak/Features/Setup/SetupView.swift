@@ -234,7 +234,6 @@ struct SetupView: View {
     }
 }
 
-
 #Preview("Setup — Instance") {
     let state: SetupFeature.State = {
         var state = SetupFeature.State(notice: "")
