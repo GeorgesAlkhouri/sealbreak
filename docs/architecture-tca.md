@@ -60,7 +60,7 @@ Privacy interruption cancels the reducer effect, invalidates the active biometri
 
 ## Dependency version
 
-TCA is pinned to **1.26.1**, whose package manifest uses Swift tools 6.1 and supports iOS 16+ / macOS 13+. Pinning keeps dependency resolution reproducible for the repository's Xcode 26 CI environment.
+TCA is pinned to **1.26.1**, whose package manifest uses Swift tools 6.1 and supports iOS 16+ / macOS 13+. Pinning keeps dependency resolution reproducible across the repository's supported iOS 26 and iOS 27 CI baselines.
 
 ## Views
 
