@@ -139,21 +139,19 @@ case "$server" in
     cat >"$work_dir/server.hcl" <<EOF
 ui = false
 
-storage "raft" {
-  path    = "$data_dir"
-  node_id = "sealbreak-ci"
-}
+# This server is intentionally ephemeral and single-node. OpenBao 2.7 removed
+# the file backend, while inmem remains supported for development/testing.
+# Avoid Raft here so the test exercises Sealbreak's Shamir/API behavior only.
+storage "inmem" {}
 
 listener "tcp" {
   address                  = "127.0.0.1:8200"
-  cluster_address          = "127.0.0.1:8201"
   tls_cert_file            = "$tls_dir/server.crt"
   tls_key_file             = "$tls_dir/server.key"
   tls_disable_client_certs = true
 }
 
-api_addr     = "https://127.0.0.1:8200"
-cluster_addr = "https://127.0.0.1:8201"
+api_addr = "https://127.0.0.1:8200"
 EOF
     ;;
   vault)
