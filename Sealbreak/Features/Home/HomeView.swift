@@ -1,4 +1,5 @@
 import ComposableArchitecture
+import Foundation
 import SwiftUI
 
 struct HomeView: View {
@@ -10,53 +11,58 @@ struct HomeView: View {
             ZStack {
                 PapercutBackground()
 
-                VStack(spacing: 0) {
-                    HomeHeader(isBusy: viewState.isBusy) { action in
-                        switch action {
-                        case .refresh:
-                            store.send(.refreshTapped)
-                        case .serverDetails:
-                            store.send(.serverDetailsTapped)
-                        case .replaceShare:
-                            store.send(.replaceShareTapped)
-                        case .removeLocalData:
-                            store.send(.removeLocalDataTapped)
+                ScrollView(.vertical, showsIndicators: false) {
+                    VStack(spacing: 0) {
+                        HomeHeader(isBusy: viewState.isBusy) { action in
+                            switch action {
+                            case .refresh:
+                                store.send(.refreshTapped)
+                            case .serverDetails:
+                                store.send(.serverDetailsTapped)
+                            case .replaceShare:
+                                store.send(.replaceShareTapped)
+                            case .removeLocalData:
+                                store.send(.removeLocalDataTapped)
+                            }
                         }
-                    }
-                    .padding(.horizontal, 24)
+                        .padding(.horizontal, 24)
 
-                    Spacer(minLength: 28)
+                        Spacer(minLength: 28)
 
-                    ServerStatusCard(state: viewState)
+                        ServerStatusCard(state: viewState)
+                            .frame(maxWidth: 335)
+                            .padding(.horizontal, 29)
+
+                        Spacer(minLength: 26)
+
+                        UnsealButton(state: viewState.primaryAction) {
+                            switch viewState.primaryAction {
+                            case .unseal:
+                                store.send(.unsealTapped)
+                            case .checkStatus, .working:
+                                store.send(.refreshTapped)
+                            }
+                        }
                         .frame(maxWidth: 335)
                         .padding(.horizontal, 29)
 
-                    Spacer(minLength: 26)
-
-                    UnsealButton(state: viewState.primaryAction) {
-                        switch viewState.primaryAction {
-                        case .unseal:
-                            store.send(.unsealTapped)
-                        case .checkStatus, .working:
-                            store.send(.refreshTapped)
+                        if let notice = viewState.notice {
+                            Text(notice)
+                                .font(.caption)
+                                .foregroundStyle(PapercutPalette.cream.opacity(0.86))
+                                .multilineTextAlignment(.center)
+                                .fixedSize(horizontal: false, vertical: true)
+                                .padding(.horizontal, 38)
+                                .padding(.top, 10)
                         }
-                    }
-                    .frame(maxWidth: 335)
-                    .padding(.horizontal, 29)
 
-                    if let notice = viewState.notice {
-                        Text(notice)
-                            .font(.caption)
-                            .foregroundStyle(PapercutPalette.cream.opacity(0.86))
-                            .multilineTextAlignment(.center)
-                            .lineLimit(2)
-                            .padding(.horizontal, 38)
-                            .padding(.top, 10)
+                        Spacer(minLength: max(118, proxy.safeAreaInsets.bottom + 90))
                     }
-
-                    Spacer(minLength: max(118, proxy.safeAreaInsets.bottom + 90))
+                    .padding(.top, 10)
+                    .frame(maxWidth: .infinity)
+                    .frame(minHeight: proxy.size.height)
                 }
-                .padding(.top, 10)
+                .scrollBounceBehavior(.basedOnSize)
             }
         }
         .toolbar(.hidden, for: .navigationBar)
@@ -133,5 +139,52 @@ struct HomeView: View {
         case nil:
             return "Confirm"
         }
+    }
+}
+
+#Preview("Home — Sealed") {
+    if let profile = try? ServerProfile(
+        id: UUID(),
+        name: "Production OpenBao",
+        address: "https://bao.example.com:8200",
+        product: .openBao
+    ) {
+        let status = SealStatus(
+            type: "shamir",
+            initialized: true,
+            sealed: true,
+            t: 3,
+            n: 5,
+            progress: 1,
+            migration: false,
+            recoverySeal: false
+        )
+
+        let privacyState: PrivacyFeature.State = {
+            var state = PrivacyFeature.State()
+            state.phase = .active
+            return state
+        }()
+
+        NavigationStack {
+            HomeView(
+                store: Store(
+                    initialState: HomeFeature.State(
+                        profile: profile,
+                        status: status,
+                        notice: ""
+                    )
+                ) {
+                    HomeFeature()
+                } withDependencies: {
+                    $0.sealbreakClient = .unimplemented
+                },
+                privacyStore: Store(initialState: privacyState) {
+                    PrivacyFeature()
+                }
+            )
+        }
+    } else {
+        Text("Preview fixture unavailable")
     }
 }
