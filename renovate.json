@@ -76,18 +76,6 @@
         "python"
       ],
       "allowedVersions": "/^3\\.13(?:\\.|$)/"
-    },
-    {
-      "description": "Track current OpenBao and Vault releases without the global release delay",
-      "matchManagers": [
-        "custom.regex"
-      ],
-      "matchDepNames": [
-        "openbao/openbao",
-        "hashicorp/vault"
-      ],
-      "minimumReleaseAge": "0 days",
-      "dependencyDashboardApproval": false
     }
   ],
   "customManagers": [
