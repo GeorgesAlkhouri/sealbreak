@@ -1,7 +1,6 @@
 import ComposableArchitecture
 import Foundation
 import SwiftUI
-import UIKit
 
 struct PrivacyCover<Content: View>: View {
     let store: StoreOf<PrivacyFeature>
@@ -38,6 +37,7 @@ struct PrivacyCover<Content: View>: View {
 }
 
 struct PrivacyGate<Content: View>: View {
+    @Environment(\.isSceneCaptured) private var isSceneCaptured
     @Environment(\.scenePhase) private var scenePhase
 
     let store: StoreOf<PrivacyFeature>
@@ -49,13 +49,13 @@ struct PrivacyGate<Content: View>: View {
         }
         .onAppear {
             store.send(.phaseChanged(Self.phase(scenePhase)))
-            store.send(.captureChanged(UIScreen.main.isCaptured))
+            store.send(.captureChanged(isSceneCaptured))
         }
         .onChange(of: scenePhase) { _, phase in
             store.send(.phaseChanged(Self.phase(phase)))
         }
-        .onReceive(NotificationCenter.default.publisher(for: UIScreen.capturedDidChangeNotification)) { _ in
-            store.send(.captureChanged(UIScreen.main.isCaptured))
+        .onChange(of: isSceneCaptured) { _, isCaptured in
+            store.send(.captureChanged(isCaptured))
         }
     }
 
