@@ -1,7 +1,7 @@
 import SwiftUI
-import UIKit
 
 struct SensitiveDraftGuard: ViewModifier {
+    @Environment(\.isSceneCaptured) private var isSceneCaptured
     @Environment(\.scenePhase) private var scenePhase
     let clear: () -> Void
 
@@ -12,8 +12,13 @@ struct SensitiveDraftGuard: ViewModifier {
                     clear()
                 }
             }
-            .onReceive(NotificationCenter.default.publisher(for: UIScreen.capturedDidChangeNotification)) { _ in
-                if UIScreen.main.isCaptured {
+            .onAppear {
+                if isSceneCaptured {
+                    clear()
+                }
+            }
+            .onChange(of: isSceneCaptured) { _, isCaptured in
+                if isCaptured {
                     clear()
                 }
             }
