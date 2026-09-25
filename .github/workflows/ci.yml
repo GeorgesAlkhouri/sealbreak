@@ -92,8 +92,10 @@ jobs:
       matrix:
         server:
           - name: openbao
-            version: "2.6.2"
+            # renovate: packageName=openbao/openbao
+            version: "2.7.0"
           - name: vault
+            # renovate: packageName=hashicorp/vault
             version: "2.1.1"
         platform:
           - ios: "26.5"
