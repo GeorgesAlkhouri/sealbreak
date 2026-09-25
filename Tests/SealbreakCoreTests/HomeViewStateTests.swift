@@ -34,12 +34,6 @@ struct HomeViewStateTests {
     }
 
     @Test
-    func unsealingUsesCompactTitle() {
-        #expect(HomeViewState.Status.unsealing(activity: "Submitting one share…").prefersCompactTitle)
-        #expect(!HomeViewState.Status.unknown.prefersCompactTitle)
-    }
-
-    @Test
     func primaryActionMapsLabelsIconsAndAvailability() {
         let cases: [(
             action: HomeViewState.PrimaryAction,

@@ -49,13 +49,6 @@ struct HomeViewState: Equatable {
             }
         }
 
-        var prefersCompactTitle: Bool {
-            if case .unsealing = self {
-                return true
-            }
-            return false
-        }
-
         var progressFraction: Double {
             switch self {
             case .unknown:

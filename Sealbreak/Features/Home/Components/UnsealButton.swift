@@ -11,13 +11,15 @@ struct UnsealButton: View {
                     .font(.system(size: 26, weight: .medium))
 
                 Text(state.title)
-                    .font(.system(size: 20, weight: .bold))
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.8)
+                    .font(.headline.weight(.bold))
+                    .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
             }
             .foregroundStyle(PapercutPalette.cream)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 14)
             .frame(maxWidth: .infinity)
-            .frame(height: 74)
+            .frame(minHeight: 74)
             .background {
                 ZStack {
                     RoundedRectangle(cornerRadius: 24, style: .continuous)

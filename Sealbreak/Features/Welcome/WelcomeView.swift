@@ -22,23 +22,28 @@ struct WelcomeView: View {
                             .accessibilityHidden(true)
 
                         Text("Sealbreak")
-                            .font(.system(size: 34, weight: .bold, design: .rounded))
+                            .font(.system(.largeTitle, design: .rounded, weight: .bold))
                             .foregroundStyle(PapercutPalette.cream)
+                            .multilineTextAlignment(.center)
+                            .fixedSize(horizontal: false, vertical: true)
                             .padding(.top, 12)
 
                         Text("Keep one Shamir unseal share protected on this iPhone.")
-                            .font(.system(size: 18, weight: .medium))
+                            .font(.body.weight(.medium))
                             .foregroundStyle(PapercutPalette.cream.opacity(0.94))
                             .multilineTextAlignment(.center)
+                            .fixedSize(horizontal: false, vertical: true)
                             .padding(.top, 16)
                             .frame(maxWidth: 310)
 
                         compatibilityCopy
-                            .font(.system(size: 15, weight: .medium))
+                            .font(.subheadline.weight(.medium))
                             .multilineTextAlignment(.center)
                             .lineSpacing(4)
+                            .fixedSize(horizontal: false, vertical: true)
                             .padding(.top, 12)
                             .frame(maxWidth: 320)
+                            .accessibilityElement(children: .ignore)
                             .accessibilityLabel(
                                 "Works with OpenBao, Vault, and compatible Shamir seal servers."
                             )
@@ -48,6 +53,7 @@ struct WelcomeView: View {
                                 .font(.footnote.weight(.medium))
                                 .foregroundStyle(PapercutPalette.cream)
                                 .multilineTextAlignment(.center)
+                                .fixedSize(horizontal: false, vertical: true)
                                 .padding(.horizontal, 16)
                                 .padding(.vertical, 12)
                                 .frame(maxWidth: 330)
@@ -99,6 +105,7 @@ struct WelcomeView: View {
                     .padding(.horizontal, 24)
                 }
                 .scrollIndicators(.hidden)
+                .scrollBounceBehavior(.basedOnSize)
             }
         }
         .background(PapercutPalette.sky)
@@ -135,11 +142,15 @@ struct WelcomeView: View {
                 .font(.system(size: 22, weight: .semibold))
 
             Text(title)
-                .font(.system(size: 19, weight: .bold))
+                .font(.headline)
+                .multilineTextAlignment(.center)
+                .fixedSize(horizontal: false, vertical: true)
         }
         .foregroundStyle(PapercutPalette.cream)
+        .padding(.horizontal, 16)
+        .padding(.vertical, 14)
         .frame(maxWidth: .infinity)
-        .frame(height: 68)
+        .frame(minHeight: 68)
         .background {
             ZStack {
                 RoundedRectangle(cornerRadius: 22, style: .continuous)
@@ -155,11 +166,21 @@ struct WelcomeView: View {
 
     private var compatibilityCopy: some View {
         VStack(spacing: 4) {
-            HStack(spacing: 6) {
-                Text("Works with")
-                compatibilityProduct(icon: "OpenBaoMark", name: "OpenBao")
-                Text("and")
-                compatibilityProduct(icon: "VaultMark", name: "Vault", tint: vaultBrand)
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: 6) {
+                    Text("Works with")
+                    compatibilityProduct(icon: "OpenBaoMark", name: "OpenBao")
+                    Text("and")
+                    compatibilityProduct(icon: "VaultMark", name: "Vault", tint: vaultBrand)
+                }
+                .fixedSize(horizontal: true, vertical: false)
+
+                VStack(spacing: 6) {
+                    Text("Works with")
+                    compatibilityProduct(icon: "OpenBaoMark", name: "OpenBao")
+                    Text("and")
+                    compatibilityProduct(icon: "VaultMark", name: "Vault", tint: vaultBrand)
+                }
             }
 
             Text("and compatible Shamir seal servers.")
@@ -181,6 +202,7 @@ struct WelcomeView: View {
                 .accessibilityHidden(true)
 
             Text(verbatim: name)
+                .fixedSize(horizontal: false, vertical: true)
         }
     }
 
@@ -189,7 +211,7 @@ struct WelcomeView: View {
     }
 }
 
-#Preview {
+#Preview("Welcome") {
     NavigationStack {
         WelcomeView(
             store: Store(initialState: WelcomeFeature.State()) {
