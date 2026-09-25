@@ -138,18 +138,21 @@ cat >"$work_dir/server.hcl" <<EOF
 ui = false
 disable_mlock = true
 
-storage "file" {
-  path = "$data_dir"
+storage "raft" {
+  path    = "$data_dir"
+  node_id = "sealbreak-ci"
 }
 
 listener "tcp" {
   address                  = "127.0.0.1:8200"
+  cluster_address          = "127.0.0.1:8201"
   tls_cert_file            = "$tls_dir/server.crt"
   tls_key_file             = "$tls_dir/server.key"
   tls_disable_client_certs = true
 }
 
-api_addr = "https://127.0.0.1:8200"
+api_addr     = "https://127.0.0.1:8200"
+cluster_addr = "https://127.0.0.1:8201"
 EOF
 
 "$server_bin" server -config="$work_dir/server.hcl" >"$server_log" 2>&1 &
