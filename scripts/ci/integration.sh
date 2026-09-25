@@ -134,9 +134,10 @@ EOF
 
 openssl x509 -req -sha256 -days 1 -in "$tls_dir/server.csr" -CA "$tls_dir/ca.crt" -CAkey "$tls_dir/ca.key" -CAcreateserial -extfile "$tls_dir/server.ext" -out "$tls_dir/server.crt" >/dev/null 2>&1
 
-cat >"$work_dir/server.hcl" <<EOF
+case "$server" in
+  openbao)
+    cat >"$work_dir/server.hcl" <<EOF
 ui = false
-disable_mlock = true
 
 storage "raft" {
   path    = "$data_dir"
@@ -154,6 +155,27 @@ listener "tcp" {
 api_addr     = "https://127.0.0.1:8200"
 cluster_addr = "https://127.0.0.1:8201"
 EOF
+    ;;
+  vault)
+    cat >"$work_dir/server.hcl" <<EOF
+ui = false
+disable_mlock = true
+
+storage "file" {
+  path = "$data_dir"
+}
+
+listener "tcp" {
+  address                  = "127.0.0.1:8200"
+  tls_cert_file            = "$tls_dir/server.crt"
+  tls_key_file             = "$tls_dir/server.key"
+  tls_disable_client_certs = true
+}
+
+api_addr = "https://127.0.0.1:8200"
+EOF
+    ;;
+esac
 
 "$server_bin" server -config="$work_dir/server.hcl" >"$server_log" 2>&1 &
 server_pid="$!"
