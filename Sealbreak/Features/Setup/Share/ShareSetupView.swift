@@ -37,6 +37,7 @@ struct ShareSetupView: View {
                         prompt: Text("Paste one Shamir share")
                             .foregroundStyle(PapercutPalette.secondaryText)
                     )
+                    .accessibilityLabel("Unseal share")
                     .font(.system(.callout, design: .monospaced, weight: .semibold))
                     .foregroundStyle(PapercutPalette.cream)
                     .textInputAutocapitalization(.never)
