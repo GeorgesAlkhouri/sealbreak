@@ -30,7 +30,7 @@ struct SecurityRegressionTests {
         await unsealStore.send(.unsealFailed(failure)) {
             $0.operation = nil
             $0.status = nil
-            $0.notice = failure.message
+            $0.notice = failure.resource
         }
         #expect(
             HomeViewState(
@@ -38,7 +38,7 @@ struct SecurityRegressionTests {
                 sealStatus: unsealStore.state.status,
                 operation: unsealStore.state.operation,
                 notice: unsealStore.state.notice
-            ).notice == failure.message
+            ).notice == failure.resource
         )
 
         var removeState = HomeFeature.State(profile: profile, status: status)
@@ -49,7 +49,7 @@ struct SecurityRegressionTests {
         await removeStore.send(.removeLocalDataResponse(.failure(failure))) {
             $0.operation = nil
             $0.status = nil
-            $0.notice = failure.message
+            $0.notice = failure.resource
         }
     }
 

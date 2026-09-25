@@ -111,7 +111,7 @@ struct SetupTransactionTests {
         await store.skipReceivedActions()
 
         #expect(store.state.operation == nil)
-        #expect(store.state.notice.contains("Operation cancelled"))
+        #expect(String(localized: store.state.notice).contains("Operation cancelled"))
     }
 
     @Test
@@ -151,7 +151,7 @@ struct SetupTransactionTests {
         await store.skipReceivedActions()
 
         #expect(store.state.operation == nil)
-        #expect(store.state.notice.contains("Operation cancelled"))
+        #expect(String(localized: store.state.notice).contains("Operation cancelled"))
     }
 
     @Test
@@ -176,7 +176,7 @@ struct SetupTransactionTests {
         #expect(store.state.home == nil)
         #expect(store.state.setup == nil)
         #expect(store.state.welcome?.requiresLocalReset == true)
-        #expect(store.state.welcome?.notice?.contains("did not finish cleanly") == true)
+        #expect(store.state.welcome?.notice.map { String(localized: $0) }?.contains("did not finish cleanly") == true)
     }
 }
 

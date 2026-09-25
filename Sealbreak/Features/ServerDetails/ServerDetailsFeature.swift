@@ -1,4 +1,5 @@
 import ComposableArchitecture
+import Foundation
 
 @Reducer
 struct ServerDetailsFeature {
@@ -7,8 +8,8 @@ struct ServerDetailsFeature {
         var profile: ServerProfile
         var status: SealStatus?
         var isBusy: Bool
-        var activity: String
-        var notice: String
+        var activity: LocalizedStringResource?
+        var notice: LocalizedStringResource
     }
 
     enum Action: Equatable {

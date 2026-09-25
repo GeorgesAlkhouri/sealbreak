@@ -1,4 +1,5 @@
 import ComposableArchitecture
+import Foundation
 import SwiftUI
 import UIKit
 
@@ -21,7 +22,7 @@ struct PrivacyCover<Content: View>: View {
                         VStack(spacing: 12) {
                             Image(systemName: "lock.shield.fill")
                                 .font(.system(size: 42))
-                            Text(store.isCaptured ? "Screen capture blocked" : "Sealbreak locked")
+                            Text(concealmentTitle)
                                 .font(.headline)
                         }
                     }
@@ -29,6 +30,10 @@ struct PrivacyCover<Content: View>: View {
                     .zIndex(10)
             }
         }
+    }
+
+    private var concealmentTitle: LocalizedStringResource {
+        store.isCaptured ? "Screen capture blocked" : "Sealbreak locked"
     }
 }
 

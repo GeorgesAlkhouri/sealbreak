@@ -1,4 +1,5 @@
 import ComposableArchitecture
+import Foundation
 
 @Reducer
 struct HomeFeature {
@@ -12,7 +13,7 @@ struct HomeFeature {
             case verifyingStatus
             case removingLocalData
 
-            var activity: String {
+            var activity: LocalizedStringResource {
                 switch self {
                 case .checkingStatus:
                     return "Checking seal status…"
@@ -38,7 +39,7 @@ struct HomeFeature {
         var profile: ServerProfile
         var status: SealStatus?
         var operation: Operation?
-        var notice: String
+        var notice: LocalizedStringResource
         var confirmation: Confirmation?
         @Presents var serverDetails: ServerDetailsFeature.State?
         @Presents var replaceShare: ReplaceShareFeature.State?
@@ -46,7 +47,7 @@ struct HomeFeature {
         init(
             profile: ServerProfile,
             status: SealStatus? = nil,
-            notice: String = "Prototype: use disposable test shares until the security checks in issue #1 have been completed."
+            notice: LocalizedStringResource = "Prototype: use disposable test shares until the security checks in issue #1 have been completed."
         ) {
             self.profile = profile
             self.status = status
@@ -54,7 +55,7 @@ struct HomeFeature {
         }
 
         var isBusy: Bool { operation != nil }
-        var activity: String { operation?.activity ?? "" }
+        var activity: LocalizedStringResource? { operation?.activity }
         var canUnseal: Bool {
             !isBusy && status?.supportsUnseal == true && status?.sealed == true
         }
@@ -62,7 +63,7 @@ struct HomeFeature {
 
     enum Action: Equatable {
         enum Delegate: Equatable {
-            case localDataRemoved(notice: String, requiresLocalReset: Bool)
+            case localDataRemoved(notice: LocalizedStringResource, requiresLocalReset: Bool)
         }
 
         case refreshTapped
@@ -128,7 +129,7 @@ struct HomeFeature {
 
             case .refreshResponse(.failure(let failure)):
                 state.operation = nil
-                state.notice = failure.message
+                state.notice = failure.resource
                 synchronizeServerDetails(&state)
                 return .none
 
@@ -191,7 +192,8 @@ struct HomeFeature {
                         await send(.operationCancelled)
                     } catch {
                         if submissionStarted {
-                            let detail = (error as? AppFailure)?.message ?? "Request failed."
+                            let detailResource: LocalizedStringResource = (error as? AppFailure)?.resource ?? "Request failed."
+                            let detail = String(localized: detailResource)
                             await send(
                                 .unsealFailed(
                                     AppFailure(
@@ -285,7 +287,7 @@ struct HomeFeature {
                 .cancellable(id: CancelID.operation)
 
             case .removeLocalDataResponse(.success(.completed)):
-                let notice = "Local share removed. Copies elsewhere remain valid; only server-side rekeying replaces the server’s Shamir shares."
+                let notice: LocalizedStringResource = "Local share removed. Copies elsewhere remain valid; only server-side rekeying replaces the server’s Shamir shares."
                 state.operation = nil
                 state.status = nil
                 state.notice = notice
@@ -319,7 +321,7 @@ struct HomeFeature {
                  .removeLocalDataResponse(.failure(let failure)):
                 state.operation = nil
                 state.status = nil
-                state.notice = failure.message
+                state.notice = failure.resource
                 synchronizeServerDetails(&state)
                 return .none
 

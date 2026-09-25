@@ -1,4 +1,5 @@
 import ComposableArchitecture
+import Foundation
 import SwiftUI
 
 struct ShareSetupView: View {
@@ -86,10 +87,8 @@ struct ShareSetupView: View {
                 .frame(maxWidth: 335)
                 .padding(.horizontal, 6)
 
-            if store.isBusy || !store.notice.isEmpty {
-                statusMessage
-                    .frame(maxWidth: 325)
-            }
+            statusMessage
+                .frame(maxWidth: 325)
         }
         .frame(maxWidth: .infinity)
         .padding(.top, 32)
@@ -111,12 +110,12 @@ struct ShareSetupView: View {
                     }
 
                 VStack(alignment: .leading, spacing: 3) {
-                    Text(store.profile.name)
+                    Text(verbatim: store.profile.name)
                         .font(.subheadline.weight(.bold))
                         .foregroundStyle(PapercutPalette.cream)
                         .fixedSize(horizontal: false, vertical: true)
 
-                    Text("\(productLabel(store.profile.product)) · \(hostLabel)")
+                    (Text(productLabel(store.profile.product)) + Text(verbatim: " · \(hostLabel)"))
                         .font(.caption.weight(.medium))
                         .foregroundStyle(PapercutPalette.secondaryText)
                         .fixedSize(horizontal: false, vertical: true)
@@ -136,8 +135,8 @@ struct ShareSetupView: View {
 
     private func securityNote(
         icon: String,
-        title: String,
-        detail: String
+        title: LocalizedStringResource,
+        detail: LocalizedStringResource
     ) -> some View {
         HStack(alignment: .top, spacing: 12) {
             Image(systemName: icon)
@@ -170,7 +169,7 @@ struct ShareSetupView: View {
                         .font(.system(size: 21, weight: .semibold))
                 }
 
-                Text(store.isBusy ? "Protecting…" : "Protect with Face ID")
+                Text(protectButtonTitle)
                     .font(.headline)
                     .multilineTextAlignment(.center)
                     .fixedSize(horizontal: false, vertical: true)
@@ -189,10 +188,12 @@ struct ShareSetupView: View {
                 ProgressView()
                     .tint(PapercutPalette.cream)
 
-                Text(store.activity)
-                    .font(.footnote.weight(.semibold))
-                    .foregroundStyle(PapercutPalette.secondaryText)
-                    .fixedSize(horizontal: false, vertical: true)
+                if let activity = store.activity {
+                    Text(activity)
+                        .font(.footnote.weight(.semibold))
+                        .foregroundStyle(PapercutPalette.secondaryText)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
             }
         } else {
             Text(store.notice)
@@ -203,6 +204,10 @@ struct ShareSetupView: View {
         }
     }
 
+    private var protectButtonTitle: LocalizedStringResource {
+        store.isBusy ? "Protecting…" : "Protect with Face ID"
+    }
+
     private var isShareLocallyValid: Bool {
         (try? ShareRecord.validateShare(share)) != nil
     }
@@ -211,7 +216,7 @@ struct ShareSetupView: View {
         URL(string: store.profile.origin)?.host ?? store.profile.origin
     }
 
-    private func productLabel(_ product: ServerProduct) -> String {
+    private func productLabel(_ product: ServerProduct) -> LocalizedStringResource {
         switch product {
         case .openBao:
             return "OpenBao"

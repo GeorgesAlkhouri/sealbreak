@@ -9,13 +9,13 @@ struct ServerStatusCard: View {
     var body: some View {
         PapercutCard {
             VStack(spacing: 0) {
-                Text(state.serverName)
+                Text(verbatim: state.serverName)
                     .font(.title2.bold())
                     .foregroundStyle(PapercutPalette.cream)
                     .fixedSize(horizontal: false, vertical: true)
                     .frame(maxWidth: .infinity, alignment: .center)
 
-                Text(state.origin)
+                Text(verbatim: state.origin)
                     .font(.subheadline.weight(.medium))
                     .foregroundStyle(PapercutPalette.secondaryText)
                     .fixedSize(horizontal: false, vertical: true)

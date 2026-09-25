@@ -1,4 +1,5 @@
 import ComposableArchitecture
+import Foundation
 import SwiftUI
 
 struct ServerDetailsView: View {
@@ -14,8 +15,12 @@ struct ServerDetailsView: View {
 
                 Section("Seal status") {
                     if let status = store.status {
-                        LabeledContent("Initialized", value: status.initialized ? "Yes" : "No")
-                        LabeledContent("Seal", value: status.sealed ? "Sealed" : "Unsealed")
+                        LabeledContent("Initialized") {
+                            Text(booleanLabel(status.initialized))
+                        }
+                        LabeledContent("Seal") {
+                            Text(sealLabel(status.sealed))
+                        }
                         LabeledContent("Type", value: status.type)
                         LabeledContent("Threshold / shares", value: "\(status.t) / \(status.n)")
                         LabeledContent("Progress", value: "\(status.progress) / \(status.t)")
@@ -31,8 +36,8 @@ struct ServerDetailsView: View {
                 }
 
                 Section("Result") {
-                    if store.isBusy {
-                        ProgressView(store.activity)
+                    if store.isBusy, let activity = store.activity {
+                        ProgressView(activity)
                     }
                     Text(store.notice)
                         .font(.callout)
@@ -47,5 +52,13 @@ struct ServerDetailsView: View {
                 }
             }
         }
+    }
+
+    private func booleanLabel(_ value: Bool) -> LocalizedStringResource {
+        value ? "Yes" : "No"
+    }
+
+    private func sealLabel(_ sealed: Bool) -> LocalizedStringResource {
+        sealed ? "Sealed" : "Unsealed"
     }
 }

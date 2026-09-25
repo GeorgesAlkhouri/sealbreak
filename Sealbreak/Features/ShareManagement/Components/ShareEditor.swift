@@ -1,10 +1,11 @@
+import Foundation
 import SwiftUI
 
 struct ShareEditor: View {
     @Binding var share: String
     @Binding var recoveryConfirmed: Bool
 
-    let saveTitle: String
+    let saveTitle: LocalizedStringResource
     let busy: Bool
     let onSave: () -> Void
 

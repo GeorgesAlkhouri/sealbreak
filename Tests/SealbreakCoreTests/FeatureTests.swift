@@ -322,7 +322,7 @@ struct FeatureTests {
         #expect(store.state.home == nil)
         #expect(store.state.setup == nil)
         #expect(store.state.welcome?.requiresLocalReset == true)
-        #expect(store.state.welcome?.notice?.contains("multiple server profiles") == true)
+        #expect(localizedContains(store.state.welcome?.notice, "multiple server profiles"))
     }
 
     @Test
@@ -343,7 +343,7 @@ struct FeatureTests {
         #expect(store.state.home == nil)
         #expect(store.state.setup == nil)
         #expect(store.state.welcome?.requiresLocalReset == true)
-        #expect(store.state.welcome?.notice?.contains("Reset local data") == true)
+        #expect(localizedContains(store.state.welcome?.notice, "Reset local data"))
     }
 
     @Test
@@ -379,7 +379,7 @@ struct FeatureTests {
         #expect(await spy.resetLocalDataCalls == 1)
         #expect(store.state.welcome?.requiresLocalReset == false)
         #expect(store.state.welcome?.isResetting == false)
-        #expect(store.state.welcome?.notice?.contains("was reset") == true)
+        #expect(localizedContains(store.state.welcome?.notice, "was reset"))
     }
 
     @Test
@@ -488,7 +488,7 @@ struct FeatureTests {
         await store.skipReceivedActions()
         #expect(store.state.status?.type == "transit")
         #expect(!store.state.canUnseal)
-        #expect(store.state.notice.contains("Only initialized Shamir seals"))
+        #expect(localizedContains(store.state.notice, "Only initialized Shamir seals"))
     }
 
     @Test
@@ -523,7 +523,7 @@ struct FeatureTests {
 
         #expect(store.state.status == after)
         #expect(store.state.operation == nil)
-        #expect(store.state.notice.contains("now reports unsealed"))
+        #expect(localizedContains(store.state.notice, "now reports unsealed"))
         let submittedCount = await spy.submittedCount
         #expect(submittedCount == 1)
     }
@@ -548,7 +548,7 @@ struct FeatureTests {
         await store.send(.confirmUnsealTapped).finish()
         await store.skipReceivedActions()
 
-        #expect(store.state.notice.contains("Target binding mismatch"))
+        #expect(localizedContains(store.state.notice, "Target binding mismatch"))
         let submittedCount = await spy.submittedCount
         #expect(submittedCount == 0)
     }
@@ -567,8 +567,8 @@ struct FeatureTests {
         await store.skipReceivedActions()
 
         #expect(store.state.status == nil)
-        #expect(store.state.notice.contains("submit failed"))
-        #expect(store.state.notice.contains("final outcome is unknown"))
+        #expect(localizedContains(store.state.notice, "submit failed"))
+        #expect(localizedContains(store.state.notice, "final outcome is unknown"))
     }
 
     @Test
@@ -603,12 +603,12 @@ struct FeatureTests {
         store.exhaustivity = .off(showSkippedAssertions: false)
 
         await store.send(.saveTapped(share: share)).finish()
-        let savedNotice = "Share protected on this iPhone. Check status to begin."
+        let savedNotice: LocalizedStringResource = "Share protected on this iPhone. Check status to begin."
         await store.receive(.importResponse(.success(.init(profile: target, notice: savedNotice))))
         await store.receive(.delegate(.profileReady(target, notice: savedNotice)))
 
         #expect(store.state.operation == nil)
-        #expect(store.state.notice.contains("Share protected"))
+        #expect(localizedContains(store.state.notice, "Share protected"))
         #expect(await spy.insertedCount == 1)
         #expect(await spy.insertedBoundOrigins == [target.origin])
         #expect(await spy.savedProfilesCount == 1)
@@ -636,7 +636,7 @@ struct FeatureTests {
         await store.skipReceivedActions()
 
         #expect(store.state.operation == nil)
-        #expect(store.state.notice.contains("already exists"))
+        #expect(localizedContains(store.state.notice, "already exists"))
         #expect(await spy.removeLocalProfileCalls == 0)
         #expect(await spy.insertedCount == 0)
         #expect(await spy.currentProfiles == [target])
@@ -689,7 +689,7 @@ struct FeatureTests {
         await store.skipReceivedActions()
 
         #expect(await spy.insertedCount == 0)
-        #expect(store.state.notice.contains("Reset local Sealbreak data"))
+        #expect(localizedContains(store.state.notice, "Reset local Sealbreak data"))
     }
     @Test
     func replaceSharePreservesTargetBindingInDependency() async throws {
@@ -704,14 +704,14 @@ struct FeatureTests {
         store.exhaustivity = .off(showSkippedAssertions: false)
 
         await store.send(.saveTapped(share: share, recoveryConfirmed: false))
-        #expect(store.state.notice.contains("Confirm recovery"))
+        #expect(localizedContains(store.state.notice, "Confirm recovery"))
 
         await store.send(.saveTapped(share: share, recoveryConfirmed: true)).finish()
         await store.receive(.saveSucceeded)
         await store.receive(.delegate(.saved))
         let replacedCount = await spy.replacedCount
         #expect(replacedCount == 1)
-        #expect(store.state.notice.isEmpty)
+        #expect(store.state.notice == nil)
     }
 
     @Test
@@ -726,7 +726,7 @@ struct FeatureTests {
             profile: target,
             status: status(),
             isBusy: false,
-            activity: "",
+            activity: nil,
             notice: ""
         )
         let store = TestStore(initialState: initial) {
@@ -743,7 +743,7 @@ struct FeatureTests {
         #expect(store.state.confirmation == nil)
         #expect(store.state.replaceShare == nil)
         #expect(store.state.serverDetails == nil)
-        #expect(store.state.notice.contains("Operation interrupted"))
+        #expect(localizedContains(store.state.notice, "Operation interrupted"))
         let cancelCalls = await spy.cancelCalls
         #expect(cancelCalls == 1)
     }
@@ -844,7 +844,7 @@ struct FeatureTests {
         }
         store.exhaustivity = .off(showSkippedAssertions: false)
 
-        let notice = "Local setup requires a reset."
+        let notice: LocalizedStringResource = "Local setup requires a reset."
         await store.send(
             .setup(.delegate(.localResetRequired(notice: notice)))
         )
@@ -912,8 +912,8 @@ struct FeatureTests {
 
         #expect(store.state.operation == nil)
         #expect(store.state.status == nil)
-        #expect(store.state.notice.contains("Operation cancelled"))
-        #expect(store.state.notice.contains("may already have been processed"))
+        #expect(localizedContains(store.state.notice, "Operation cancelled"))
+        #expect(localizedContains(store.state.notice, "may already have been processed"))
     }
 
     @Test
@@ -975,7 +975,7 @@ struct FeatureTests {
         #expect(store.state.status == nil)
         #expect(store.state.serverDetails == nil)
         #expect(store.state.replaceShare == nil)
-        #expect(store.state.notice.contains("Local share removed"))
+        #expect(localizedContains(store.state.notice, "Local share removed"))
         #expect(await spy.removeLocalProfileCalls == 1)
         #expect(await spy.currentProfiles.isEmpty)
         #expect(await spy.currentReadRecord == nil)
@@ -1049,7 +1049,7 @@ struct FeatureTests {
         #expect(!store.state.isCheckingConnection)
         #expect(store.state.dnssecStatus == .bogus)
         #expect(store.state.checkedProfile == nil)
-        #expect(store.state.notice?.contains("DNSSEC validation failed") == true)
+        #expect(localizedContains(store.state.notice, "DNSSEC validation failed"))
         #expect(!store.state.canContinue)
         #expect(await spy.detectProductCalls == 0)
     }
@@ -1097,7 +1097,7 @@ struct FeatureTests {
             .saveTapped(share: "short")
         )
         #expect(store.state.operation == nil)
-        #expect(store.state.notice.contains("share"))
+        #expect(localizedContains(store.state.notice, "share"))
 
         await spy.setProtectError(AppFailure("protect failed"))
         await store.send(
@@ -1144,13 +1144,13 @@ struct FeatureTests {
 
         await store.send(.saveTapped(share: "short", recoveryConfirmed: true))
         #expect(!store.state.isBusy)
-        #expect(store.state.notice.contains("share"))
+        #expect(localizedContains(store.state.notice, "share"))
 
         await spy.setReplaceError(AppFailure("replace failed"))
         await store.send(.saveTapped(share: share, recoveryConfirmed: true)).finish()
         await store.skipReceivedActions()
         #expect(!store.state.isBusy)
-        #expect(store.state.activity.isEmpty)
+        #expect(store.state.activity == nil)
         #expect(store.state.notice == "replace failed")
     }
 
@@ -1170,8 +1170,8 @@ struct FeatureTests {
         await cancellationStore.send(.saveTapped(share: share, recoveryConfirmed: true)).finish()
         await cancellationStore.skipReceivedActions()
         #expect(!cancellationStore.state.isBusy)
-        #expect(cancellationStore.state.activity.isEmpty)
-        #expect(cancellationStore.state.notice.contains("Operation cancelled"))
+        #expect(cancellationStore.state.activity == nil)
+        #expect(localizedContains(cancellationStore.state.notice, "Operation cancelled"))
 
         await cancellationStore.send(.cancelTapped)
         await cancellationStore.receive(.delegate(.dismissRequested))
@@ -1189,8 +1189,8 @@ struct FeatureTests {
 
         await interruptionStore.send(.privacyInterrupted).finish()
         #expect(!interruptionStore.state.isBusy)
-        #expect(interruptionStore.state.activity.isEmpty)
-        #expect(interruptionStore.state.notice.contains("Operation interrupted"))
+        #expect(interruptionStore.state.activity == nil)
+        #expect(localizedContains(interruptionStore.state.notice, "Operation interrupted"))
         #expect(await spy.cancelCalls == 1)
     }
 
@@ -1284,7 +1284,7 @@ struct FeatureTests {
         await cancellationStore.send(.confirmUnsealTapped).finish()
         await cancellationStore.skipReceivedActions()
         #expect(cancellationStore.state.operation == nil)
-        #expect(cancellationStore.state.notice.contains("Operation cancelled"))
+        #expect(localizedContains(cancellationStore.state.notice, "Operation cancelled"))
 
         let postflightSpy = ClientSpy()
         await postflightSpy.setReadRecord(try record(target))
@@ -1299,8 +1299,8 @@ struct FeatureTests {
         await postflightStore.skipReceivedActions()
 
         #expect(postflightStore.state.operation == nil)
-        #expect(postflightStore.state.notice.contains("Unexpected seal configuration"))
-        #expect(postflightStore.state.notice.contains("final outcome is unknown"))
+        #expect(localizedContains(postflightStore.state.notice, "Unexpected seal configuration"))
+        #expect(localizedContains(postflightStore.state.notice, "final outcome is unknown"))
         #expect(await postflightSpy.submittedCount == 1)
     }
 
@@ -1316,7 +1316,7 @@ struct FeatureTests {
         await persistenceStore.send(.removeLocalDataTapped)
         await persistenceStore.send(.confirmRemoveLocalDataTapped).finish()
         await persistenceStore.skipReceivedActions()
-        #expect(persistenceStore.state.notice.contains("Reset local Sealbreak data"))
+        #expect(localizedContains(persistenceStore.state.notice, "Reset local Sealbreak data"))
 
         let cancellationSpy = ClientSpy()
         await cancellationSpy.setWaitCancellation(true)
@@ -1325,7 +1325,7 @@ struct FeatureTests {
         await cancellationStore.send(.removeLocalDataTapped)
         await cancellationStore.send(.confirmRemoveLocalDataTapped).finish()
         await cancellationStore.skipReceivedActions()
-        #expect(cancellationStore.state.notice.contains("Operation cancelled"))
+        #expect(localizedContains(cancellationStore.state.notice, "Operation cancelled"))
     }
 
     @Test
@@ -1361,7 +1361,7 @@ struct FeatureTests {
         #expect(appStore.state.home == nil)
         #expect(appStore.state.setup == nil)
         #expect(appStore.state.welcome?.requiresLocalReset == true)
-        #expect(appStore.state.welcome?.notice?.contains("Reset local Sealbreak data") == true)
+        #expect(localizedContains(appStore.state.welcome?.notice, "Reset local Sealbreak data"))
         #expect(await spy.currentProfiles == [first])
         #expect(await spy.currentStoredProfileState == .removing)
         #expect(await spy.currentReadRecord == nil)
@@ -1402,7 +1402,7 @@ struct FeatureTests {
         await setupStore.skipReceivedActions()
 
         #expect(setupStore.state.operation == nil)
-        #expect(setupStore.state.notice.contains("already exists"))
+        #expect(localizedContains(setupStore.state.notice, "already exists"))
         #expect(await spy.currentProfiles == [first])
         #expect(await spy.insertedCount == 0)
     }
@@ -1427,10 +1427,18 @@ struct FeatureTests {
         ).finish()
         await importStore.skipReceivedActions()
         #expect(importStore.state.operation == nil)
-        #expect(importStore.state.notice.contains("Operation cancelled"))
+        #expect(localizedContains(importStore.state.notice, "Operation cancelled"))
         #expect(await importSpy.removeLocalProfileCalls == 0)
     }
 
+}
+
+private func localizedContains(
+    _ resource: LocalizedStringResource?,
+    _ substring: String
+) -> Bool {
+    guard let resource else { return false }
+    return String(localized: resource).contains(substring)
 }
 
 private extension ClientSpy {

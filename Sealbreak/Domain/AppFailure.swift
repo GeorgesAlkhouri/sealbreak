@@ -1,12 +1,13 @@
 import Foundation
 
 struct AppFailure: Equatable, LocalizedError, Sendable {
-    let message: String
+    let resource: LocalizedStringResource
 
-    init(_ message: String) {
-        self.message = message
+    init(_ resource: LocalizedStringResource) {
+        self.resource = resource
     }
 
+    var message: String { String(localized: resource) }
     var errorDescription: String? { message }
 }
 

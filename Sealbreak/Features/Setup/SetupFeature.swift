@@ -1,4 +1,5 @@
 import ComposableArchitecture
+import Foundation
 
 @Reducer
 struct SetupFeature {
@@ -12,10 +13,10 @@ struct SetupFeature {
         var step: Step = .instance
         var instance = InstanceSetupFeature.State()
         var share: ShareSetupFeature.State?
-        var notice: String
+        var notice: LocalizedStringResource
 
         init(
-            notice: String = "Prototype: use disposable test shares until the security checks in issue #1 have been completed."
+            notice: LocalizedStringResource = "Prototype: use disposable test shares until the security checks in issue #1 have been completed."
         ) {
             self.notice = notice
         }
@@ -24,14 +25,14 @@ struct SetupFeature {
             instance.isCheckingConnection || share?.isBusy == true
         }
 
-        var activity: String {
+        var activity: LocalizedStringResource? {
             if instance.isCheckingConnection {
                 return "Checking connection…"
             }
             if let share, share.isBusy {
                 return share.activity
             }
-            return ""
+            return nil
         }
 
         var blocksSetupExit: Bool {
@@ -42,8 +43,8 @@ struct SetupFeature {
     enum Action: Equatable {
         enum Delegate: Equatable {
             case cancelled
-            case profileReady(ServerProfile, notice: String)
-            case localResetRequired(notice: String)
+            case profileReady(ServerProfile, notice: LocalizedStringResource)
+            case localResetRequired(notice: LocalizedStringResource)
         }
 
         case instance(InstanceSetupFeature.Action)

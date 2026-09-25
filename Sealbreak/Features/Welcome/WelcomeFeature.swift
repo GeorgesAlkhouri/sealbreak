@@ -1,16 +1,17 @@
 import ComposableArchitecture
+import Foundation
 
 @Reducer
 struct WelcomeFeature {
     @ObservableState
     struct State: Equatable {
-        var notice: String?
+        var notice: LocalizedStringResource?
         var requiresLocalReset: Bool
         var confirmReset = false
         var isResetting = false
 
         init(
-            notice: String? = nil,
+            notice: LocalizedStringResource? = nil,
             requiresLocalReset: Bool = false
         ) {
             self.notice = notice
@@ -81,7 +82,7 @@ struct WelcomeFeature {
 
             case .resetResponse(.failure(let failure)):
                 state.isResetting = false
-                state.notice = failure.message
+                state.notice = failure.resource
                 return .none
 
             case .delegate:

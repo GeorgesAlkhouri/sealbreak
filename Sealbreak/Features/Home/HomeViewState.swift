@@ -3,12 +3,12 @@ import Foundation
 struct HomeViewState: Equatable {
     enum Status: Equatable {
         case unknown
-        case checking(activity: String)
+        case checking(activity: LocalizedStringResource)
         case sealed(progress: Int, threshold: Int, supportsUnseal: Bool)
-        case unsealing(activity: String)
+        case unsealing(activity: LocalizedStringResource)
         case unsealed
 
-        var title: String {
+        var title: LocalizedStringResource {
             switch self {
             case .unknown:
                 return "UNKNOWN"
@@ -23,12 +23,12 @@ struct HomeViewState: Equatable {
             }
         }
 
-        var primaryDetail: String {
+        var primaryDetail: LocalizedStringResource {
             switch self {
             case .unknown:
                 return "Status unknown"
             case .checking(let activity), .unsealing(let activity):
-                return activity.isEmpty ? "Working…" : activity
+                return activity
             case .sealed(let progress, let threshold, _):
                 return "\(progress) of \(threshold) shares submitted"
             case .unsealed:
@@ -36,7 +36,7 @@ struct HomeViewState: Equatable {
             }
         }
 
-        var secondaryDetail: String {
+        var secondaryDetail: LocalizedStringResource {
             switch self {
             case .unknown:
                 return "Check status before sending"
@@ -67,16 +67,16 @@ struct HomeViewState: Equatable {
     enum PrimaryAction: Equatable {
         case checkStatus(enabled: Bool)
         case unseal(enabled: Bool)
-        case working(title: String)
+        case working(title: LocalizedStringResource)
 
-        var title: String {
+        var title: LocalizedStringResource {
             switch self {
             case .checkStatus:
                 return "Check status"
             case .unseal:
                 return "Unseal with Face ID"
             case .working(let title):
-                return title.isEmpty ? "Working…" : title
+                return title
             }
         }
 
@@ -105,14 +105,14 @@ struct HomeViewState: Equatable {
     let origin: String
     let status: Status
     let primaryAction: PrimaryAction
-    let notice: String?
+    let notice: LocalizedStringResource?
     let isBusy: Bool
 
     init(
         profile: ServerProfile,
         sealStatus: SealStatus?,
         operation: HomeFeature.State.Operation?,
-        notice: String
+        notice: LocalizedStringResource
     ) {
         serverName = profile.name
         origin = Self.displayOrigin(profile.origin)
