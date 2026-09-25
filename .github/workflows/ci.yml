@@ -84,7 +84,7 @@ jobs:
   integration:
     name: CI / integration / ${{ matrix.server.name }} / iOS ${{ matrix.platform.ios }}
     runs-on: ${{ matrix.platform.runner }}
-    timeout-minutes: 10
+    timeout-minutes: 15
     permissions:
       contents: read
     strategy:
