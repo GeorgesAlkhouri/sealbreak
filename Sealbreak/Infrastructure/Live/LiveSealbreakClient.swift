@@ -189,11 +189,18 @@ private final class LiveSealbreakClientController {
                 "Protected iPhone data is unavailable. Unlock the device and retry in Sealbreak."
             )
         }
-        guard !UIScreen.main.isCaptured else {
+        guard !isForegroundSceneCaptured else {
             throw AppFailure(
                 "iPhone screen capture or mirroring is active. Stop it and retry directly on the unlocked device."
             )
         }
+    }
+
+    private var isForegroundSceneCaptured: Bool {
+        UIApplication.shared.connectedScenes
+            .compactMap { $0 as? UIWindowScene }
+            .filter { $0.activationState == .foregroundActive }
+            .contains { $0.traitCollection.sceneCaptureState == .active }
     }
 
     func waitForForeground() async throws {

@@ -115,7 +115,7 @@ struct ShareSetupView: View {
                         .foregroundStyle(PapercutPalette.cream)
                         .fixedSize(horizontal: false, vertical: true)
 
-                    (Text(productLabel(store.profile.product)) + Text(verbatim: " · \(hostLabel)"))
+                    Text("\(Text(productLabel(store.profile.product))) · \(hostLabel)")
                         .font(.caption.weight(.medium))
                         .foregroundStyle(PapercutPalette.secondaryText)
                         .fixedSize(horizontal: false, vertical: true)

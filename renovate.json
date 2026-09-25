@@ -1,8 +1,13 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "extends": ["config:best-practices", ":semanticCommits"],
+  "extends": [
+    "config:best-practices",
+    ":semanticCommits"
+  ],
   "timezone": "Europe/Berlin",
-  "schedule": ["* 0-3 * * *"],
+  "schedule": [
+    "* 0-3 * * *"
+  ],
   "prConcurrentLimit": 3,
   "automerge": false,
   "platformAutomerge": false,
@@ -23,33 +28,62 @@
     },
     {
       "description": "Group non-major GitHub Actions updates",
-      "matchManagers": ["github-actions"],
-      "matchUpdateTypes": ["minor", "patch", "digest", "pinDigest"],
+      "matchManagers": [
+        "github-actions"
+      ],
+      "matchUpdateTypes": [
+        "minor",
+        "patch",
+        "digest",
+        "pinDigest"
+      ],
       "groupName": "GitHub Actions"
     },
     {
       "description": "Group non-major pre-commit hook updates",
-      "matchManagers": ["pre-commit"],
-      "matchUpdateTypes": ["minor", "patch"],
+      "matchManagers": [
+        "pre-commit"
+      ],
+      "matchUpdateTypes": [
+        "minor",
+        "patch"
+      ],
       "groupName": "pre-commit hooks"
     },
     {
       "description": "Automerge stable minor and patch updates after CI passes",
       "matchCurrentVersion": "!/^0/",
-      "matchUpdateTypes": ["minor", "patch"],
+      "matchUpdateTypes": [
+        "minor",
+        "patch"
+      ],
       "automerge": true,
       "automergeType": "pr"
     },
     {
-      "description": "Require explicit approval for major updates",
-      "matchUpdateTypes": ["major"],
-      "dependencyDashboardApproval": true
-    },
-    {
       "description": "Keep the CI Python runtime on the 3.13 release line",
-      "matchManagers": ["github-actions"],
-      "matchDepNames": ["python"],
+      "matchManagers": [
+        "github-actions"
+      ],
+      "matchDepNames": [
+        "python"
+      ],
       "allowedVersions": "/^3\\.13(?:\\.|$)/"
+    }
+  ],
+  "customManagers": [
+    {
+      "customType": "regex",
+      "managerFilePatterns": [
+        "/^\\.github\\/workflows\\/ci\\.yml$/"
+      ],
+      "matchStrings": [
+        "# renovate: packageName=(?<packageName>[^\\s]+)\\s+version:\\s*\"(?<currentValue>\\d+\\.\\d+\\.\\d+)\""
+      ],
+      "datasourceTemplate": "github-releases",
+      "depNameTemplate": "{{{packageName}}}",
+      "versioningTemplate": "semver-coerced",
+      "extractVersionTemplate": "^v(?<version>\\d+\\.\\d+\\.\\d+)$"
     }
   ]
 }

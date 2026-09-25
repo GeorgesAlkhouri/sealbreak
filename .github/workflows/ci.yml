@@ -82,35 +82,58 @@ jobs:
         run: bash scripts/ci/build.sh simulator
 
   integration:
-    name: CI / integration / ${{ matrix.server }}
-    runs-on: macos-26
-    timeout-minutes: 10
+    name: CI / integration / ${{ matrix.server.name }} / iOS ${{ matrix.platform.ios }}
+    runs-on: ${{ matrix.platform.runner }}
+    timeout-minutes: 15
     permissions:
       contents: read
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - server: openbao
-            version: "2.6.2"
-          - server: vault
+        server:
+          - name: openbao
+            # renovate: packageName=openbao/openbao
+            version: "2.7.0"
+          - name: vault
+            # renovate: packageName=hashicorp/vault
             version: "2.1.1"
+        platform:
+          - ios: "26.5"
+            xcode: "26.6"
+            runner: macos-26
+            developer_dir: /Applications/Xcode_26.6.app/Contents/Developer
+            runtime: com.apple.CoreSimulator.SimRuntime.iOS-26-5
+            device: com.apple.CoreSimulator.SimDeviceType.iPhone-17
+          - ios: "27.0"
+            xcode: "27.0"
+            runner: xcode-27
+            developer_dir: /Applications/Xcode_27.0.app/Contents/Developer
+            runtime: com.apple.CoreSimulator.SimRuntime.iOS-27-0
+            device: com.apple.CoreSimulator.SimDeviceType.iPhone-18-Pro
+    env:
+      DEVELOPER_DIR: ${{ matrix.platform.developer_dir }}
+      SEALBREAK_IOS_RUNTIME: ${{ matrix.platform.runtime }}
+      SEALBREAK_SIMULATOR_DEVICE_TYPE: ${{ matrix.platform.device }}
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
           persist-credentials: false
+      - name: Verify Xcode ${{ matrix.platform.xcode }} baseline
+        run: |
+          test -d "$DEVELOPER_DIR"
+          xcodebuild -version
       - name: Restore Swift package sources
         uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25 # v5
         with:
           path: ${{ runner.temp }}/sealbreak-source-packages
-          key: swiftpm-integration-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('Sealbreak.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved') }}
+          key: swiftpm-integration-${{ runner.os }}-${{ runner.arch }}-${{ matrix.platform.xcode }}-${{ hashFiles('Sealbreak.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved') }}
           restore-keys: |
-            swiftpm-integration-${{ runner.os }}-${{ runner.arch }}-
-      - name: Run real ${{ matrix.server }} Shamir integration
+            swiftpm-integration-${{ runner.os }}-${{ runner.arch }}-${{ matrix.platform.xcode }}-
+      - name: Run real ${{ matrix.server.name }} Shamir integration
         env:
           SEALBREAK_SOURCE_PACKAGES_DIR: ${{ runner.temp }}/sealbreak-source-packages
-        run: bash scripts/ci/integration.sh "${{ matrix.server }}" "${{ matrix.version }}"
+        run: bash scripts/ci/integration.sh "${{ matrix.server.name }}" "${{ matrix.server.version }}"
 
   sonar:
     name: CI / sonar

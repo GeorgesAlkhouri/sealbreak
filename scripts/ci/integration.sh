@@ -134,7 +134,30 @@ EOF
 
 openssl x509 -req -sha256 -days 1 -in "$tls_dir/server.csr" -CA "$tls_dir/ca.crt" -CAkey "$tls_dir/ca.key" -CAcreateserial -extfile "$tls_dir/server.ext" -out "$tls_dir/server.crt" >/dev/null 2>&1
 
-cat >"$work_dir/server.hcl" <<EOF
+case "$server" in
+  openbao)
+    cat >"$work_dir/server.hcl" <<EOF
+ui = false
+
+storage "raft" {
+  path    = "$data_dir"
+  node_id = "sealbreak-ci"
+}
+
+listener "tcp" {
+  address                  = "127.0.0.1:8200"
+  cluster_address          = "127.0.0.1:8201"
+  tls_cert_file            = "$tls_dir/server.crt"
+  tls_key_file             = "$tls_dir/server.key"
+  tls_disable_client_certs = true
+}
+
+api_addr     = "https://127.0.0.1:8200"
+cluster_addr = "https://127.0.0.1:8201"
+EOF
+    ;;
+  vault)
+    cat >"$work_dir/server.hcl" <<EOF
 ui = false
 disable_mlock = true
 
@@ -151,6 +174,8 @@ listener "tcp" {
 
 api_addr = "https://127.0.0.1:8200"
 EOF
+    ;;
+esac
 
 "$server_bin" server -config="$work_dir/server.hcl" >"$server_log" 2>&1 &
 server_pid="$!"
@@ -189,36 +214,30 @@ if [[ "${GITHUB_ACTIONS:-}" == "true" ]]; then
   echo "::add-mask::$second_share"
 fi
 
-simulator_runtime="$(
-  xcrun simctl list devices available -j |
-    jq -r '
-      .devices
-      | to_entries[]
-      | select(.key | contains("iOS"))
-      | select(any(.value[]; (.name | startswith("iPhone"))))
-      | .key
-    ' |
-    head -n 1
-)"
+: "${SEALBREAK_IOS_RUNTIME:?SEALBREAK_IOS_RUNTIME must be set to an exact CoreSimulator runtime identifier}"
+: "${SEALBREAK_SIMULATOR_DEVICE_TYPE:?SEALBREAK_SIMULATOR_DEVICE_TYPE must be set to an exact CoreSimulator device type identifier}"
 
-if [[ -z "$simulator_runtime" ]]; then
-  echo "no available iPhone simulator runtime found" >&2
+if [[ -z "${DEVELOPER_DIR:-}" || ! -d "$DEVELOPER_DIR" ]]; then
+  echo "configured Xcode developer directory is unavailable: ${DEVELOPER_DIR:-<unset>}" >&2
   exit 1
 fi
 
-simulator_device_type="$(
-  xcrun simctl list devices available -j |
-    jq -r --arg runtime "$simulator_runtime" '
-      .devices[$runtime]
-      | map(select(.name | startswith("iPhone")))
-      | .[0].deviceTypeIdentifier // empty
-    '
-)"
-
-if [[ -z "$simulator_device_type" ]]; then
-  echo "no available iPhone simulator device type found" >&2
+if ! xcrun simctl list runtimes -j |
+  jq -e --arg runtime "$SEALBREAK_IOS_RUNTIME" '.runtimes | any(.identifier == $runtime and .isAvailable == true)' >/dev/null; then
+  echo "configured iOS simulator runtime is unavailable: $SEALBREAK_IOS_RUNTIME" >&2
+  xcrun simctl list runtimes >&2
   exit 1
 fi
+
+if ! xcrun simctl list devicetypes -j |
+  jq -e --arg device "$SEALBREAK_SIMULATOR_DEVICE_TYPE" '.devicetypes | any(.identifier == $device)' >/dev/null; then
+  echo "configured iPhone simulator device type is unavailable: $SEALBREAK_SIMULATOR_DEVICE_TYPE" >&2
+  xcrun simctl list devicetypes >&2
+  exit 1
+fi
+
+simulator_runtime="$SEALBREAK_IOS_RUNTIME"
+simulator_device_type="$SEALBREAK_SIMULATOR_DEVICE_TYPE"
 
 simulator_name="Sealbreak Integration $server ${GITHUB_RUN_ID:-$$}-${GITHUB_RUN_ATTEMPT:-1}"
 simulator_udid="$(xcrun simctl create "$simulator_name" "$simulator_device_type" "$simulator_runtime")"
