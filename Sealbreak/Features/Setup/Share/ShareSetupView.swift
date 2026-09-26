@@ -33,27 +33,10 @@ struct ShareSetupView: View {
                         .foregroundStyle(PapercutPalette.secondaryText)
                         .fixedSize(horizontal: false, vertical: true)
 
-                    VStack(alignment: .leading, spacing: 10) {
-                        if share.isEmpty {
-                            Text("Paste Shamir share")
-                                .font(.footnote.weight(.semibold))
-                                .foregroundStyle(PapercutPalette.secondaryText)
-                        } else {
-                            Label("Shamir share added", systemImage: "checkmark.circle.fill")
-                                .font(.footnote.weight(.semibold))
-                                .foregroundStyle(PapercutPalette.unsealed)
-                        }
-
-                        PasteButton(payloadType: String.self) { values in
-                            pasteShare(values)
-                        }
-                        .labelStyle(.titleAndIcon)
-                        .buttonBorderShape(.roundedRectangle(radius: 14))
-                        .tint(PapercutPalette.button)
-                        .controlSize(.large)
-                        .disabled(store.isBusy)
-                        .frame(maxWidth: .infinity)
-                    }
+                    SharePasteControl(
+                        share: $share,
+                        disabled: store.isBusy
+                    )
 
                     Divider()
                         .overlay(PapercutPalette.ring)
@@ -217,17 +200,6 @@ struct ShareSetupView: View {
         case .generic:
             return "Compatible server"
         }
-    }
-
-    private func pasteShare(_ values: [String]) {
-        guard let candidate = values.first,
-              let validated = try? ShareRecord.validateShare(candidate) else {
-            return
-        }
-
-        share.removeAll(keepingCapacity: false)
-        share = validated
-        UIPasteboard.general.items = []
     }
 
     private func save() {
