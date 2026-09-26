@@ -11,7 +11,11 @@ struct ShareEditor: View {
     let onSave: () -> Void
 
     var body: some View {
-        if !share.isEmpty {
+        if share.isEmpty {
+            Text("Paste Shamir share")
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+        } else {
             Label("Shamir share added", systemImage: "checkmark.circle.fill")
                 .font(.footnote.weight(.semibold))
                 .foregroundStyle(PapercutPalette.unsealed)
