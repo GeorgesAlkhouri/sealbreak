@@ -28,4 +28,4 @@ The OpenBao name and logo remain subject to the applicable project and Linux Fou
 - Brand source and guidelines identified by Simple Icons: [HashiCorp Brand](https://www.hashicorp.com/brand)
 - Trademark policy: [HashiCorp Trademark Policy](https://www.hashicorp.com/trademark-policy)
 
-Vault and the Vault logo are trademarks of HashiCorp. The Simple Icons asset does not grant trademark permission for Sealbreak's use of the Vault logo. Release-readiness review of that use remains tracked separately.
+Vault and the Vault logo are trademarks of HashiCorp.
