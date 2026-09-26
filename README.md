@@ -24,7 +24,7 @@
 </p>
 
 <p align="center">
-  <img src="design/figma/screens/Papercut.svg" width="760" alt="Sealbreak paper-cut interface">
+  <img src="design/figma/screens/Papercut.svg" width="280" alt="Sealbreak paper-cut interface">
 </p>
 
 Sealbreak is a small iOS app for securely storing a Shamir unseal share for OpenBao or HashiCorp Vault on your iPhone and submitting it only after explicit Face ID authorization.
