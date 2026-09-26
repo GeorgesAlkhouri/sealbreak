@@ -1,7 +1,6 @@
 import ComposableArchitecture
 import Foundation
 import SwiftUI
-import UIKit
 
 struct ShareSetupView: View {
     let store: StoreOf<ShareSetupFeature>
