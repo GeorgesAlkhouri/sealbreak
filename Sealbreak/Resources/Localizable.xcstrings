@@ -22,7 +22,10 @@
     "Keep one Shamir unseal share protected on this iPhone." : {
 
     },
-    "Paste is explicit. Existing clipboard/password-manager copies cannot be erased by this app. The share is never displayed or exported after saving." : {
+    "Paste Shamir share" : {
+
+    },
+    "Shamir share added" : {
 
     },
     "Protect your share" : {
