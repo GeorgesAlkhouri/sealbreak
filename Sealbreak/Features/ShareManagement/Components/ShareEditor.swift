@@ -4,12 +4,21 @@ import UIKit
 
 struct SharePasteControl: View {
     @Binding var share: String
+    @State private var pasteError: LocalizedStringResource?
 
     let disabled: Bool
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            if share.isEmpty {
+            if let pasteError {
+                Label {
+                    Text(pasteError)
+                } icon: {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                }
+                .font(.footnote.weight(.semibold))
+                .foregroundStyle(PapercutPalette.sealed)
+            } else if share.isEmpty {
                 Text("Paste Shamir share")
                     .font(.footnote.weight(.semibold))
                     .foregroundStyle(PapercutPalette.secondaryText)
@@ -32,14 +41,14 @@ struct SharePasteControl: View {
     }
 
     private func importShare(_ values: [String]) {
-        guard let candidate = values.first,
-              let validated = try? ShareRecord.validateShare(candidate) else {
-            return
-        }
+        pasteError = nil
 
-        share.removeAll(keepingCapacity: false)
-        share = validated
-        UIPasteboard.general.items = []
+        do {
+            try applySharePaste(values.first, to: &share)
+            UIPasteboard.general.items = []
+        } catch {
+            pasteError = normalizedAppFailure(error).resource
+        }
     }
 }
 
