@@ -5,6 +5,9 @@ import SwiftUI
 struct WelcomeView: View {
     let store: StoreOf<WelcomeFeature>
 
+    @ScaledMetric(relativeTo: .subheadline)
+    private var compatibilityGlyphHeight: CGFloat = 15
+
     var body: some View {
         GeometryReader { proxy in
             ZStack {
@@ -169,7 +172,11 @@ struct WelcomeView: View {
             ViewThatFits(in: .horizontal) {
                 HStack(spacing: 6) {
                     Text("Works with")
-                    compatibilityProduct(icon: "OpenBaoMark", name: "OpenBao")
+                    compatibilityProduct(
+                        icon: "OpenBaoMark",
+                        name: "OpenBao",
+                        visibleHeightFraction: openBaoVisibleHeightFraction
+                    )
                     Text("and")
                     compatibilityProduct(icon: "VaultMark", name: "Vault", tint: vaultBrand)
                 }
@@ -177,7 +184,11 @@ struct WelcomeView: View {
 
                 VStack(spacing: 6) {
                     Text("Works with")
-                    compatibilityProduct(icon: "OpenBaoMark", name: "OpenBao")
+                    compatibilityProduct(
+                        icon: "OpenBaoMark",
+                        name: "OpenBao",
+                        visibleHeightFraction: openBaoVisibleHeightFraction
+                    )
                     Text("and")
                     compatibilityProduct(icon: "VaultMark", name: "Vault", tint: vaultBrand)
                 }
@@ -191,19 +202,31 @@ struct WelcomeView: View {
     private func compatibilityProduct(
         icon: String,
         name: String,
-        tint: Color? = nil
+        tint: Color? = nil,
+        visibleHeightFraction: CGFloat = 1
     ) -> some View {
-        HStack(spacing: 4) {
+        let iconCanvasSize = compatibilityGlyphHeight / visibleHeightFraction
+
+        return HStack(spacing: 4) {
             Image(icon)
                 .resizable()
                 .scaledToFit()
-                .frame(width: 16, height: 16)
+                .frame(width: iconCanvasSize, height: iconCanvasSize)
+                .frame(width: iconCanvasSize, height: compatibilityGlyphHeight)
+                .clipped()
                 .foregroundStyle(tint ?? PapercutPalette.secondaryText)
                 .accessibilityHidden(true)
 
             Text(verbatim: name)
                 .fixedSize(horizontal: false, vertical: true)
         }
+    }
+
+    // Simple Icons' OpenBao path is vertically centered inside a 24×24 viewBox and
+    // visibly spans y = 4.631 ... 19.369. Normalize that visible glyph to the
+    // same Dynamic Type-scaled height as the neighboring subheadline text.
+    private var openBaoVisibleHeightFraction: CGFloat {
+        (19.369 - 4.631) / 24
     }
 
     private var vaultBrand: Color {

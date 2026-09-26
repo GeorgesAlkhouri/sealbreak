@@ -1,34 +1,360 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
+    "" : {
+
+    },
+    "%@ · %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ · %2$@"
+          }
+        }
+      }
+    },
+    "%@ The final outcome is unknown. Check status before another attempt; a request already received cannot be undone." : {
+
+    },
+    "%lld of %lld shares submitted" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$lld of %2$lld shares submitted"
+          }
+        }
+      }
+    },
+    "A protected share already exists for this server profile." : {
+
+    },
+    "Already unsealed. No share was read or sent." : {
+
+    },
     "and" : {
 
     },
     "and compatible Shamir seal servers." : {
 
     },
+    "Back" : {
+
+    },
+    "Cancel" : {
+
+    },
+    "Check connection" : {
+
+    },
+    "Check status" : {
+
+    },
+    "Check status before sending" : {
+
+    },
+    "CHECKING" : {
+
+    },
     "Checking connection…" : {
+
+    },
+    "Checking seal status…" : {
+
+    },
+    "Checking target…" : {
+
+    },
+    "Checking…" : {
+
+    },
+    "Compatible server" : {
+
+    },
+    "Confirm" : {
+
+    },
+    "Confirm recovery for the replacement share before saving." : {
 
     },
     "Connect your instance" : {
 
     },
+    "Connection check cancelled." : {
+
+    },
+    "Connection check interrupted. Try again." : {
+
+    },
+    "Connection failed or timed out. Check the network, VPN, DNS, and the configured server endpoint." : {
+
+    },
+    "Continue" : {
+
+    },
+    "Could not create biometric Keychain protection. A device passcode and Face ID are required." : {
+
+    },
+    "Discard setup" : {
+
+    },
+    "Discard setup?" : {
+
+    },
+    "DNSSEC could not be checked" : {
+
+    },
+    "DNSSEC not applicable" : {
+
+    },
+    "DNSSEC not secured" : {
+
+    },
+    "DNSSEC status indeterminate" : {
+
+    },
+    "DNSSEC validated" : {
+
+    },
+    "DNSSEC validation failed" : {
+
+    },
+    "DNSSEC validation failed for this host. Fix its DNSSEC configuration before continuing." : {
+
+    },
+    "Done" : {
+
+    },
+    "Enter one hexadecimal or Base64 Shamir share. Its validity is ultimately checked by the configured server." : {
+
+    },
     "Enter the direct HTTPS address of one server node." : {
+
+    },
+    "Expected a JSON response from the server." : {
+
+    },
+    "Face ID did not authorize this action." : {
+
+    },
+    "Face ID is unavailable, not enrolled, or locked out. Enable Face ID and a device passcode, or unlock the device in iOS before retrying. No app passcode fallback is offered." : {
+
+    },
+    "Face ID was cancelled or denied. No new share submission was started." : {
 
     },
     "Face ID will be required. Sealbreak will re-check the target before sending anything." : {
 
     },
+    "Generic server response" : {
+
+    },
+    "HTTPS certificate valid" : {
+
+    },
+    "HTTPS origin with optional port" : {
+
+    },
+    "I have an independent recovery copy" : {
+
+    },
+    "Initialized" : {
+
+    },
+    "Instance" : {
+
+    },
+    "Invalid profile catalog. Reset local Sealbreak data before setting up again using your independent share copies." : {
+
+    },
+    "Invalid seal-status response. Check the actual server state again." : {
+
+    },
+    "iPhone screen capture or mirroring is active. Stop it and retry directly on the unlocked device." : {
+
+    },
+    "Keep an independent recovery copy" : {
+
+    },
     "Keep one Shamir unseal share protected on this iPhone." : {
+
+    },
+    "Keep setting up" : {
+
+    },
+    "Keychain access was denied. No passcode fallback is used. Try fresh Face ID; otherwise use independent recovery." : {
+
+    },
+    "Loading protected profile…" : {
+
+    },
+    "Local profile data already exists. Reset local Sealbreak data before continuing." : {
+
+    },
+    "Local removal could not be completed safely. Reset local Sealbreak data before continuing." : {
+
+    },
+    "Local removal state cannot be started. Reset local Sealbreak data before continuing." : {
+
+    },
+    "Local Sealbreak configuration could not be read. Reset local data to continue, then set up again using your independent share copy." : {
+
+    },
+    "Local Sealbreak data contains multiple server profiles, but this app version supports one. Reset local data to continue." : {
+
+    },
+    "Local Sealbreak data was reset. Set up again using your independent share copy." : {
+
+    },
+    "Local Sealbreak removal did not finish cleanly. Reset local data to continue." : {
+
+    },
+    "Local Sealbreak reset did not finish. Reset local data to continue." : {
+
+    },
+    "Local Sealbreak setup did not finish cleanly. Reset local data to continue, then set up again using your independent share copy." : {
+
+    },
+    "Local setup could not be completed safely. Reset local Sealbreak data before continuing." : {
+
+    },
+    "Local setup state cannot be committed. Reset local Sealbreak data before continuing." : {
+
+    },
+    "Local share" : {
+
+    },
+    "Local share removed. Copies elsewhere remain valid; only server-side rekeying replaces the server’s Shamir shares." : {
+
+    },
+    "Manual unseal unavailable" : {
+
+    },
+    "More options" : {
+
+    },
+    "Name" : {
+
+    },
+    "No" : {
+
+    },
+    "No accessible share was found. Face ID or the device passcode may have changed. Recover from your independent copy." : {
+
+    },
+    "One Shamir share" : {
+
+    },
+    "Only initialized Shamir seals are supported. Initialization, auto-unseal, and seal migration are not supported." : {
+
+    },
+    "OpenBao" : {
+
+    },
+    "OpenBao detected" : {
+
+    },
+    "Operation cancelled. No new protected share was saved." : {
+
+    },
+    "Operation cancelled. Refresh status before retrying; a submitted request may already have been processed." : {
+
+    },
+    "Operation failed. No sensitive diagnostic data was recorded." : {
+
+    },
+    "Operation interrupted. Check status on return; an already submitted request cannot be recalled." : {
+
+    },
+    "Origin" : {
 
     },
     "Paste is explicit. Existing clipboard/password-manager copies cannot be erased by this app. The share is never displayed or exported after saving." : {
 
     },
+    "Paste one Shamir share" : {
+
+    },
+    "Permanently remove Sealbreak’s local share; independent recovery will be required" : {
+
+    },
+    "Please keep the app open" : {
+
+    },
+    "Progress" : {
+
+    },
+    "Protect this share for %@" : {
+
+    },
+    "Protect with Face ID" : {
+
+    },
     "Protect your share" : {
 
     },
-    "S E C U R E   A C C E S S" : {
+    "Protected by Face ID and the device-bound Keychain. It is not synchronized through iCloud." : {
+
+    },
+    "Protected iPhone data is unavailable. Unlock the device and retry in Sealbreak." : {
+
+    },
+    "Protecting share…" : {
+
+    },
+    "Protecting…" : {
+
+    },
+    "Prototype: use disposable test shares until the security checks in issue #1 have been completed." : {
+
+    },
+    "Redirect blocked. Configure the direct HTTPS origin of one server node." : {
+
+    },
+    "Remove local data" : {
+
+    },
+    "Remove local data?" : {
+
+    },
+    "Removing local data…" : {
+
+    },
+    "Replace local share" : {
+
+    },
+    "Replace the local share for %@" : {
+
+    },
+    "Request failed." : {
+
+    },
+    "Reset local data" : {
+
+    },
+    "Reset local Sealbreak data" : {
+
+    },
+    "Reset local Sealbreak data?" : {
+
+    },
+    "Resetting…" : {
+
+    },
+    "Result" : {
+
+    },
+    "Save replacement with Face ID" : {
+
+    },
+    "Screen capture blocked" : {
+
+    },
+    "Seal" : {
+
+    },
+    "Seal status" : {
 
     },
     "Sealbreak" : {
@@ -37,13 +363,153 @@
     "Sealbreak checks the server using normal iOS certificate validation. DNSSEC is reported separately when the hostname can be validated." : {
 
     },
+    "Sealbreak is not the active app. Return to it after the system dialog closes, then retry." : {
+
+    },
+    "Sealbreak locked" : {
+
+    },
+    "Sealed" : {
+
+    },
+    "SEALED" : {
+
+    },
+    "SECURE ACCESS" : {
+
+    },
+    "Send one Shamir share to %@" : {
+
+    },
+    "Send one Shamir share?" : {
+
+    },
+    "Send one share" : {
+
+    },
+    "Server" : {
+
+    },
+    "Server address" : {
+
+    },
+    "Server details" : {
+
+    },
+    "Server is available" : {
+
+    },
+    "Server reachable" : {
+
+    },
+    "Server response too large." : {
+
+    },
+    "Server returned HTTP %lld. A share or request may have been rejected; no automatic retry is made." : {
+
+    },
+    "Set up Sealbreak" : {
+
+    },
     "Setup" : {
+
+    },
+    "Shamir seal" : {
+
+    },
+    "Share" : {
+
+    },
+    "Share protected on this iPhone. Check status to begin." : {
+
+    },
+    "Status checked" : {
+
+    },
+    "Status checked. Nothing is sent automatically." : {
+
+    },
+    "Status unknown" : {
 
     },
     "Status unknown — check before sending." : {
 
     },
+    "Step %lld of 2: %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Step %1$lld of 2: %2$@"
+          }
+        }
+      }
+    },
     "Store one Shamir share on this iPhone." : {
+
+    },
+    "Stored only on this iPhone" : {
+
+    },
+    "Submission completed; still sealed. Progress: %lld/%lld. Other holders must submit their own shares to this same node." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Submission completed; still sealed. Progress: %1$lld/%2$lld. Other holders must submit their own shares to this same node."
+          }
+        }
+      }
+    },
+    "Submitting one share…" : {
+
+    },
+    "Target" : {
+
+    },
+    "Target binding mismatch. Nothing was sent. Reconfigure the local share for this server before retrying." : {
+
+    },
+    "Target binding mismatch. Reconfigure the local share for this server before retrying." : {
+
+    },
+    "The canonical server origin could not be converted to a URL." : {
+
+    },
+    "The Keychain operation failed (status %@). Existing data was not deliberately deleted." : {
+
+    },
+    "The profile catalog contains a duplicate profile identifier." : {
+
+    },
+    "The profile catalog contains the same server origin more than once." : {
+
+    },
+    "The profile catalog exceeds the supported local storage limit. Nothing was saved." : {
+
+    },
+    "The protected profile binding does not match this Keychain entry. Use independent recovery." : {
+
+    },
+    "The protected record is larger than expected. Use independent recovery." : {
+
+    },
+    "The protected record is unreadable. Use independent recovery; do not overwrite your only copy." : {
+
+    },
+    "The protected target binding is invalid. Use independent recovery." : {
+
+    },
+    "The record exceeds the %lld-byte storage limit. Shorten the server name; nothing was saved." : {
+
+    },
+    "The request failed. No automatic retry is made." : {
+
+    },
+    "The server profile is invalid. Set up this server profile again." : {
+
+    },
+    "The server returned inconsistent seal status. No share was sent by this status request." : {
 
     },
     "This removes every protected share stored by Sealbreak on this iPhone and all local Sealbreak configuration. You need an independent share copy to set up again." : {
@@ -55,10 +521,115 @@
     "This replaces only the locally stored share. It does not rotate server keys or change the configured target." : {
 
     },
+    "This target does not support manual Shamir unseal." : {
+
+    },
+    "Threshold / shares" : {
+
+    },
+    "TLS validation failed. Fix the server certificate/trust configuration; verification cannot be disabled." : {
+
+    },
+    "Type" : {
+
+    },
+    "Unable to build server request." : {
+
+    },
+    "Unable to construct a canonical HTTPS server origin." : {
+
+    },
+    "Unexpected seal configuration after submission." : {
+
+    },
+    "Unexpected server response or response target." : {
+
+    },
+    "Unimplemented DNSSEC status dependency." : {
+
+    },
+    "Unimplemented foreground dependency." : {
+
+    },
+    "Unimplemented local removal dependency." : {
+
+    },
+    "Unimplemented local setup state dependency." : {
+
+    },
+    "Unimplemented local-data reset dependency." : {
+
+    },
+    "Unimplemented protected-share dependency." : {
+
+    },
+    "Unimplemented seal-status dependency." : {
+
+    },
+    "Unimplemented server-product detection dependency." : {
+
+    },
+    "Unimplemented setup protection dependency." : {
+
+    },
+    "Unimplemented share submission dependency." : {
+
+    },
+    "UNKNOWN" : {
+
+    },
     "Unseal share" : {
 
     },
+    "Unseal with Face ID" : {
+
+    },
+    "Unsealed" : {
+
+    },
+    "UNSEALED" : {
+
+    },
+    "UNSEALING" : {
+
+    },
+    "Unsupported Keychain record version." : {
+
+    },
+    "Unsupported profile catalog version. Reset local Sealbreak data before setting up again using your independent share copies." : {
+
+    },
+    "Use a server name of 1–40 characters without control characters, within %lld UTF-8 bytes." : {
+
+    },
+    "Use an HTTPS origin such as https://server.example.com:8200. No credentials, path, query, fragment, or non-ASCII hostname is allowed." : {
+
+    },
+    "Vault" : {
+
+    },
+    "Vault detected" : {
+
+    },
+    "Verified: this endpoint now reports unsealed. This does not prove which operator completed the quorum." : {
+
+    },
+    "Verifying seal status…" : {
+
+    },
+    "Waiting for Face ID…" : {
+
+    },
     "Works with" : {
+
+    },
+    "Works with OpenBao, Vault, and compatible Shamir seal servers." : {
+
+    },
+    "Yes" : {
+
+    },
+    "You will need it if this iPhone is lost or Face ID is re-enrolled." : {
 
     },
     "Your current setup entries will not be saved." : {
