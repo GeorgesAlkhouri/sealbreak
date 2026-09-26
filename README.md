@@ -1,7 +1,11 @@
+<p align="center">
+  <img src="design/figma/assets/brand/Shield.svg" width="96" alt="Sealbreak logo">
+</p>
+
 <h1 align="center">Sealbreak</h1>
 
 <p align="center">
-  <strong>Unlock OpenBao or HashiCorp Vault with Face ID.</strong>
+  <strong>Open-source iOS app to securely unseal OpenBao and HashiCorp Vault with Face ID.</strong>
 </p>
 
 <p align="center">
@@ -11,6 +15,16 @@
   <a href="https://app.codecov.io/github/GeorgesAlkhouri/sealbreak">
     <img src="https://codecov.io/gh/GeorgesAlkhouri/sealbreak/graph/badge.svg" alt="Codecov">
   </a>
+</p>
+
+<p align="center">
+  <a href="https://sealbreak.app">Website</a>
+  ·
+  <a href="THREAT_MODEL.md">Threat Model</a>
+</p>
+
+<p align="center">
+  <img src="design/readme/hero-device.svg" width="300" alt="Sealbreak app interface">
 </p>
 
 Sealbreak is a small iOS app for securely storing a Shamir unseal share for OpenBao or HashiCorp Vault on your iPhone and submitting it only after explicit Face ID authorization.
