@@ -1,5 +1,6 @@
 import Foundation
 import SwiftUI
+import UIKit
 
 struct ShareEditor: View {
     @Binding var share: String
@@ -10,24 +11,43 @@ struct ShareEditor: View {
     let onSave: () -> Void
 
     var body: some View {
-        SecureField("One Shamir share", text: $share)
-            .textInputAutocapitalization(.never)
-            .autocorrectionDisabled()
-            .keyboardType(.asciiCapable)
-            .privacySensitive()
-            .onChange(of: share) { _, value in
-                if value.utf8.count > 1024 {
-                    share = ""
-                }
-            }
+        if share.isEmpty {
+            Text("Paste one Shamir share")
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+        } else {
+            Label("Shamir share added", systemImage: "checkmark.circle.fill")
+                .font(.footnote.weight(.semibold))
+                .foregroundStyle(PapercutPalette.unsealed)
+        }
+
+        PasteButton(payloadType: String.self) { values in
+            pasteShare(values)
+        }
+        .labelStyle(.titleAndIcon)
+        .buttonBorderShape(.roundedRectangle(radius: 14))
+        .tint(PapercutPalette.button)
+        .controlSize(.large)
+        .disabled(busy)
 
         Toggle("I have an independent recovery copy", isOn: $recoveryConfirmed)
 
-        Text("Paste is explicit. Existing clipboard/password-manager copies cannot be erased by this app. The share is never displayed or exported after saving.")
+        Text("A valid paste is removed from the clipboard.")
             .font(.footnote)
             .foregroundStyle(.secondary)
 
         Button(saveTitle, action: onSave)
             .disabled(busy || share.isEmpty || !recoveryConfirmed)
+    }
+
+    private func pasteShare(_ values: [String]) {
+        guard let candidate = values.first,
+              let validated = try? ShareRecord.validateShare(candidate) else {
+            return
+        }
+
+        share.removeAll(keepingCapacity: false)
+        share = validated
+        UIPasteboard.general.items = []
     }
 }
