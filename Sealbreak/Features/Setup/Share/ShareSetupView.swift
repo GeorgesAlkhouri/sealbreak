@@ -34,11 +34,7 @@ struct ShareSetupView: View {
                         .fixedSize(horizontal: false, vertical: true)
 
                     VStack(alignment: .leading, spacing: 10) {
-                        if share.isEmpty {
-                            Text("Paste one Shamir share")
-                                .font(.footnote.weight(.semibold))
-                                .foregroundStyle(PapercutPalette.secondaryText)
-                        } else {
+                        if !share.isEmpty {
                             Label("Shamir share added", systemImage: "checkmark.circle.fill")
                                 .font(.footnote.weight(.semibold))
                                 .foregroundStyle(PapercutPalette.unsealed)
@@ -53,10 +49,6 @@ struct ShareSetupView: View {
                         .controlSize(.large)
                         .disabled(store.isBusy)
                         .frame(maxWidth: .infinity)
-
-                        Text("A valid paste is removed from the clipboard.")
-                            .font(.caption)
-                            .foregroundStyle(PapercutPalette.secondaryText)
                     }
 
                     Divider()
