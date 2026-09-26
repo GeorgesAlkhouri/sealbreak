@@ -35,6 +35,61 @@ struct ServerDetailsView: View {
                     .disabled(store.isBusy)
                 }
 
+                Section {
+                    LabeledContent("Status") {
+                        if store.verification == nil {
+                            Text("Not verified")
+                        } else {
+                            Text("Verified")
+                        }
+                    }
+
+                    if let verification = store.verification {
+                        LabeledContent("Verified by") {
+                            if verification.source == .manual {
+                                Text("You")
+                            } else {
+                                Text("Unseal")
+                            }
+                        }
+                        LabeledContent("Date") {
+                            Text(verification.at, format: .dateTime.day().month().year().hour().minute())
+                        }
+                    }
+
+                    if store.verification == nil {
+                        Button("Mark as verified") {
+                            store.send(.verificationTapped)
+                        }
+                        .disabled(store.isBusy || store.isSavingVerification)
+                    } else {
+                        Button("Remove verification") {
+                            store.send(.verificationTapped)
+                        }
+                        .disabled(store.isBusy || store.isSavingVerification)
+                    }
+
+                    if store.isSavingVerification {
+                        ProgressView()
+                    }
+                    if let error = store.verificationError {
+                        Text(error)
+                            .font(.callout)
+                            .foregroundStyle(.secondary)
+                    }
+                } header: {
+                    Text("Stored share")
+                } footer: {
+                    switch store.verification?.source {
+                    case .manual:
+                        Text("Marked by you after an independent check.")
+                    case .unseal:
+                        Text("Verified after this server reported unsealed in response to the stored share.")
+                    case nil:
+                        Text("Compare with an independent copy, or verify by unsealing this server.")
+                    }
+                }
+
                 Section("Result") {
                     if store.isBusy, let activity = store.activity {
                         ProgressView(activity)
@@ -49,6 +104,7 @@ struct ServerDetailsView: View {
                     Button("Done") {
                         store.send(.doneTapped)
                     }
+                    .disabled(store.isSavingVerification)
                 }
             }
         }

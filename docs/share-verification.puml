@@ -1,0 +1,47 @@
+@startuml
+title Stored share verification
+
+start
+:Load ready profile and verification metadata;
+if (Existing catalog has a verification?) then (yes)
+  :Show Verified with source and date in details;
+else (no)
+  :Show Share saved / Not verified;
+endif
+
+fork
+  :User marks share verified in server details;
+  :Persist manual source and date for this profile;
+  if (Write succeeded?) then (yes)
+    :Show Verified;
+  else (no)
+    :Keep previous status and show the error in details;
+  endif
+fork again
+  :User submits stored share to a sealed server;
+  if (Unseal response reports unsealed?) then (yes)
+    :Check the same target's seal status;
+    if (Target still reports unsealed?) then (yes)
+      :Persist automatic source and date;
+      :Show Verified when persistence succeeds;
+    endif
+  else (no)
+    :Keep previous verification;
+  endif
+fork again
+  :User replaces stored share;
+  if (Profile and target bindings match?) then (yes)
+    :Clear verification before replacing Keychain item;
+    if (Replacement succeeds?) then (yes)
+      :Show Share saved / Not verified;
+    else (no)
+      :Keep cleared status conservatively;
+    endif
+  else (no)
+    :Keep previous verification;
+  endif
+  :Reload verification when replacement sheet closes;
+end fork
+
+stop
+@enduml

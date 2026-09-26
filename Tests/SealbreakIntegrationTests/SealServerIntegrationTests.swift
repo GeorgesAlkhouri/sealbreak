@@ -33,17 +33,19 @@ struct SealServerIntegrationTests {
         #expect(initialStatus.progress == 0)
         #expect(initialStatus.supportsUnseal)
 
-        try await client.submit(
+        let firstResponseUnsealed = try await client.submit(
             ShareRecord(profile: profile, input: environment.firstShare)
         )
+        #expect(!firstResponseUnsealed)
 
         let statusAfterFirstShare = try await client.status(profile)
         #expect(statusAfterFirstShare.sealed)
         #expect(statusAfterFirstShare.progress == 1)
 
-        try await client.submit(
+        let secondResponseUnsealed = try await client.submit(
             ShareRecord(profile: profile, input: environment.secondShare)
         )
+        #expect(secondResponseUnsealed)
 
         let finalStatus = try await client.status(profile)
         #expect(finalStatus.initialized)

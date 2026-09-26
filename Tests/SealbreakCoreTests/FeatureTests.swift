@@ -23,6 +23,9 @@ private actor ClientSpy {
     var replaceError: AppFailure?
     var deleteShareError: AppFailure?
     var submitError: AppFailure?
+    var submitUnsealed = false
+    var verification: ShareVerification?
+    var verificationError: AppFailure?
     var waitError: AppFailure?
     var waitCancellation = false
 
@@ -181,9 +184,19 @@ private actor ClientSpy {
         return .completed
     }
 
-    func submit(_ record: ShareRecord) throws {
+    func submit(_ record: ShareRecord) throws -> Bool {
         submittedRecords.append(record)
         if let submitError { throw submitError }
+        return submitUnsealed
+    }
+
+    func loadVerification() -> ShareVerification? {
+        verification
+    }
+
+    func setVerification(_ value: ShareVerification?) throws {
+        if let verificationError { throw verificationError }
+        verification = value
     }
 
     func waitForForeground() throws {
@@ -207,6 +220,8 @@ private func client(_ spy: ClientSpy) -> SealbreakClient {
         dnssecStatus: { _ in await spy.dnssecStatus() },
         status: { _ in try await spy.status() },
         submit: { try await spy.submit($0) },
+        loadVerification: { _ in await spy.loadVerification() },
+        setVerification: { _, value in try await spy.setVerification(value) },
         readShare: { profileID, _ in try await spy.readShare(profileID) },
         replaceShare: { _, replacement, _ in try await spy.replace(replacement) },
         removeLocalProfile: { profileID, _ in
@@ -513,6 +528,7 @@ struct FeatureTests {
         let after = status(sealed: false)
         let spy = ClientSpy()
         await spy.setReadRecord(try record(target))
+        await spy.setSubmitUnsealed(true)
         await spy.setStatusQueue([.success(before), .success(after)])
         let store = homeStore(profile: target, status: before, spy: spy)
 
@@ -526,6 +542,143 @@ struct FeatureTests {
         #expect(localizedContains(store.state.notice, "now reports unsealed"))
         let submittedCount = await spy.submittedCount
         #expect(submittedCount == 1)
+        #expect(store.state.verification?.source == .unseal)
+        #expect(await spy.loadVerification()?.source == .unseal)
+    }
+
+    @Test
+    func statusOnlyUnsealedDoesNotVerifyStoredShare() async throws {
+        let target = try profile()
+        let before = status()
+        let spy = ClientSpy()
+        await spy.setReadRecord(try record(target))
+        await spy.setStatusQueue([.success(before), .success(status(sealed: false))])
+        let store = homeStore(profile: target, status: before, spy: spy)
+
+        await store.send(.unsealTapped)
+        await store.send(.confirmUnsealTapped).finish()
+        await store.skipReceivedActions()
+
+        #expect(store.state.verification == nil)
+        #expect(await spy.loadVerification() == nil)
+    }
+
+    @Test
+    func unsealResponseAloneDoesNotVerifyStoredShare() async throws {
+        let target = try profile()
+        let before = status()
+        let spy = ClientSpy()
+        await spy.setReadRecord(try record(target))
+        await spy.setSubmitUnsealed(true)
+        await spy.setStatusQueue([.success(before), .success(before)])
+        let store = homeStore(profile: target, status: before, spy: spy)
+
+        await store.send(.unsealTapped)
+        await store.send(.confirmUnsealTapped).finish()
+        await store.skipReceivedActions()
+
+        #expect(store.state.status?.sealed == true)
+        #expect(store.state.verification == nil)
+    }
+
+    @Test
+    func successfulUnsealStillSucceedsWhenVerificationWriteFails() async throws {
+        let target = try profile()
+        let before = status()
+        let after = status(sealed: false)
+        let spy = ClientSpy()
+        await spy.setReadRecord(try record(target))
+        await spy.setSubmitUnsealed(true)
+        await spy.setStatusQueue([.success(before), .success(after)])
+        await spy.setVerificationError(AppFailure("metadata write failed"))
+        let store = homeStore(profile: target, status: before, spy: spy)
+
+        await store.send(.unsealTapped)
+        await store.send(.confirmUnsealTapped).finish()
+        await store.skipReceivedActions()
+
+        #expect(store.state.status == after)
+        #expect(store.state.verification == nil)
+        #expect(localizedContains(store.state.notice, "verification could not be saved"))
+    }
+
+    @Test
+    func refreshingLoadsPersistedVerification() async throws {
+        let target = try profile()
+        let spy = ClientSpy()
+        let saved = ShareVerification(source: .manual, at: Date(timeIntervalSince1970: 1_700_000_000))
+        try await spy.setVerification(saved)
+        await spy.setStatusQueue([.success(status())])
+        let store = homeStore(profile: target, spy: spy)
+
+        await store.send(.refreshRequested).finish()
+        await store.skipReceivedActions()
+
+        #expect(store.state.verification == saved)
+    }
+
+    @Test
+    func manualVerificationCanBeSetAndRemovedInServerDetails() async throws {
+        let target = try profile()
+        let spy = ClientSpy()
+        let store = homeStore(profile: target, spy: spy)
+
+        await store.send(.serverDetailsTapped)
+        await store.send(.serverDetails(.presented(.verificationTapped))).finish()
+        await store.skipReceivedActions()
+        #expect(store.state.verification?.source == .manual)
+        #expect(await spy.loadVerification()?.source == .manual)
+
+        await store.send(.serverDetails(.presented(.verificationTapped))).finish()
+        await store.skipReceivedActions()
+        #expect(store.state.verification == nil)
+        #expect(await spy.loadVerification() == nil)
+    }
+
+    @Test
+    func failedManualVerificationKeepsPreviousStatus() async throws {
+        let target = try profile()
+        let spy = ClientSpy()
+        await spy.setVerificationError(AppFailure("metadata write failed"))
+        let store = homeStore(profile: target, spy: spy)
+
+        await store.send(.serverDetailsTapped)
+        await store.send(.serverDetails(.presented(.verificationTapped))).finish()
+        await store.skipReceivedActions()
+
+        #expect(store.state.verification == nil)
+        #expect(store.state.serverDetails?.verificationError == "metadata write failed")
+    }
+
+    @Test
+    func replacementClearsDisplayedVerification() async throws {
+        let target = try profile()
+        let spy = ClientSpy()
+        let store = homeStore(profile: target, spy: spy)
+        let verification = ShareVerification(source: .manual, at: Date(timeIntervalSince1970: 1_700_000_000))
+        await store.send(.verificationLoaded(verification))
+        await store.send(.replaceShareTapped)
+        await store.send(.replaceShare(.presented(.delegate(.saved))))
+
+        #expect(store.state.verification == nil)
+    }
+
+    @Test
+    func dismissingReplacementReloadsConservativelyClearedVerification() async throws {
+        let target = try profile()
+        let spy = ClientSpy()
+        let saved = ShareVerification(source: .manual, at: Date(timeIntervalSince1970: 1_700_000_000))
+        try await spy.setVerification(saved)
+        let store = homeStore(profile: target, spy: spy)
+        await store.send(.verificationLoaded(saved))
+        await store.send(.replaceShareTapped)
+
+        // The live replacement clears metadata before attempting the Keychain write.
+        try await spy.setVerification(nil)
+        await store.send(.replaceShare(.dismiss)).finish()
+        await store.skipReceivedActions()
+
+        #expect(store.state.verification == nil)
     }
 
     @Test
@@ -1470,6 +1623,8 @@ private extension ClientSpy {
     func setReplaceError(_ value: AppFailure?) { replaceError = value }
     func setDeleteShareError(_ value: AppFailure?) { deleteShareError = value }
     func setSubmitError(_ value: AppFailure?) { submitError = value }
+    func setSubmitUnsealed(_ value: Bool) { submitUnsealed = value }
+    func setVerificationError(_ value: AppFailure?) { verificationError = value }
     func setWaitCancellation(_ value: Bool) { waitCancellation = value }
 
     var currentProfiles: [ServerProfile] { storedProfiles.map(\.profile) }

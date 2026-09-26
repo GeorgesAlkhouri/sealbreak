@@ -32,7 +32,9 @@ struct SealbreakClient: Sendable {
     var detectProduct: @Sendable (ServerProfile) async throws -> ServerProduct
     var dnssecStatus: @Sendable (String) async throws -> DNSSECStatus
     var status: @Sendable (ServerProfile) async throws -> SealStatus
-    var submit: @Sendable (ShareRecord) async throws -> Void
+    var submit: @Sendable (ShareRecord) async throws -> Bool
+    var loadVerification: @Sendable (UUID) async throws -> ShareVerification?
+    var setVerification: @Sendable (UUID, ShareVerification?) async throws -> Void
     var readShare: @Sendable (_ profileID: UUID, _ reason: LocalizedStringResource) async throws -> ShareRecord
     var replaceShare: @Sendable (
         _ expectedProfile: ServerProfile,
@@ -70,6 +72,8 @@ extension SealbreakClient {
         dnssecStatus: { _ in throw AppFailure("Unimplemented DNSSEC status dependency.") },
         status: { _ in throw AppFailure("Unimplemented seal-status dependency.") },
         submit: { _ in throw AppFailure("Unimplemented share submission dependency.") },
+        loadVerification: { _ in throw AppFailure("Unimplemented share-verification dependency.") },
+        setVerification: { _, _ in throw AppFailure("Unimplemented share-verification dependency.") },
         readShare: { _, _ in throw AppFailure("Unimplemented protected-share dependency.") },
         replaceShare: { _, _, _ in throw AppFailure("Unimplemented protected-share dependency.") },
         removeLocalProfile: { _, _ in

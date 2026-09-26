@@ -133,16 +133,34 @@ struct SealServerClientTests {
         let recorder = RequestRecorder()
         let client = makeClient { request in
             recorder.record(request)
-            return (Self.response(for: request), Data("{}".utf8))
+            return (Self.response(for: request), Data(#"{"sealed":false}"#.utf8))
         }
         let record = try ShareRecord(profile: profile(), input: syntheticShare)
 
-        try await client.submit(record)
+        let unsealed = try await client.submit(record)
         let request = try #require(recorder.request)
 
+        #expect(unsealed)
         #expect(request.httpMethod == "POST")
         #expect(request.url?.absoluteString == "\(origin)/v1/sys/unseal")
         #expect(request.value(forHTTPHeaderField: "Content-Type") == "application/json")
+    }
+
+    @Test
+    func submitOnlyReportsUnsealedWhenResponseSaysSo() async throws {
+        let record = try ShareRecord(profile: profile(), input: syntheticShare)
+        let pending = makeClient { request in
+            (Self.response(for: request), Data(#"{"sealed":true}"#.utf8))
+        }
+        #expect(try await !pending.submit(record))
+
+        let invalid = makeClient { request in
+            (Self.response(for: request), Data("{}".utf8))
+        }
+        let message = await failureMessage {
+            _ = try await invalid.submit(record)
+        }
+        #expect(message == "Invalid unseal response. Check the actual server state again.")
     }
 
     @Test

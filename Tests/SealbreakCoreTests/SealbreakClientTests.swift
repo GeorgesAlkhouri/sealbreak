@@ -42,6 +42,14 @@ struct SealbreakClientTests {
                 == "Unimplemented share submission dependency."
         )
         #expect(
+            await failureMessage { try await dependency.loadVerification(profile.id) }
+                == "Unimplemented share-verification dependency."
+        )
+        #expect(
+            await failureMessage { try await dependency.setVerification(profile.id, nil) }
+                == "Unimplemented share-verification dependency."
+        )
+        #expect(
             await failureMessage { try await dependency.readShare(profile.id, "Test") }
                 == "Unimplemented protected-share dependency."
         )

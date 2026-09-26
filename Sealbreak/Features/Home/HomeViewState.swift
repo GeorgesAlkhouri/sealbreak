@@ -107,16 +107,21 @@ struct HomeViewState: Equatable {
     let primaryAction: PrimaryAction
     let notice: LocalizedStringResource?
     let isBusy: Bool
+    let shareVerificationLabel: LocalizedStringResource
+    let shareIsVerified: Bool
 
     init(
         profile: ServerProfile,
         sealStatus: SealStatus?,
         operation: HomeFeature.State.Operation?,
-        notice: LocalizedStringResource
+        notice: LocalizedStringResource,
+        verification: ShareVerification? = nil
     ) {
         serverName = profile.name
         origin = Self.displayOrigin(profile.origin)
         isBusy = operation != nil
+        shareIsVerified = verification != nil
+        shareVerificationLabel = verification == nil ? "Not verified" : "Verified"
 
         if let operation {
             let activity = operation.activity

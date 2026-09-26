@@ -38,6 +38,7 @@ struct HomeFeature {
 
         var profile: ServerProfile
         var status: SealStatus?
+        var verification: ShareVerification?
         var operation: Operation?
         var notice: LocalizedStringResource
         var confirmation: Confirmation?
@@ -69,13 +70,15 @@ struct HomeFeature {
         case refreshTapped
         case refreshRequested
         case refreshResponse(Result<SealStatus, AppFailure>)
+        case verificationRequested
+        case verificationLoaded(ShareVerification?)
         case unsealTapped
         case confirmUnsealTapped
         case confirmationDismissed
         case operationActivity(State.Operation)
         case unsealPreflightStatus(SealStatus)
         case unsealAlreadyUnsealed(SealStatus)
-        case unsealCompleted(SealStatus)
+        case unsealCompleted(SealStatus, ShareVerification?, verificationSaveFailed: Bool)
         case unsealFailed(AppFailure)
         case operationCancelled
         case serverDetailsTapped
@@ -108,6 +111,8 @@ struct HomeFeature {
                 return .run { send in
                     do {
                         try await client.waitForForeground()
+                        let verification = try? await client.loadVerification(profile.id)
+                        await send(.verificationLoaded(verification))
                         let status = try await client.status(profile)
                         await send(.refreshResponse(.success(status)))
                     } catch is CancellationError {
@@ -117,6 +122,19 @@ struct HomeFeature {
                     }
                 }
                 .cancellable(id: CancelID.operation)
+
+            case .verificationRequested:
+                let profileID = state.profile.id
+                let client = self.client
+                return .run { send in
+                    let verification = try? await client.loadVerification(profileID)
+                    await send(.verificationLoaded(verification))
+                }
+
+            case .verificationLoaded(let verification):
+                state.verification = verification
+                synchronizeServerDetails(&state)
+                return .none
 
             case .refreshResponse(.success(let status)):
                 state.operation = nil
@@ -179,7 +197,7 @@ struct HomeFeature {
                         try await client.requireForeground()
                         await send(.operationActivity(.submittingShare))
                         submissionStarted = true
-                        try await client.submit(record)
+                        let responseUnsealed = try await client.submit(record)
                         record.share.removeAll(keepingCapacity: false)
 
                         await send(.operationActivity(.verifyingStatus))
@@ -187,7 +205,17 @@ struct HomeFeature {
                         guard after.supportsUnseal else {
                             throw AppFailure("Unexpected seal configuration after submission.")
                         }
-                        await send(.unsealCompleted(after))
+                        if responseUnsealed && !after.sealed {
+                            let verification = ShareVerification(source: .unseal, at: Date())
+                            do {
+                                try await client.setVerification(target.id, verification)
+                                await send(.unsealCompleted(after, verification, verificationSaveFailed: false))
+                            } catch {
+                                await send(.unsealCompleted(after, nil, verificationSaveFailed: true))
+                            }
+                        } else {
+                            await send(.unsealCompleted(after, nil, verificationSaveFailed: false))
+                        }
                     } catch is CancellationError {
                         await send(.operationCancelled)
                     } catch {
@@ -228,12 +256,17 @@ struct HomeFeature {
                 synchronizeServerDetails(&state)
                 return .none
 
-            case .unsealCompleted(let status):
+            case .unsealCompleted(let status, let verification, let verificationSaveFailed):
                 state.operation = nil
                 state.status = status
+                if let verification {
+                    state.verification = verification
+                }
                 state.notice = status.sealed
                     ? "Submission completed; still sealed. Progress: \(status.progress)/\(status.t). Other holders must submit their own shares to this same node."
-                    : "Verified: this endpoint now reports unsealed. This does not prove which operator completed the quorum."
+                    : verificationSaveFailed
+                        ? "Server unsealed, but share verification could not be saved."
+                        : "This endpoint now reports unsealed."
                 synchronizeServerDetails(&state)
                 return .none
 
@@ -250,7 +283,8 @@ struct HomeFeature {
                     status: state.status,
                     isBusy: state.isBusy,
                     activity: state.activity,
-                    notice: state.notice
+                    notice: state.notice,
+                    verification: state.verification
                 )
                 return .none
 
@@ -355,13 +389,23 @@ struct HomeFeature {
                 state.serverDetails = nil
                 return .none
 
+            case .serverDetails(.presented(.delegate(.verificationChanged(let verification)))):
+                state.verification = verification
+                synchronizeServerDetails(&state)
+                return .none
+
             case .replaceShare(.presented(.delegate(.saved))):
                 state.replaceShare = nil
+                state.verification = nil
+                synchronizeServerDetails(&state)
                 return .none
 
             case .replaceShare(.presented(.delegate(.dismissRequested))):
                 state.replaceShare = nil
-                return .none
+                return .send(.verificationRequested)
+
+            case .replaceShare(.dismiss), .serverDetails(.dismiss):
+                return .send(.verificationRequested)
 
             case .serverDetails, .replaceShare, .delegate:
                 return .none
@@ -389,7 +433,8 @@ struct HomeFeature {
             status: status,
             isBusy: isBusy,
             activity: activity,
-            notice: notice
+            notice: notice,
+            verification: state.verification
         )
     }
 }

@@ -151,6 +151,16 @@ struct ShareRecord: Codable, Equatable, Sendable {
     }
 }
 
+struct ShareVerification: Codable, Equatable, Sendable {
+    enum Source: String, Codable, Equatable, Sendable {
+        case manual
+        case unseal
+    }
+
+    let source: Source
+    let at: Date
+}
+
 struct SealStatus: Decodable, Equatable, Sendable {
     let type: String
     let initialized: Bool

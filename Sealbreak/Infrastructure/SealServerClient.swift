@@ -144,13 +144,18 @@ struct SealServerClient: Sendable {
         }
     }
 
-    func submit(_ record: ShareRecord) async throws {
+    func submit(_ record: ShareRecord) async throws -> Bool {
         let record = try record.validated()
         var body = try Self.encodeUnsealBody(record.share)
         defer {
             body.resetBytes(in: body.startIndex..<body.endIndex)
         }
-        _ = try await request(record.endpoint("unseal"), body: body)
+        let data = try await request(record.endpoint("unseal"), body: body)
+        do {
+            return try !JSONDecoder().decode(UnsealResponse.self, from: data).sealed
+        } catch {
+            throw AppFailure("Invalid unseal response. Check the actual server state again.")
+        }
     }
 
     private struct HelpResponse: Decodable {
@@ -167,6 +172,10 @@ struct SealServerClient: Sendable {
 
     private struct UnsealBody: Encodable {
         let key: String
+    }
+
+    private struct UnsealResponse: Decodable {
+        let sealed: Bool
     }
 
     private func request(

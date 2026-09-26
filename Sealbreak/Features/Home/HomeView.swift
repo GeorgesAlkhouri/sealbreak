@@ -29,9 +29,11 @@ struct HomeView: View {
 
                         Spacer(minLength: 28)
 
-                        ServerStatusCard(state: viewState)
-                            .frame(maxWidth: 335)
-                            .padding(.horizontal, 29)
+                        ServerStatusCard(state: viewState) {
+                            store.send(.serverDetailsTapped)
+                        }
+                        .frame(maxWidth: 335)
+                        .padding(.horizontal, 29)
 
                         Spacer(minLength: 26)
 
@@ -73,6 +75,7 @@ struct HomeView: View {
             PrivacyCover(store: privacyStore) {
                 ServerDetailsView(store: detailsStore)
             }
+            .interactiveDismissDisabled(detailsStore.isSavingVerification)
         }
         .sheet(
             item: $store.scope(state: \.$replaceShare, action: \.replaceShare)
@@ -115,7 +118,8 @@ struct HomeView: View {
             profile: store.profile,
             sealStatus: store.status,
             operation: store.operation,
-            notice: store.notice
+            notice: store.notice,
+            verification: store.verification
         )
     }
 

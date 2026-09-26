@@ -897,6 +897,26 @@ struct KeychainStoreTests {
     }
 
     @Test
+    func profileStorePersistsAndClearsVerificationWithoutChangingShare() throws {
+        let root = temporaryRoot()
+        defer { try? FileManager.default.removeItem(at: root) }
+        let profile = try ServerProfile(id: UUID(), name: "Server", address: origin)
+        let store = ProfileStore(baseDirectory: root)
+        try store.begin(profile)
+        try store.commit(id: profile.id)
+
+        #expect(try store.verification(profileID: profile.id) == nil)
+        let verified = ShareVerification(source: .manual, at: Date(timeIntervalSince1970: 1_700_000_000))
+        try store.setVerification(profileID: profile.id, to: verified)
+        #expect(try ProfileStore(baseDirectory: root).verification(profileID: profile.id) == verified)
+        #expect(throws: AppFailure.self) {
+            try store.setVerification(profileID: UUID(), to: verified)
+        }
+        try store.setVerification(profileID: profile.id, to: nil)
+        #expect(try store.verification(profileID: profile.id) == nil)
+    }
+
+    @Test
     func profileStoreRejectsOversizedProfileInsideCatalog() throws {
         let name = "é" + String(repeating: "\u{0301}", count: 2_047)
         let profile = try ServerProfile(

@@ -69,6 +69,9 @@
     "Checking…" : {
 
     },
+    "Compare with an independent copy, or verify by unsealing this server." : {
+
+    },
     "Compatible server" : {
 
     },
@@ -94,6 +97,9 @@
 
     },
     "Could not create biometric Keychain protection. A device passcode and Face ID are required." : {
+
+    },
+    "Date" : {
 
     },
     "Discard setup" : {
@@ -231,6 +237,12 @@
     "Manual unseal unavailable" : {
 
     },
+    "Mark as verified" : {
+
+    },
+    "Marked by you after an independent check." : {
+
+    },
     "More options" : {
 
     },
@@ -243,7 +255,16 @@
     "No accessible share was found. Face ID or the device passcode may have changed. Recover from your independent copy." : {
 
     },
+    "No ready server profile exists for this share." : {
+
+    },
+    "Not verified" : {
+
+    },
     "Only initialized Shamir seals are supported. Initialization, auto-unseal, and seal migration are not supported." : {
+
+    },
+    "Open server details" : {
 
     },
     "OpenBao" : {
@@ -310,6 +331,9 @@
 
     },
     "Remove local data?" : {
+
+    },
+    "Remove verification" : {
 
     },
     "Removing local data…" : {
@@ -402,6 +426,9 @@
     "Server returned HTTP %lld. A share or request may have been rejected; no automatic retry is made." : {
 
     },
+    "Server unsealed, but share verification could not be saved." : {
+
+    },
     "Set up Sealbreak" : {
 
     },
@@ -418,6 +445,12 @@
 
     },
     "Share protected on this iPhone. Check status to begin." : {
+
+    },
+    "Share saved" : {
+
+    },
+    "Status" : {
 
     },
     "Status checked" : {
@@ -446,6 +479,9 @@
 
     },
     "Stored only on this iPhone" : {
+
+    },
+    "Stored share" : {
 
     },
     "Submission completed; still sealed. Progress: %lld/%lld. Other holders must submit their own shares to this same node." : {
@@ -507,6 +543,9 @@
 
     },
     "The server returned inconsistent seal status. No share was sent by this status request." : {
+
+    },
+    "This endpoint now reports unsealed." : {
 
     },
     "This removes every protected share stored by Sealbreak on this iPhone and all local Sealbreak configuration. You need an independent share copy to set up again." : {
@@ -575,6 +614,9 @@
     "UNKNOWN" : {
 
     },
+    "Unseal" : {
+
+    },
     "Unseal share" : {
 
     },
@@ -608,7 +650,13 @@
     "Vault detected" : {
 
     },
-    "Verified: this endpoint now reports unsealed. This does not prove which operator completed the quorum." : {
+    "Verified" : {
+
+    },
+    "Verified after this server reported unsealed in response to the stored share." : {
+
+    },
+    "Verified by" : {
 
     },
     "Verifying seal status…" : {
@@ -624,6 +672,9 @@
 
     },
     "Yes" : {
+
+    },
+    "You" : {
 
     },
     "You will need it if this iPhone is lost or Face ID is re-enrolled." : {

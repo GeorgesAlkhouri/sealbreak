@@ -31,6 +31,15 @@ extension SealbreakClient: DependencyKey {
             submit: { record in
                 try await LiveSealbreakClientController.shared.submit(record)
             },
+            loadVerification: { profileID in
+                try await LiveSealbreakClientController.shared.loadVerification(profileID: profileID)
+            },
+            setVerification: { profileID, verification in
+                try await LiveSealbreakClientController.shared.setVerification(
+                    profileID: profileID,
+                    verification: verification
+                )
+            },
             readShare: { profileID, reason in
                 try await LiveSealbreakClientController.shared.readShare(
                     profileID: profileID,
@@ -145,8 +154,17 @@ private final class LiveSealbreakClientController {
         try await client.status(profile)
     }
 
-    func submit(_ record: ShareRecord) async throws {
+    func submit(_ record: ShareRecord) async throws -> Bool {
         try await client.submit(record)
+    }
+
+    func loadVerification(profileID: UUID) throws -> ShareVerification? {
+        try profiles.verification(profileID: profileID)
+    }
+
+    func setVerification(profileID: UUID, verification: ShareVerification?) throws {
+        try requireForeground()
+        try profiles.setVerification(profileID: profileID, to: verification)
     }
 
     func readShare(profileID: UUID, reason: LocalizedStringResource) async throws -> ShareRecord {
@@ -169,6 +187,7 @@ private final class LiveSealbreakClientController {
                 },
                 beforeReplace: {
                     try requireForeground()
+                    try profiles.setVerification(profileID: expectedProfile.id, to: nil)
                 },
                 replace: { record in
                     try keychain.replace(record, context: context)

@@ -2,6 +2,7 @@ import SwiftUI
 
 struct ServerStatusCard: View {
     let state: HomeViewState
+    let onShareStatusTap: () -> Void
 
     @ScaledMetric(relativeTo: .largeTitle) private var statusTitleSize: CGFloat = 40
     @ScaledMetric(relativeTo: .largeTitle) private var workingStatusTitleSize: CGFloat = 34
@@ -48,6 +49,34 @@ struct ServerStatusCard: View {
                     .fixedSize(horizontal: false, vertical: true)
                     .frame(maxWidth: .infinity, alignment: .center)
                     .padding(.top, 8)
+
+                Rectangle()
+                    .fill(PapercutPalette.ring.opacity(0.8))
+                    .frame(height: 1)
+                    .padding(.top, 22)
+
+                Button(action: onShareStatusTap) {
+                    HStack(spacing: 9) {
+                        Image(systemName: state.shareIsVerified ? "checkmark.seal.fill" : "key.horizontal")
+                            .font(.subheadline)
+                            .foregroundStyle(state.shareIsVerified ? PapercutPalette.unsealed : PapercutPalette.secondaryText)
+                        Text("Share saved")
+                            .foregroundStyle(PapercutPalette.cream)
+                        Text(verbatim: "·")
+                            .foregroundStyle(PapercutPalette.secondaryText)
+                        Text(state.shareVerificationLabel)
+                            .foregroundStyle(state.shareIsVerified ? PapercutPalette.unsealed : PapercutPalette.secondaryText)
+                        Spacer(minLength: 0)
+                        Image(systemName: "chevron.right")
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(PapercutPalette.secondaryText)
+                    }
+                    .font(.caption.weight(.medium))
+                    .frame(maxWidth: .infinity, minHeight: 44)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityHint("Open server details")
             }
             .multilineTextAlignment(.center)
             .padding(.horizontal, 24)
@@ -55,7 +84,7 @@ struct ServerStatusCard: View {
         }
         .frame(maxWidth: .infinity)
         .frame(minHeight: 460)
-        .accessibilityElement(children: .combine)
+        .accessibilityElement(children: .contain)
     }
 
     private var currentStatusTitleSize: CGFloat {

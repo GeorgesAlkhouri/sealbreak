@@ -150,6 +150,21 @@ struct HomeViewStateTests {
         await store.receive(.delegate(.dismissRequested))
     }
 
+    @Test
+    func viewStateDistinguishesSavedAndVerifiedShare() throws {
+        let profile = try ServerProfile(id: UUID(), name: "Server", address: "https://bao.example.com")
+        let unverified = HomeViewState(profile: profile, sealStatus: nil, operation: nil, notice: "", verification: nil)
+        let verified = HomeViewState(
+            profile: profile,
+            sealStatus: nil,
+            operation: nil,
+            notice: "",
+            verification: ShareVerification(source: .manual, at: Date(timeIntervalSince1970: 1_700_000_000))
+        )
+        #expect(unverified.shareVerificationLabel == "Not verified")
+        #expect(verified.shareVerificationLabel == "Verified")
+    }
+
     private func sealStatus(sealed: Bool, supportsUnseal: Bool) -> SealStatus {
         SealStatus(
             type: supportsUnseal ? "shamir" : "transit",

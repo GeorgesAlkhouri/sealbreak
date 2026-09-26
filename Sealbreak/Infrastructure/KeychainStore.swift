@@ -173,6 +173,7 @@ enum StoredProfileState: String, Codable, Equatable {
 struct StoredProfile: Codable, Equatable {
     let profile: ServerProfile
     var state: StoredProfileState
+    var verification: ShareVerification? = nil
 }
 
 enum ProfileCatalogState: String, Codable, Equatable {
@@ -258,7 +259,8 @@ struct ProfileStore {
             validated.append(
                 StoredProfile(
                     profile: profile,
-                    state: entry.state
+                    state: entry.state,
+                    verification: entry.verification
                 )
             )
         }
@@ -296,6 +298,27 @@ struct ProfileStore {
         }
 
         entries[0].state = .ready
+        try write(entries)
+    }
+
+    func verification(profileID: UUID) throws -> ShareVerification? {
+        let entries = try loadAll()
+        guard entries.count == 1,
+              entries[0].profile.id == profileID,
+              entries[0].state == .ready else {
+            throw AppFailure("No ready server profile exists for this share.")
+        }
+        return entries[0].verification
+    }
+
+    func setVerification(profileID: UUID, to verification: ShareVerification?) throws {
+        var entries = try loadAll()
+        guard entries.count == 1,
+              entries[0].profile.id == profileID,
+              entries[0].state == .ready else {
+            throw AppFailure("No ready server profile exists for this share.")
+        }
+        entries[0].verification = verification
         try write(entries)
     }
 
