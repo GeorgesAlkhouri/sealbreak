@@ -83,7 +83,7 @@ flowchart TB
     end
 
     OP -->|"Explicit action"| UI
-    IMPORT -->|"TB1: explicit paste import"| UI
+    IMPORT -->|"TB1: share import"| UI
     BUILD -.->|"TB5: install / update"| APP
 
     UI <--> MODEL
@@ -105,7 +105,7 @@ flowchart TB
 
 | Boundary | Transition | Security relevance |
 | --- | --- | --- |
-| **TB1** | External import source → Sealbreak | Sealbreak can clear the current general pasteboard after a valid import, but copies already held by the source, synchronized elsewhere, or retained in history remain outside Sealbreak control |
+| **TB1** | External import source → Sealbreak | The external source and any copies it retains are outside Sealbreak control |
 | **TB2** | App → Keychain / Face ID | iOS must enforce access to the share itself, not merely access to the visible UI |
 | **TB3** | iPhone → OpenBao or TLS proxy | Server identity and transport must be authenticated; redirects must not retarget the share |
 | **TB4** | TLS proxy → OpenBao | A proxy expands the trusted infrastructure and can observe the share after TLS termination |
@@ -226,9 +226,9 @@ Controls: **M12**
 
 #### T08 — Share remains in the import or recovery source
 
-A share may already exist in a password manager, clipboard history, note, screenshot, chat application, terminal, backup, or other external source before Sealbreak imports it.
+A share may already exist in a password manager, clipboard history, note, screenshot, chat application, terminal, backup, or other external source before Sealbreak imports it. Copies may remain available after import or may already have been synchronized or retained elsewhere.
 
-Sealbreak accepts share input only through the system paste control. After a pasted value passes share-format validation, Sealbreak clears the current general pasteboard immediately and provides no share-export feature. It cannot revoke copies already retained by the source, synchronized through Universal Clipboard, stored in clipboard history, notes, chats, terminal output, backups, or elsewhere.
+Current controls limit the Sealbreak import path to an explicit system paste action and clear the current general pasteboard after a pasted value passes share-format validation. Sealbreak provides no share-export functionality. These controls cannot revoke copies retained by the source or already synchronized or stored elsewhere.
 
 Affected assets: **A01**
 
@@ -381,7 +381,7 @@ A residual risk rating does not imply risk acceptance. This threat model does no
 | **T05** Local lifecycle state integrity failure | 2 | 3 | **6 Medium** | M08, M09 | Fail-closed lifecycle state, in-place replacement, bounded storage, and independent recovery |
 | **T06** Reuse of stolen share | 2 | 5 | **10 High** | M02, M05, M06, M09 | Copied Shamir share remains reusable outside Sealbreak |
 | **T07** Weak actor attribution | 3 | 2 | **6 Medium** | M12 | OpenBao receives no cryptographic proof of local Face ID or specific human identity |
-| **T08** External import/recovery copy stolen | 2 | 5 | **10 High** | M07, M09 | Explicit paste and immediate clipboard clearing reduce clipboard dwell time; external or already synchronized copies remain outside app control |
+| **T08** External import/recovery copy stolen | 2 | 5 | **10 High** | M07, M09 | Explicit paste and clipboard clearing after successful validation reduce clipboard exposure; external or already synchronized copies remain outside app control |
 | **T09** Diagnostic leak | 1 | 5 | **5 Medium** | M06, M12 | No application logging or analytics; caches and response-body reflection disabled |
 | **T10** Runtime memory compromise | 2 | 5 | **10 High** | M01, M02, M06, M11 | Authorized share must exist transiently in process and networking memory |
 | **T11** Unexpected synchronization or migration | 1 | 5 | **5 Medium** | M01, M06, M08 | `ThisDeviceOnly` plus synchronization disabled; platform behavior remains trusted |
@@ -402,7 +402,7 @@ A residual risk rating does not imply risk acceptance. This threat model does no
 | **M04 — Target binding** | Application | Store the authoritative server profile with the share and compare it before submission |
 | **M05 — State machine and request discipline** | Application | Validate seal state, permit only supported Shamir states, perform one explicit submission per action, never automatically retry, and verify state afterwards |
 | **M06 — Data minimization** | Application | Do not log, analyze, cache, export, or persist the share outside the protected record; minimize diagnostic detail and clear mutable buffers where practical |
-| **M07 — Secure import** | Application | Accept share input only through an explicit system paste control, validate it before import, clear the current general pasteboard immediately after a valid paste, never read the clipboard automatically, and provide no share export functionality |
+| **M07 — Secure import** | Application | Accept share input only through an explicit system paste control, validate the value before accepting it, clear the current general pasteboard after successful validation, do not read the clipboard automatically, and provide no share-export functionality |
 | **M08 — Safe local lifecycle** | Application | Require fresh authorization for sensitive local-share operations, persist a fail-closed lifecycle marker before changes that could leave protected share storage and profile metadata inconsistent, treat only fully committed local state as configured, reject incomplete or unsupported local state, use safe in-place updates, and enforce one encoded storage-size invariant across readers and writers |
 | **M09 — Recovery and incident response** | Operator / deployment | Maintain independent recovery and use OpenBao rekeying to replace compromised server-side shares |
 | **M10 — Secure infrastructure** | Operator / deployment | Protect OpenBao, TLS proxies, VPN, DNS, certificates, node routing, and bootstrap dependencies outside the application |
