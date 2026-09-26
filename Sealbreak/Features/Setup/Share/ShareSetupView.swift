@@ -34,7 +34,11 @@ struct ShareSetupView: View {
                         .fixedSize(horizontal: false, vertical: true)
 
                     VStack(alignment: .leading, spacing: 10) {
-                        if !share.isEmpty {
+                        if share.isEmpty {
+                            Text("Paste Shamir share")
+                                .font(.footnote.weight(.semibold))
+                                .foregroundStyle(PapercutPalette.secondaryText)
+                        } else {
                             Label("Shamir share added", systemImage: "checkmark.circle.fill")
                                 .font(.footnote.weight(.semibold))
                                 .foregroundStyle(PapercutPalette.unsealed)
