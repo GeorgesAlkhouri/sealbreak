@@ -11,11 +11,7 @@ struct ShareEditor: View {
     let onSave: () -> Void
 
     var body: some View {
-        if share.isEmpty {
-            Text("Paste one Shamir share")
-                .font(.footnote)
-                .foregroundStyle(.secondary)
-        } else {
+        if !share.isEmpty {
             Label("Shamir share added", systemImage: "checkmark.circle.fill")
                 .font(.footnote.weight(.semibold))
                 .foregroundStyle(PapercutPalette.unsealed)
@@ -31,10 +27,6 @@ struct ShareEditor: View {
         .disabled(busy)
 
         Toggle("I have an independent recovery copy", isOn: $recoveryConfirmed)
-
-        Text("A valid paste is removed from the clipboard.")
-            .font(.footnote)
-            .foregroundStyle(.secondary)
 
         Button(saveTitle, action: onSave)
             .disabled(busy || share.isEmpty || !recoveryConfirmed)
