@@ -1,6 +1,7 @@
 import ComposableArchitecture
 import Foundation
 import SwiftUI
+import UIKit
 
 struct ShareSetupView: View {
     let store: StoreOf<ShareSetupFeature>
@@ -32,35 +33,30 @@ struct ShareSetupView: View {
                         .foregroundStyle(PapercutPalette.secondaryText)
                         .fixedSize(horizontal: false, vertical: true)
 
-                    SecureField(
-                        "",
-                        text: $share,
-                        prompt: Text("Paste one Shamir share")
-                            .foregroundStyle(PapercutPalette.secondaryText)
-                    )
-                    .accessibilityLabel("Unseal share")
-                    .font(.system(.callout, design: .monospaced, weight: .semibold))
-                    .foregroundStyle(PapercutPalette.cream)
-                    .textInputAutocapitalization(.never)
-                    .autocorrectionDisabled()
-                    .keyboardType(.asciiCapable)
-                    .privacySensitive()
-                    .disabled(store.isBusy)
-                    .padding(.horizontal, 14)
-                    .padding(.vertical, 12)
-                    .frame(minHeight: 52)
-                    .background {
-                        RoundedRectangle(cornerRadius: 14, style: .continuous)
-                            .fill(PapercutPalette.sky.opacity(0.72))
-                            .overlay {
-                                RoundedRectangle(cornerRadius: 14, style: .continuous)
-                                    .stroke(PapercutPalette.ring, lineWidth: 1)
-                            }
-                    }
-                    .onChange(of: share) { _, value in
-                        if value.utf8.count > 1024 {
-                            share.removeAll(keepingCapacity: false)
+                    VStack(alignment: .leading, spacing: 10) {
+                        if share.isEmpty {
+                            Text("Paste one Shamir share")
+                                .font(.footnote.weight(.semibold))
+                                .foregroundStyle(PapercutPalette.secondaryText)
+                        } else {
+                            Label("Shamir share added", systemImage: "checkmark.circle.fill")
+                                .font(.footnote.weight(.semibold))
+                                .foregroundStyle(PapercutPalette.unsealed)
                         }
+
+                        PasteButton(payloadType: String.self) { values in
+                            pasteShare(values)
+                        }
+                        .labelStyle(.titleAndIcon)
+                        .buttonBorderShape(.roundedRectangle(radius: 14))
+                        .tint(PapercutPalette.button)
+                        .controlSize(.large)
+                        .disabled(store.isBusy)
+                        .frame(maxWidth: .infinity)
+
+                        Text("A valid paste is removed from the clipboard.")
+                            .font(.caption)
+                            .foregroundStyle(PapercutPalette.secondaryText)
                     }
 
                     Divider()
@@ -225,6 +221,17 @@ struct ShareSetupView: View {
         case .generic:
             return "Compatible server"
         }
+    }
+
+    private func pasteShare(_ values: [String]) {
+        guard let candidate = values.first,
+              let validated = try? ShareRecord.validateShare(candidate) else {
+            return
+        }
+
+        share.removeAll(keepingCapacity: false)
+        share = validated
+        UIPasteboard.general.items = []
     }
 
     private func save() {
