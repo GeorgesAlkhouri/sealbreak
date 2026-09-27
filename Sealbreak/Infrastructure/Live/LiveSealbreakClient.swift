@@ -31,6 +31,12 @@ extension SealbreakClient: DependencyKey {
             submit: { record in
                 try await LiveSealbreakClientController.shared.submit(record)
             },
+            readShareFragment: { profileID, reason in
+                try await LiveSealbreakClientController.shared.readShareFragment(
+                    profileID: profileID,
+                    reason: reason
+                )
+            },
             readShare: { profileID, reason in
                 try await LiveSealbreakClientController.shared.readShare(
                     profileID: profileID,
@@ -147,6 +153,19 @@ private final class LiveSealbreakClientController {
 
     func submit(_ record: ShareRecord) async throws {
         try await client.submit(record)
+    }
+
+    func readShareFragment(
+        profileID: UUID,
+        reason: LocalizedStringResource
+    ) async throws -> ShareComparisonFragment {
+        try await withAuthorizedContext(reason: reason) { context in
+            var record = try keychain.read(profileID: profileID, context: context)
+            defer {
+                record.share.removeAll(keepingCapacity: false)
+            }
+            return ShareComparisonFragment(validatedShare: record.share)
+        }
     }
 
     func readShare(profileID: UUID, reason: LocalizedStringResource) async throws -> ShareRecord {
