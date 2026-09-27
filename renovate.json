@@ -85,7 +85,7 @@
         "/^\\.github\\/workflows\\/ci\\.yml$/"
       ],
       "matchStrings": [
-        "# renovate: packageName=(?<packageName>[^\\s]+)\\s+version:\\s*\\\"(?<currentValue>\\d+\\.\\d+\\.\\d+)\\\""
+        "# renovate: packageName=(?<packageName>[^\\s]+)\\s+version:\\s*\"(?<currentValue>\\d+\\.\\d+\\.\\d+)\""
       ],
       "datasourceTemplate": "github-releases",
       "depNameTemplate": "{{{packageName}}}",
