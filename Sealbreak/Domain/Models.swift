@@ -151,6 +151,21 @@ struct ShareRecord: Codable, Equatable, Sendable {
     }
 }
 
+struct ShareComparisonFragment: Equatable, Sendable {
+    let leading: String
+    let trailing: String
+
+    init(validatedShare: String) {
+        precondition(validatedShare.count >= 6)
+        leading = String(validatedShare.prefix(3))
+        trailing = String(validatedShare.suffix(3))
+    }
+
+    var displayValue: String {
+        "\(leading) … \(trailing)"
+    }
+}
+
 struct SealStatus: Decodable, Equatable, Sendable {
     let type: String
     let initialized: Bool
