@@ -1454,6 +1454,59 @@ struct FeatureTests {
     }
 
     @Test
+    func serverDetailsDoesNotRevealShareWhileBusy() async throws {
+        let target = try profile()
+        let spy = ClientSpy()
+        let store = TestStore(
+            initialState: ServerDetailsFeature.State(
+                profile: target,
+                status: status(),
+                isBusy: true,
+                activity: "Checking…",
+                notice: ""
+            )
+        ) {
+            ServerDetailsFeature()
+        } withDependencies: {
+            $0.sealbreakClient = client(spy)
+        }
+        store.exhaustivity = .off(showSkippedAssertions: false)
+
+        await store.send(.shareFragmentTapped)
+
+        #expect(store.state.shareFragment == nil)
+        #expect(!store.state.isRevealingShare)
+    }
+
+    @Test
+    func serverDetailsRevealFailureClearsLoadingState() async throws {
+        let target = try profile()
+        let spy = ClientSpy()
+        await spy.setReadError(AppFailure("read failed"))
+        let store = TestStore(
+            initialState: ServerDetailsFeature.State(
+                profile: target,
+                status: status(),
+                isBusy: false,
+                activity: nil,
+                notice: ""
+            )
+        ) {
+            ServerDetailsFeature()
+        } withDependencies: {
+            $0.sealbreakClient = client(spy)
+        }
+        store.exhaustivity = .off(showSkippedAssertions: false)
+
+        await store.send(.shareFragmentTapped)
+        #expect(store.state.isRevealingShare)
+
+        await store.receive(.shareFragmentLoadFailed)
+        #expect(!store.state.isRevealingShare)
+        #expect(store.state.shareFragment == nil)
+    }
+
+    @Test
     func serverDetailsCanHideShareFragmentImmediately() async throws {
         let target = try profile()
         let storedShare = "abcdef0123456789abcdef0123456789"
