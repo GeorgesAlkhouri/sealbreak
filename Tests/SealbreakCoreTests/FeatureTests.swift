@@ -131,6 +131,14 @@ private actor ClientSpy {
         return readRecord
     }
 
+    func readShareFragment(_ profileID: UUID) throws -> ShareComparisonFragment {
+        var record = try readShare(profileID)
+        defer {
+            record.share.removeAll(keepingCapacity: false)
+        }
+        return ShareComparisonFragment(validatedShare: record.share)
+    }
+
     func replace(_ record: ShareRecord) throws {
         if let replaceError { throw replaceError }
         replacedRecords.append(record)
@@ -207,6 +215,7 @@ private func client(_ spy: ClientSpy) -> SealbreakClient {
         dnssecStatus: { _ in await spy.dnssecStatus() },
         status: { _ in try await spy.status() },
         submit: { try await spy.submit($0) },
+        readShareFragment: { profileID, _ in try await spy.readShareFragment(profileID) },
         readShare: { profileID, _ in try await spy.readShare(profileID) },
         replaceShare: { _, replacement, _ in try await spy.replace(replacement) },
         removeLocalProfile: { profileID, _ in
@@ -1405,6 +1414,104 @@ struct FeatureTests {
         #expect(localizedContains(setupStore.state.notice, "already exists"))
         #expect(await spy.currentProfiles == [first])
         #expect(await spy.insertedCount == 0)
+    }
+
+    @Test
+    func serverDetailsRevealsAndExpiresShareFragment() async throws {
+        let target = try profile()
+        let storedShare = "0123456789abcdef0123456789abcdef"
+        let spy = ClientSpy()
+        await spy.setReadRecord(try ShareRecord(profile: target, input: storedShare))
+        let clock = TestClock()
+        let store = TestStore(
+            initialState: ServerDetailsFeature.State(
+                profile: target,
+                status: status(),
+                isBusy: false,
+                activity: nil,
+                notice: ""
+            )
+        ) {
+            ServerDetailsFeature()
+        } withDependencies: {
+            $0.sealbreakClient = client(spy)
+            $0.continuousClock = clock
+        }
+        store.exhaustivity = .off(showSkippedAssertions: false)
+        let expected = ShareComparisonFragment(validatedShare: storedShare)
+
+        await store.send(.shareFragmentTapped)
+        #expect(store.state.isRevealingShare)
+
+        await store.receive(.shareFragmentLoaded(expected))
+        #expect(!store.state.isRevealingShare)
+        #expect(store.state.shareFragment == expected)
+        #expect(store.state.shareFragment?.displayValue == "012 … def")
+
+        await clock.advance(by: .seconds(20))
+        await store.receive(.shareFragmentExpired)
+        #expect(store.state.shareFragment == nil)
+    }
+
+    @Test
+    func serverDetailsCanHideShareFragmentImmediately() async throws {
+        let target = try profile()
+        let storedShare = "abcdef0123456789abcdef0123456789"
+        let spy = ClientSpy()
+        await spy.setReadRecord(try ShareRecord(profile: target, input: storedShare))
+        let clock = TestClock()
+        let store = TestStore(
+            initialState: ServerDetailsFeature.State(
+                profile: target,
+                status: status(),
+                isBusy: false,
+                activity: nil,
+                notice: ""
+            )
+        ) {
+            ServerDetailsFeature()
+        } withDependencies: {
+            $0.sealbreakClient = client(spy)
+            $0.continuousClock = clock
+        }
+        store.exhaustivity = .off(showSkippedAssertions: false)
+
+        await store.send(.shareFragmentTapped)
+        await store.receive(.shareFragmentLoaded(ShareComparisonFragment(validatedShare: storedShare)))
+        #expect(store.state.shareFragment != nil)
+
+        await store.send(.shareFragmentTapped)
+        #expect(store.state.shareFragment == nil)
+    }
+
+    @Test
+    func homeSynchronizationPreservesServerDetailsLocalState() async throws {
+        let target = try profile()
+        let fragment = ShareComparisonFragment(
+            validatedShare: "abcdef0123456789abcdef0123456789"
+        )
+        var initial = HomeFeature.State(profile: target, status: status())
+        initial.serverDetails = ServerDetailsFeature.State(
+            profile: target,
+            status: status(),
+            isBusy: false,
+            activity: nil,
+            notice: ""
+        )
+        initial.serverDetails?.shareFragment = fragment
+
+        let spy = ClientSpy()
+        let store = TestStore(initialState: initial) {
+            HomeFeature()
+        } withDependencies: {
+            $0.sealbreakClient = client(spy)
+        }
+        store.exhaustivity = .off(showSkippedAssertions: false)
+
+        await store.send(.refreshResponse(.success(status(progress: 1))))
+
+        #expect(store.state.serverDetails?.shareFragment == fragment)
+        #expect(store.state.serverDetails?.status?.progress == 1)
     }
 
     @Test
