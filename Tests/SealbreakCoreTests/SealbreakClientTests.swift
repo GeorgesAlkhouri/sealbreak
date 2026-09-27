@@ -42,6 +42,10 @@ struct SealbreakClientTests {
                 == "Unimplemented share submission dependency."
         )
         #expect(
+            await failureMessage { try await dependency.readShareFragment(profile.id, "Test") }
+                == "Unimplemented protected-share dependency."
+        )
+        #expect(
             await failureMessage { try await dependency.readShare(profile.id, "Test") }
                 == "Unimplemented protected-share dependency."
         )
@@ -62,6 +66,17 @@ struct SealbreakClientTests {
                 == "Unimplemented foreground dependency."
         )
         await dependency.cancelSensitiveOperation()
+    }
+
+    @Test
+    func shareComparisonFragmentContainsOnlyTheEdges() {
+        let fragment = ShareComparisonFragment(
+            validatedShare: "0123456789abcdef0123456789abcdef"
+        )
+
+        #expect(fragment.leading == "012")
+        #expect(fragment.trailing == "def")
+        #expect(fragment.displayValue == "012 … def")
     }
 
     @Test
