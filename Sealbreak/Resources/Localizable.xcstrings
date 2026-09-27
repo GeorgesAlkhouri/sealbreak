@@ -156,6 +156,12 @@
     "HTTPS origin with optional port" : {
 
     },
+    "Hidden" : {
+
+    },
+    "Hide stored share fragment" : {
+
+    },
     "I have an independent recovery copy" : {
 
     },
@@ -420,6 +426,9 @@
     "Share protected on this iPhone. Check status to begin." : {
 
     },
+    "Show stored share fragment" : {
+
+    },
     "Status checked" : {
 
     },
@@ -446,6 +455,9 @@
 
     },
     "Stored only on this iPhone" : {
+
+    },
+    "Stored share" : {
 
     },
     "Submission completed; still sealed. Progress: %lld/%lld. Other holders must submit their own shares to this same node." : {
