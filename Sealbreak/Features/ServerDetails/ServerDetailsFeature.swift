@@ -10,7 +10,7 @@ struct ServerDetailsFeature {
         var isBusy: Bool
         var activity: LocalizedStringResource?
         var notice: LocalizedStringResource
-        var shareFragment: ShareComparisonFragment?
+        var shareFragment: ShareComparisonFragment? = nil
         var isRevealingShare = false
     }
 
