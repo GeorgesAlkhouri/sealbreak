@@ -126,7 +126,7 @@
     "Done" : {
 
     },
-    "Enter one hexadecimal or Base64 Shamir share. Its validity is ultimately checked by the configured server." : {
+    "Enter one hexadecimal or Base64 Shamir share." : {
 
     },
     "Enter the direct HTTPS address of one server node." : {
@@ -150,16 +150,16 @@
     "Generic server response" : {
 
     },
-    "HTTPS certificate valid" : {
-
-    },
-    "HTTPS origin with optional port" : {
-
-    },
     "Hidden" : {
 
     },
     "Hide stored share fragment" : {
+
+    },
+    "HTTPS certificate valid" : {
+
+    },
+    "HTTPS origin with optional port" : {
 
     },
     "I have an independent recovery copy" : {
