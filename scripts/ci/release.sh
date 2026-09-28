@@ -62,7 +62,20 @@ archive() {
 
   rm -rf "$archive_path"
 
-  xcodebuild     -project Sealbreak.xcodeproj     -scheme Sealbreak     -configuration Release     -destination 'generic/platform=iOS'     -archivePath "$archive_path"     MARKETING_VERSION="$version"     CURRENT_PROJECT_VERSION="$build_number"     CODE_SIGNING_ALLOWED=NO     CODE_SIGNING_REQUIRED=NO     DEVELOPMENT_TEAM=     COMPILER_INDEX_STORE_ENABLE=NO     -skipMacroValidation     archive
+  xcodebuild \
+    -project Sealbreak.xcodeproj \
+    -scheme Sealbreak \
+    -configuration Release \
+    -destination 'generic/platform=iOS' \
+    -archivePath "$archive_path" \
+    MARKETING_VERSION="$version" \
+    CURRENT_PROJECT_VERSION="$build_number" \
+    CODE_SIGNING_ALLOWED=NO \
+    CODE_SIGNING_REQUIRED=NO \
+    DEVELOPMENT_TEAM= \
+    COMPILER_INDEX_STORE_ENABLE=NO \
+    -skipMacroValidation \
+    archive
 }
 
 verify() {
