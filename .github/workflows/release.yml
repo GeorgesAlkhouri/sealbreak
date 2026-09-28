@@ -26,6 +26,7 @@ jobs:
     timeout-minutes: 60
     env:
       DEVELOPER_DIR: /Applications/Xcode_26.6.app/Contents/Developer
+      FASTLANE_SKIP_UPDATE_CHECK: "1"
 
     steps:
       - name: Require main branch
@@ -38,42 +39,16 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Compute release version
-        id: version
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@14594264cd68ce8a2345dd349bc3d138a4ef85c8 # v1
+        with:
+          ruby-version: '3.4'
+          bundler-cache: true
+
+      - name: Verify Xcode 26.6
+        run: xcodebuild -version
+
+      - name: Create unsigned release archive
         env:
           RELEASE_TYPE: ${{ inputs.release_type }}
-        run: |
-          version="$(bash scripts/ci/release.sh next-version "$RELEASE_TYPE")"
-          build_number="$GITHUB_RUN_NUMBER"
-          echo "version=$version" >> "$GITHUB_OUTPUT"
-          echo "build_number=$build_number" >> "$GITHUB_OUTPUT"
-          echo "Preparing Sealbreak $version ($build_number)"
-
-      - name: Archive unsigned iOS release
-        env:
-          VERSION: ${{ steps.version.outputs.version }}
-          BUILD_NUMBER: ${{ steps.version.outputs.build_number }}
-        run: bash scripts/ci/release.sh archive "$VERSION" "$BUILD_NUMBER"
-
-      - name: Verify archive version
-        env:
-          VERSION: ${{ steps.version.outputs.version }}
-          BUILD_NUMBER: ${{ steps.version.outputs.build_number }}
-        run: bash scripts/ci/release.sh verify "$VERSION" "$BUILD_NUMBER"
-
-      - name: Write release summary
-        env:
-          VERSION: ${{ steps.version.outputs.version }}
-          BUILD_NUMBER: ${{ steps.version.outputs.build_number }}
-          RELEASE_TYPE: ${{ inputs.release_type }}
-        run: |
-          {
-            echo "## Release archive"
-            echo
-            echo "- Release type: `$RELEASE_TYPE`"
-            echo "- Version: `$VERSION`"
-            echo "- Build: `$BUILD_NUMBER`"
-            echo "- Xcode: `26.6`"
-            echo "- Signing: disabled"
-            echo "- Distribution: not configured yet"
-          } >> "$GITHUB_STEP_SUMMARY"
+        run: bundle exec fastlane ios archive release_type:"$RELEASE_TYPE"
