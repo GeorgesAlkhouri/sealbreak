@@ -5,7 +5,7 @@ import Testing
     .serialized,
     .enabled(
         if: IntegrationEnvironment.isConfigured,
-        "Requires the ephemeral OpenBao or Vault instance created by the CI integration job."
+        "Requires the ephemeral OpenBao, Vault, or enclaive Vault instance created by the CI integration job."
     )
 )
 struct SealServerIntegrationTests {
@@ -91,7 +91,7 @@ private struct IntegrationEnvironment {
         switch product {
         case "openbao":
             expectedProduct = .openBao
-        case "vault":
+        case "vault", "enclaive":
             expectedProduct = .vault
         default:
             throw IntegrationEnvironmentError.unsupportedProduct(product)
