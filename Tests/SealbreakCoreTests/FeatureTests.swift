@@ -1538,6 +1538,32 @@ struct FeatureTests {
     }
 
     @Test
+    func serverDetailsCanHideShareFragmentWhileBusy() async throws {
+        let target = try profile()
+        let fragment = ShareComparisonFragment(
+            validatedShare: "abcdef0123456789abcdef0123456789"
+        )
+        var initial = ServerDetailsFeature.State(
+            profile: target,
+            status: status(),
+            isBusy: true,
+            activity: "Checking…",
+            notice: ""
+        )
+        initial.shareFragment = fragment
+
+        let store = TestStore(initialState: initial) {
+            ServerDetailsFeature()
+        }
+        store.exhaustivity = .off(showSkippedAssertions: false)
+
+        await store.send(.shareFragmentTapped)
+
+        #expect(store.state.shareFragment == nil)
+        #expect(store.state.isBusy)
+    }
+
+    @Test
     func homeSynchronizationPreservesServerDetailsLocalState() async throws {
         let target = try profile()
         let fragment = ShareComparisonFragment(
