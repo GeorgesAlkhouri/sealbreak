@@ -152,14 +152,14 @@ case "$help_title" in
     ;;
 esac
 
-first_payload="$(jq -cn --arg key "$first_share" '{key: $key}')"
+first_payload="$(printf '%s' "$first_share" | jq -Rs '{key: .}')"
 first_response="$(request_json POST '/v1/sys/unseal' "$first_payload")"
 if ! assert_status "$first_response" true 1; then
   echo "first /sys/unseal response is not compatible with Sealbreak's Shamir contract" >&2
   exit 1
 fi
 
-second_payload="$(jq -cn --arg key "$second_share" '{key: $key}')"
+second_payload="$(printf '%s' "$second_share" | jq -Rs '{key: .}')"
 second_response="$(request_json POST '/v1/sys/unseal' "$second_payload")"
 if ! assert_status "$second_response" false 0; then
   echo "second /sys/unseal response is not compatible with Sealbreak's Shamir contract" >&2
