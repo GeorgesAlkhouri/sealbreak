@@ -1,0 +1,79 @@
+name: Release Archive
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_type:
+        description: Semantic version increment
+        required: true
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-archive
+  cancel-in-progress: false
+
+jobs:
+  archive:
+    name: Release / archive
+    runs-on: macos-26
+    timeout-minutes: 60
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_26.6.app/Contents/Developer
+
+    steps:
+      - name: Require main branch
+        if: github.ref != 'refs/heads/main'
+        run: |
+          echo "::error::Release archives must be created from main."
+          exit 1
+
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+
+      - name: Compute release version
+        id: version
+        env:
+          RELEASE_TYPE: ${{ inputs.release_type }}
+        run: |
+          version="$(bash scripts/ci/release.sh next-version "$RELEASE_TYPE")"
+          build_number="$GITHUB_RUN_NUMBER"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "build_number=$build_number" >> "$GITHUB_OUTPUT"
+          echo "Preparing Sealbreak $version ($build_number)"
+
+      - name: Archive unsigned iOS release
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+          BUILD_NUMBER: ${{ steps.version.outputs.build_number }}
+        run: bash scripts/ci/release.sh archive "$VERSION" "$BUILD_NUMBER"
+
+      - name: Verify archive version
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+          BUILD_NUMBER: ${{ steps.version.outputs.build_number }}
+        run: bash scripts/ci/release.sh verify "$VERSION" "$BUILD_NUMBER"
+
+      - name: Write release summary
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+          BUILD_NUMBER: ${{ steps.version.outputs.build_number }}
+          RELEASE_TYPE: ${{ inputs.release_type }}
+        run: |
+          {
+            echo "## Release archive"
+            echo
+            echo "- Release type: `$RELEASE_TYPE`"
+            echo "- Version: `$VERSION`"
+            echo "- Build: `$BUILD_NUMBER`"
+            echo "- Xcode: `26.6`"
+            echo "- Signing: disabled"
+            echo "- Distribution: not configured yet"
+          } >> "$GITHUB_STEP_SUMMARY"
