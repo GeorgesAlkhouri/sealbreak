@@ -228,7 +228,16 @@ server_is_running() {
 if [[ "$server" == "enclaive" ]]; then
   docker pull "$server_image"
   server_container="$(
-    docker run --detach --rm       --platform linux/amd64       --publish 127.0.0.1:8200:8200       --volume "$work_dir/server.hcl:/app/config.hcl:ro"       --volume "$tls_dir:/tls:ro"       --entrypoint gramine-direct       "$server_image" vault
+    docker run \
+      --detach \
+      --rm \
+      --platform linux/amd64 \
+      --publish 127.0.0.1:8200:8200 \
+      --volume "$work_dir/server.hcl:/app/config.hcl:ro" \
+      --volume "$tls_dir:/tls:ro" \
+      --entrypoint gramine-direct \
+      "$server_image" \
+      vault
   )"
 else
   "$server_bin" server -config="$work_dir/server.hcl" >"$server_log" 2>&1 &
