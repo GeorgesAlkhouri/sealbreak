@@ -3,7 +3,7 @@ set -euo pipefail
 umask 077
 
 if [[ "$#" -ne 2 ]]; then
-  echo "usage: $0 <openbao|vault> <version>" >&2
+  echo "usage: $0 <openbao|vault|enclaive> <version-or-image-digest>" >&2
   exit 64
 fi
 
@@ -20,12 +20,17 @@ data_dir="$work_dir/data"
 server_log="$work_dir/server.log"
 source_packages_dir="${SEALBREAK_SOURCE_PACKAGES_DIR:-$work_dir/SourcePackages}"
 server_pid=""
+server_container=""
 simulator_udid=""
 
 cleanup() {
   if [[ -n "$server_pid" ]]; then
     kill "$server_pid" >/dev/null 2>&1 || true
     wait "$server_pid" >/dev/null 2>&1 || true
+  fi
+
+  if [[ -n "$server_container" ]]; then
+    docker rm --force "$server_container" >/dev/null 2>&1 || true
   fi
 
   if [[ -n "$simulator_udid" ]]; then
@@ -98,13 +103,22 @@ case "$server" in
     unzip -q "$archive_path" -d "$bin_dir"
     server_bin="$bin_dir/vault"
     ;;
+  enclaive)
+    if ! command -v docker >/dev/null 2>&1; then
+      echo "docker is required for the enclaive integration target" >&2
+      exit 1
+    fi
+    server_image="enclaive/hashicorp-vault-sgx@${version}"
+    ;;
   *)
     echo "unsupported integration server: $server" >&2
     exit 64
     ;;
 esac
 
-test -x "$server_bin"
+if [[ "$server" != "enclaive" ]]; then
+  test -x "$server_bin"
+fi
 
 ca_cn="Sealbreak CI Test CA ${GITHUB_RUN_ID:-$$}"
 cat >"$tls_dir/ca.cnf" <<EOF
@@ -173,16 +187,59 @@ listener "tcp" {
 api_addr = "https://127.0.0.1:8200"
 EOF
     ;;
+  enclaive)
+    cat >"$work_dir/server.hcl" <<'EOF'
+ui = false
+disable_mlock = true
+
+storage "file" {
+  path = "/data"
+}
+
+listener "tcp" {
+  address                  = "0.0.0.0:8200"
+  tls_cert_file            = "/tls/server.crt"
+  tls_key_file             = "/tls/server.key"
+  tls_disable_client_certs = true
+}
+
+api_addr = "https://127.0.0.1:8200"
+EOF
+    ;;
 esac
 
-"$server_bin" server -config="$work_dir/server.hcl" >"$server_log" 2>&1 &
-server_pid="$!"
+print_server_log() {
+  if [[ "$server" == "enclaive" ]]; then
+    docker logs "$server_container" >&2 || true
+  else
+    cat "$server_log" >&2 || true
+  fi
+}
+
+server_is_running() {
+  if [[ "$server" == "enclaive" ]]; then
+    [[ -n "$server_container" ]] &&
+      [[ "$(docker inspect --format '{{.State.Running}}' "$server_container" 2>/dev/null || true)" == "true" ]]
+  else
+    kill -0 "$server_pid" >/dev/null 2>&1
+  fi
+}
+
+if [[ "$server" == "enclaive" ]]; then
+  docker pull "$server_image"
+  server_container="$(
+    docker run --detach --rm       --platform linux/amd64       --publish 127.0.0.1:8200:8200       --volume "$work_dir/server.hcl:/app/config.hcl:ro"       --volume "$tls_dir:/tls:ro"       --entrypoint gramine-direct       "$server_image" vault
+  )"
+else
+  "$server_bin" server -config="$work_dir/server.hcl" >"$server_log" 2>&1 &
+  server_pid="$!"
+fi
 
 ready=false
-for _ in {1..30}; do
-  if ! kill -0 "$server_pid" >/dev/null 2>&1; then
+for _ in {1..60}; do
+  if ! server_is_running; then
     echo "$server exited before becoming ready" >&2
-    cat "$server_log" >&2
+    print_server_log
     exit 1
   fi
 
@@ -197,7 +254,7 @@ done
 
 if [[ "$ready" != "true" ]]; then
   echo "$server did not reach the expected uninitialized health state" >&2
-  cat "$server_log" >&2
+  print_server_log
   exit 1
 fi
 
