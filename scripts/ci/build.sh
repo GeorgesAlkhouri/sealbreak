@@ -13,8 +13,8 @@ case "${1:-}" in
       build
     ;;
   codeql)
-    xcodebuild "${common[@]}" -configuration Release \
-      -destination 'generic/platform=iOS' \
+    xcodebuild "${common[@]}" -configuration Debug \
+      -destination 'generic/platform=iOS Simulator' \
       -derivedDataPath build/CodeQL \
       COMPILATION_CACHE_ENABLE_CACHING=NO \
       SWIFT_ENABLE_COMPILE_CACHE=NO \
