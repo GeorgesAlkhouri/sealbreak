@@ -24,16 +24,59 @@ def next_version(current_version, release_type)
 end
 
 platform :ios do
-  desc "Create an unsigned iOS release archive"
-  lane :archive do |options|
+  desc "Build, sign, and upload Sealbreak to TestFlight"
+  lane :testflight do |options|
+    setup_ci
+
+    app_identifier = ENV.fetch("APP_IDENTIFIER")
+    team_id = ENV.fetch("APPLE_TEAM_ID")
+    match_git_url = ENV.fetch("MATCH_GIT_URL")
+
+    api_key = app_store_connect_api_key(
+      key_id: ENV.fetch("APP_STORE_CONNECT_KEY_ID"),
+      issuer_id: ENV.fetch("APP_STORE_CONNECT_ISSUER_ID"),
+      key_content: ENV.fetch("APP_STORE_CONNECT_KEY_BASE64"),
+      is_key_content_base64: true
+    )
+
     current_version = get_version_number(
       xcodeproj: "Sealbreak.xcodeproj",
       target: "Sealbreak",
       configuration: "Release"
     )
     version = next_version(current_version, options[:release_type].to_s)
-    build_number = ENV.fetch("GITHUB_RUN_NUMBER")
-    archive_path = File.expand_path("../build/Release/Sealbreak.xcarchive", __dir__)
+
+    latest_build = latest_testflight_build_number(
+      api_key: api_key,
+      app_identifier: app_identifier,
+      version: version,
+      initial_build_number: 0
+    )
+    build_number = (latest_build.to_i + 1).to_s
+
+    match(
+      type: "appstore",
+      app_identifier: app_identifier,
+      git_url: match_git_url,
+      team_id: team_id,
+      readonly: true
+    )
+
+    profile_name = "match AppStore #{app_identifier}"
+
+    update_code_signing_settings(
+      use_automatic_signing: false,
+      path: "Sealbreak.xcodeproj",
+      targets: ["Sealbreak"],
+      build_configurations: ["Release"],
+      team_id: team_id,
+      bundle_identifier: app_identifier,
+      code_sign_identity: "Apple Distribution",
+      profile_name: profile_name
+    )
+
+    output_directory = File.expand_path("../build/TestFlight", __dir__)
+    ipa_path = File.join(output_directory, "Sealbreak.ipa")
 
     UI.message("Preparing Sealbreak #{version} (#{build_number}) from #{current_version}")
 
@@ -42,25 +85,38 @@ platform :ios do
       scheme: "Sealbreak",
       configuration: "Release",
       destination: "generic/platform=iOS",
-      archive_path: archive_path,
-      skip_codesigning: true,
-      skip_package_ipa: true,
+      output_directory: output_directory,
+      output_name: "Sealbreak.ipa",
+      export_method: "app-store",
       disable_package_automatic_updates: true,
       xcargs: [
         "MARKETING_VERSION=#{version}",
         "CURRENT_PROJECT_VERSION=#{build_number}",
+        "PRODUCT_BUNDLE_IDENTIFIER=#{app_identifier}",
         "COMPILER_INDEX_STORE_ENABLE=NO",
         "-skipMacroValidation"
       ].join(" ")
     )
 
-    info_plist = File.join(archive_path, "Products/Applications/Sealbreak.app/Info.plist")
-    archived_version = get_info_plist_value(path: info_plist, key: "CFBundleShortVersionString").to_s
-    archived_build = get_info_plist_value(path: info_plist, key: "CFBundleVersion").to_s
+    ipa_version = get_ipa_info_plist_value(
+      ipa: ipa_path,
+      key: "CFBundleShortVersionString"
+    ).to_s
+    ipa_build = get_ipa_info_plist_value(
+      ipa: ipa_path,
+      key: "CFBundleVersion"
+    ).to_s
 
-    UI.user_error!("Archived version mismatch: #{archived_version}") unless archived_version == version
-    UI.user_error!("Archived build mismatch: #{archived_build}") unless archived_build == build_number
+    UI.user_error!("IPA version mismatch: #{ipa_version}") unless ipa_version == version
+    UI.user_error!("IPA build mismatch: #{ipa_build}") unless ipa_build == build_number
 
-    UI.success("Created Sealbreak #{archived_version} (#{archived_build})")
+    upload_to_testflight(
+      api_key: api_key,
+      app_identifier: app_identifier,
+      ipa: ipa_path,
+      skip_waiting_for_build_processing: true
+    )
+
+    UI.success("Uploaded Sealbreak #{ipa_version} (#{ipa_build}) to TestFlight")
   end
 end
