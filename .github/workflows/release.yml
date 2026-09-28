@@ -1,10 +1,10 @@
-name: Release Archive
+name: TestFlight
 
 on:
   workflow_dispatch:
     inputs:
       release_type:
-        description: Semantic version increment
+        description: Semantic version increment from the current production baseline
         required: true
         type: choice
         options:
@@ -16,28 +16,47 @@ permissions:
   contents: read
 
 concurrency:
-  group: release-archive
+  group: testflight-release
   cancel-in-progress: false
 
 jobs:
-  archive:
-    name: Release / archive
+  testflight:
+    name: Release / TestFlight
     runs-on: macos-26
-    timeout-minutes: 60
+    timeout-minutes: 90
+    environment: testflight
     env:
       DEVELOPER_DIR: /Applications/Xcode_26.6.app/Contents/Developer
       FASTLANE_SKIP_UPDATE_CHECK: "1"
+      APPLE_TEAM_ID: XWMF9WZ389
+      APP_IDENTIFIER: ${{ vars.APP_IDENTIFIER }}
+      MATCH_GIT_URL: ${{ vars.MATCH_GIT_URL }}
+      APP_STORE_CONNECT_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+      APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+      APP_STORE_CONNECT_KEY_BASE64: ${{ secrets.APP_STORE_CONNECT_KEY_BASE64 }}
+      MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
+      MATCH_GIT_BASIC_AUTHORIZATION: ${{ secrets.MATCH_GIT_BASIC_AUTHORIZATION }}
 
     steps:
       - name: Require main branch
         if: github.ref != 'refs/heads/main'
         run: |
-          echo "::error::Release archives must be created from main."
+          echo "::error::TestFlight releases must be created from main."
           exit 1
 
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
           persist-credentials: false
+
+      - name: Require release configuration
+        run: |
+          test -n "$APP_IDENTIFIER"
+          test -n "$MATCH_GIT_URL"
+          test -n "$APP_STORE_CONNECT_KEY_ID"
+          test -n "$APP_STORE_CONNECT_ISSUER_ID"
+          test -n "$APP_STORE_CONNECT_KEY_BASE64"
+          test -n "$MATCH_PASSWORD"
+          test -n "$MATCH_GIT_BASIC_AUTHORIZATION"
 
       - name: Set up Ruby
         uses: ruby/setup-ruby@14594264cd68ce8a2345dd349bc3d138a4ef85c8 # v1
@@ -48,7 +67,7 @@ jobs:
       - name: Verify Xcode 26.6
         run: xcodebuild -version
 
-      - name: Create unsigned release archive
+      - name: Build and upload TestFlight release
         env:
           RELEASE_TYPE: ${{ inputs.release_type }}
-        run: bundle exec fastlane ios archive release_type:"$RELEASE_TYPE"
+        run: bundle exec fastlane ios testflight release_type:"$RELEASE_TYPE"
