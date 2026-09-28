@@ -1,0 +1,26 @@
+name: Enclaive compatibility
+
+on:
+  workflow_dispatch:
+    inputs:
+      server_url:
+        description: HTTPS origin of an uninitialized disposable enclaive Vault instance
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    name: Compatibility / enclaive Vault
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - name: Verify Shamir API compatibility
+        env:
+          ENCLAIVE_SERVER_URL: ${{ inputs.server_url }}
+        run: bash scripts/ci/enclaive-compatibility.sh "$ENCLAIVE_SERVER_URL"
