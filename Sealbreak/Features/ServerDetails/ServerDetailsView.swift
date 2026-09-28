@@ -41,11 +41,19 @@ struct ServerDetailsView: View {
                             }
                         }
                         .buttonStyle(.plain)
-                        .disabled(store.isBusy || store.isRevealingShare)
+                        .disabled(
+                            store.isRevealingShare
+                                || (store.isBusy && store.shareFragment == nil)
+                        )
                         .accessibilityLabel(
                             store.shareFragment == nil
                                 ? Text("Show stored share fragment")
                                 : Text("Hide stored share fragment")
+                        )
+                        .accessibilityValue(
+                            store.shareFragment.map {
+                                Text(verbatim: $0.displayValue)
+                            } ?? Text("Hidden")
                         )
                     }
                 }
