@@ -1,38 +1,66 @@
 default_platform(:ios)
 
+def next_version(current_version, release_type)
+  match = /\A(\d+)\.(\d+)\.(\d+)\z/.match(current_version)
+  UI.user_error!("MARKETING_VERSION must use major.minor.patch") unless match
+
+  major, minor, patch = match.captures.map(&:to_i)
+
+  case release_type
+  when "patch"
+    patch += 1
+  when "minor"
+    minor += 1
+    patch = 0
+  when "major"
+    major += 1
+    minor = 0
+    patch = 0
+  else
+    UI.user_error!("release_type must be patch, minor, or major")
+  end
+
+  [major, minor, patch].join(".")
+end
+
 platform :ios do
   desc "Create an unsigned iOS release archive"
   lane :archive do |options|
-    release_type = options[:release_type].to_s
-
-    unless %w[patch minor major].include?(release_type)
-      UI.user_error!("release_type must be patch, minor, or major")
-    end
-
-    version = increment_version_number(
-      bump_type: release_type,
-      xcodeproj: "Sealbreak.xcodeproj"
+    current_version = get_version_number(
+      xcodeproj: "Sealbreak.xcodeproj",
+      target: "Sealbreak",
+      configuration: "Release"
     )
-
+    version = next_version(current_version, options[:release_type].to_s)
     build_number = ENV.fetch("GITHUB_RUN_NUMBER")
+    archive_path = File.expand_path("../build/Release/Sealbreak.xcarchive", __dir__)
 
-    increment_build_number(
-      build_number: build_number,
-      xcodeproj: "Sealbreak.xcodeproj"
-    )
-
-    UI.message("Preparing Sealbreak #{version} (#{build_number})")
+    UI.message("Preparing Sealbreak #{version} (#{build_number}) from #{current_version}")
 
     build_app(
       project: "Sealbreak.xcodeproj",
       scheme: "Sealbreak",
       configuration: "Release",
       destination: "generic/platform=iOS",
-      archive_path: "build/Release/Sealbreak.xcarchive",
+      archive_path: archive_path,
       skip_codesigning: true,
       skip_package_ipa: true,
       disable_package_automatic_updates: true,
-      xcargs: "COMPILER_INDEX_STORE_ENABLE=NO -skipMacroValidation"
+      xcargs: [
+        "MARKETING_VERSION=#{version}",
+        "CURRENT_PROJECT_VERSION=#{build_number}",
+        "COMPILER_INDEX_STORE_ENABLE=NO",
+        "-skipMacroValidation"
+      ].join(" ")
     )
+
+    info_plist = File.join(archive_path, "Products/Applications/Sealbreak.app/Info.plist")
+    archived_version = get_info_plist_value(path: info_plist, key: "CFBundleShortVersionString").to_s
+    archived_build = get_info_plist_value(path: info_plist, key: "CFBundleVersion").to_s
+
+    UI.user_error!("Archived version mismatch: #{archived_version}") unless archived_version == version
+    UI.user_error!("Archived build mismatch: #{archived_build}") unless archived_build == build_number
+
+    UI.success("Created Sealbreak #{archived_version} (#{archived_build})")
   end
 end
