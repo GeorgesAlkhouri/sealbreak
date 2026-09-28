@@ -53,7 +53,7 @@ request_json() {
   headers_file="$(mktemp "$work_dir/headers.XXXXXX")"
   body_file="$(mktemp "$work_dir/body.XXXXXX")"
 
-  request_args=(
+  local -a request_args=(
     "${curl_common[@]}"
     --request "$method"
     --dump-header "$headers_file"
@@ -64,11 +64,13 @@ request_json() {
   if [[ -n "$payload" ]]; then
     request_args+=(
       --header 'Content-Type: application/json'
-      --data "$payload"
+      --data-binary '@-'
     )
-  fi
-
-  if ! status="$(curl "${request_args[@]}" "$base_url$path")"; then
+    if ! status="$(printf '%s' "$payload" | curl "${request_args[@]}" "$base_url$path")"; then
+      echo "$method $path failed at the transport layer" >&2
+      exit 1
+    fi
+  elif ! status="$(curl "${request_args[@]}" "$base_url$path")"; then
     echo "$method $path failed at the transport layer" >&2
     exit 1
   fi
@@ -119,7 +121,10 @@ assert_status() {
   local sealed="$2"
   local progress="$3"
 
-  jq -e     --argjson sealed "$sealed"     --argjson progress "$progress"     '
+  jq -e \
+    --argjson sealed "$sealed" \
+    --argjson progress "$progress" \
+    '
       .initialized == true and
       .type == "shamir" and
       .sealed == $sealed and
