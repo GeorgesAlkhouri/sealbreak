@@ -17,6 +17,9 @@ case "${1:-}" in
       -destination 'generic/platform=iOS' \
       -derivedDataPath build/CodeQL \
       ARCHS=arm64 \
+      COMPILATION_CACHE_ENABLE_CACHING=NO \
+      SWIFT_ENABLE_COMPILE_CACHE=NO \
+      SWIFT_USE_INTEGRATED_DRIVER=NO \
       build
     ;;
   *) echo 'Usage: build.sh {simulator|codeql}' >&2; exit 2 ;;
