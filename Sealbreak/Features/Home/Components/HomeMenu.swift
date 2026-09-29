@@ -6,6 +6,11 @@ struct HomeMenu: View {
 
     var body: some View {
         Menu {
+            Button("Check status", systemImage: "arrow.clockwise") {
+                onAction(.refresh)
+            }
+            .disabled(isBusy)
+
             Button("Server details", systemImage: "info.circle") {
                 onAction(.serverDetails)
             }
