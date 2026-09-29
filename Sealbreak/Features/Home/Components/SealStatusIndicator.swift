@@ -35,7 +35,7 @@ struct SealStatusIndicator: View {
                     progress: unsealRevealProgress,
                     accent: PapercutPalette.unsealed
                 )
-            } else {
+            } else if statusPhase != .unknown {
                 Circle()
                     .trim(from: 0, to: status.progressFraction)
                     .stroke(
@@ -96,14 +96,21 @@ struct SealStatusIndicator: View {
             await runUnsealRingReveal()
         }
         .onChange(of: statusPhase) { oldPhase, newPhase in
-            guard oldPhase.isResolved,
-                  newPhase.isResolved,
+            if oldPhase == .unknown {
+                if newPhase == .unsealed {
+                    unsealRevealProgress = 1
+                }
+                return
+            }
+
+            guard newPhase.isResolved,
                   oldPhase != newPhase
             else {
                 return
             }
 
             if oldPhase == .sealed, newPhase == .unsealed {
+                unsealRevealProgress = 0
                 unsealRevealTrigger += 1
             } else {
                 unsealRevealProgress = 0
