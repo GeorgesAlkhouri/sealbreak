@@ -11,8 +11,7 @@ struct SealStatusIndicator: View {
     @State private var resultScale: CGFloat = 1
     @State private var resultTrigger = 0
     @State private var unsealRevealTrigger = 0
-    @State private var unsealRevealProgress: CGFloat = 1
-    @State private var isUnsealRingRevealing = false
+    @State private var unsealRevealProgress: CGFloat
 
     init(
         status: HomeViewState.Status,
@@ -22,13 +21,16 @@ struct SealStatusIndicator: View {
         self.status = status
         self.isServerActivity = isServerActivity
         self.interactionTrigger = interactionTrigger
+        _unsealRevealProgress = State(
+            initialValue: status.isUnsealed ? 1 : 0
+        )
     }
 
     var body: some View {
         ZStack {
             recessedTrack
 
-            if isUnsealRingRevealing {
+            if status.isUnsealed {
                 PapercutUnsealRingReveal(
                     progress: unsealRevealProgress,
                     accent: PapercutPalette.unsealed
@@ -104,6 +106,7 @@ struct SealStatusIndicator: View {
             if oldPhase == .sealed, newPhase == .unsealed {
                 unsealRevealTrigger += 1
             } else {
+                unsealRevealProgress = 0
                 resultTrigger += 1
             }
         }
@@ -223,16 +226,15 @@ struct SealStatusIndicator: View {
     private func runUnsealRingReveal() async {
         guard unsealRevealTrigger > 0 else { return }
 
-        isUnsealRingRevealing = true
-        unsealRevealProgress = reduceMotion ? 1 : 0
-
-        if !reduceMotion {
+        if reduceMotion {
+            unsealRevealProgress = 1
+        } else {
             withAnimation(.easeOut(duration: 0.46)) {
                 unsealRevealProgress = 1
             }
 
             do {
-                try await Task.sleep(for: .milliseconds(360))
+                try await Task.sleep(for: .milliseconds(460))
             } catch {
                 return
             }
@@ -240,18 +242,6 @@ struct SealStatusIndicator: View {
 
         guard !Task.isCancelled else { return }
         resultTrigger += 1
-
-        if !reduceMotion {
-            do {
-                try await Task.sleep(for: .milliseconds(120))
-            } catch {
-                return
-            }
-        }
-
-        guard !Task.isCancelled else { return }
-        isUnsealRingRevealing = false
-        unsealRevealProgress = 1
     }
 
     private func runResultFeedback() async {
@@ -291,6 +281,15 @@ struct SealStatusIndicator: View {
         var isResolved: Bool {
             self != .unknown
         }
+    }
+}
+
+private extension HomeViewState.Status {
+    var isUnsealed: Bool {
+        if case .unsealed = self {
+            return true
+        }
+        return false
     }
 }
 
@@ -343,19 +342,23 @@ private struct PapercutUnsealRingReveal: View {
     let progress: CGFloat
     let accent: Color
 
+    private var lineWidth: CGFloat {
+        18 * progress
+    }
+
+    private var diameter: CGFloat {
+        // Keep the inner edge fixed at the cutout radius while the green
+        // paper layer grows only outward until it fills the whole channel.
+        134 + lineWidth
+    }
+
     var body: some View {
         Circle()
-            .fill(accent)
-            .frame(width: 170, height: 170)
-            .scaleEffect(progress)
-            .mask {
-                Circle()
-                    .stroke(
-                        Color.white,
-                        style: StrokeStyle(lineWidth: 18, lineCap: .round)
-                    )
-                    .padding(9)
-            }
+            .stroke(
+                accent,
+                style: StrokeStyle(lineWidth: lineWidth, lineCap: .round)
+            )
+            .frame(width: diameter, height: diameter)
             .shadow(color: accent.opacity(0.16), radius: 5)
     }
 }
