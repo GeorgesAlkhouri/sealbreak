@@ -29,6 +29,15 @@ struct HomeFeature {
                     return "Removing local data…"
                 }
             }
+
+            var isServerActivity: Bool {
+                switch self {
+                case .checkingStatus, .checkingTarget, .submittingShare, .verifyingStatus:
+                    return true
+                case .waitingForFaceID, .removingLocalData:
+                    return false
+                }
+            }
         }
 
         enum Confirmation: Equatable {
@@ -101,7 +110,6 @@ struct HomeFeature {
             case .refreshTapped, .refreshRequested:
                 guard !state.isBusy else { return .none }
                 state.operation = .checkingStatus
-                state.status = nil
                 synchronizeServerDetails(&state)
                 let profile = state.profile
                 let client = self.client
@@ -129,6 +137,7 @@ struct HomeFeature {
 
             case .refreshResponse(.failure(let failure)):
                 state.operation = nil
+                state.status = nil
                 state.notice = failure.resource
                 synchronizeServerDetails(&state)
                 return .none
@@ -146,7 +155,6 @@ struct HomeFeature {
                 guard state.canUnseal else { return .none }
                 state.confirmation = nil
                 state.operation = .checkingTarget
-                state.status = nil
                 synchronizeServerDetails(&state)
                 let target = state.profile
                 let client = self.client
@@ -210,9 +218,6 @@ struct HomeFeature {
 
             case .operationActivity(let operation):
                 state.operation = operation
-                if operation == .submittingShare {
-                    state.status = nil
-                }
                 synchronizeServerDetails(&state)
                 return .none
 
