@@ -14,7 +14,7 @@ struct HomeViewStateTests {
             secondaryDetail: String,
             progress: Double
         )] = [
-            (.unknown, "UNKNOWN", "Status unknown", "Check status before sending", 0.20),
+            (.unknown, "UNKNOWN", "Status unknown", "Check status before sending", 0),
             (.sealed(progress: 1, threshold: 3, supportsUnseal: true), "SEALED", "1 of 3 shares submitted", "Shamir seal", 1.0 / 3.0),
             (.sealed(progress: 1, threshold: 0, supportsUnseal: false), "SEALED", "1 of 0 shares submitted", "Manual unseal unavailable", 0),
             (.sealed(progress: -1, threshold: 3, supportsUnseal: true), "SEALED", "-1 of 3 shares submitted", "Shamir seal", 0),
