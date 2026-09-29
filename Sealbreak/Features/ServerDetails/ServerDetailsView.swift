@@ -73,19 +73,6 @@ struct ServerDetailsView: View {
                         Text("Status unknown — check before sending.")
                             .foregroundStyle(.secondary)
                     }
-
-                    Button("Check status", systemImage: "arrow.clockwise") {
-                        store.send(.refreshTapped)
-                    }
-                    .disabled(store.isBusy || store.isRevealingShare)
-                }
-
-                Section("Result") {
-                    if store.isBusy, let activity = store.activity {
-                        ProgressView(activity)
-                    }
-                    Text(store.notice)
-                        .font(.callout)
                 }
             }
             .navigationTitle("Server details")
