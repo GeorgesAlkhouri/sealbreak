@@ -33,8 +33,6 @@ struct SealStatusIndicator: View {
                 )
                 .padding(9)
                 .rotationEffect(.degrees(-90))
-                .opacity(showsActivity ? 0.16 : 1)
-                .animation(.easeOut(duration: 0.12), value: showsActivity)
 
             if showsActivity {
                 PaperActivityArc(
@@ -297,23 +295,38 @@ private struct PapercutResultBurst: View {
     @State private var progress: CGFloat = 1
 
     var body: some View {
-        Circle()
-            .stroke(
-                accent.opacity(reduceMotion ? 0.42 : 0.58),
-                lineWidth: reduceMotion ? 5 : 8
-            )
-            .padding(8)
-            .scaleEffect(reduceMotion ? 1 : 0.94 + (0.22 * progress))
-            .opacity(trigger == 0 ? 0 : 1 - progress)
-            .task(id: trigger) {
-                guard trigger > 0 else { return }
+        ZStack {
+            Circle()
+                .stroke(
+                    accent.opacity(reduceMotion ? 0.24 : 0.30),
+                    lineWidth: reduceMotion ? 8 : 11
+                )
+                .frame(width: 174, height: 174)
+                .offset(y: reduceMotion ? 0 : 3)
+                .shadow(
+                    color: .black.opacity(reduceMotion ? 0.18 : 0.30),
+                    radius: 4,
+                    y: 3
+                )
 
-                progress = 0
-                withAnimation(
-                    .easeOut(duration: reduceMotion ? 0.28 : 0.48)
-                ) {
-                    progress = 1
-                }
+            Circle()
+                .stroke(
+                    accent.opacity(reduceMotion ? 0.46 : 0.72),
+                    lineWidth: reduceMotion ? 5 : 7
+                )
+                .frame(width: 174, height: 174)
+        }
+        .scaleEffect(reduceMotion ? 1 : 0.94 + (0.22 * progress))
+        .opacity(trigger == 0 ? 0 : 1 - progress)
+        .task(id: trigger) {
+            guard trigger > 0 else { return }
+
+            progress = 0
+            withAnimation(
+                .easeOut(duration: reduceMotion ? 0.28 : 0.48)
+            ) {
+                progress = 1
             }
+        }
     }
 }
