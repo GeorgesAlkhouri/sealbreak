@@ -10,6 +10,9 @@ struct SealStatusIndicator: View {
     @State private var isPressed = false
     @State private var resultScale: CGFloat = 1
     @State private var resultTrigger = 0
+    @State private var unsealRevealTrigger = 0
+    @State private var unsealRevealProgress: CGFloat = 1
+    @State private var isUnsealRingRevealing = false
 
     init(
         status: HomeViewState.Status,
@@ -25,14 +28,21 @@ struct SealStatusIndicator: View {
         ZStack {
             recessedTrack
 
-            Circle()
-                .trim(from: 0, to: status.progressFraction)
-                .stroke(
-                    accent,
-                    style: StrokeStyle(lineWidth: 18, lineCap: .round)
+            if isUnsealRingRevealing {
+                PapercutUnsealRingReveal(
+                    progress: unsealRevealProgress,
+                    accent: PapercutPalette.unsealed
                 )
-                .padding(9)
-                .rotationEffect(.degrees(-90))
+            } else {
+                Circle()
+                    .trim(from: 0, to: status.progressFraction)
+                    .stroke(
+                        accent,
+                        style: StrokeStyle(lineWidth: 18, lineCap: .round)
+                    )
+                    .padding(9)
+                    .rotationEffect(.degrees(-90))
+            }
 
             if showsActivity {
                 PaperActivityArc(
@@ -80,6 +90,9 @@ struct SealStatusIndicator: View {
         .task(id: resultTrigger) {
             await runResultFeedback()
         }
+        .task(id: unsealRevealTrigger) {
+            await runUnsealRingReveal()
+        }
         .onChange(of: statusPhase) { oldPhase, newPhase in
             guard oldPhase.isResolved,
                   newPhase.isResolved,
@@ -87,7 +100,12 @@ struct SealStatusIndicator: View {
             else {
                 return
             }
-            resultTrigger += 1
+
+            if oldPhase == .sealed, newPhase == .unsealed {
+                unsealRevealTrigger += 1
+            } else {
+                resultTrigger += 1
+            }
         }
     }
 
@@ -202,6 +220,40 @@ struct SealStatusIndicator: View {
         }
     }
 
+    private func runUnsealRingReveal() async {
+        guard unsealRevealTrigger > 0 else { return }
+
+        isUnsealRingRevealing = true
+        unsealRevealProgress = reduceMotion ? 1 : 0
+
+        if !reduceMotion {
+            withAnimation(.easeOut(duration: 0.46)) {
+                unsealRevealProgress = 1
+            }
+
+            do {
+                try await Task.sleep(for: .milliseconds(360))
+            } catch {
+                return
+            }
+        }
+
+        guard !Task.isCancelled else { return }
+        resultTrigger += 1
+
+        if !reduceMotion {
+            do {
+                try await Task.sleep(for: .milliseconds(120))
+            } catch {
+                return
+            }
+        }
+
+        guard !Task.isCancelled else { return }
+        isUnsealRingRevealing = false
+        unsealRevealProgress = 1
+    }
+
     private func runResultFeedback() async {
         guard resultTrigger > 0, !reduceMotion else { return }
 
@@ -284,6 +336,27 @@ private struct PaperActivityArc: View {
                 : .linear(duration: 0.8).repeatForever(autoreverses: false),
             value: animates
         )
+    }
+}
+
+private struct PapercutUnsealRingReveal: View {
+    let progress: CGFloat
+    let accent: Color
+
+    var body: some View {
+        Circle()
+            .fill(accent)
+            .frame(width: 170, height: 170)
+            .scaleEffect(progress)
+            .mask {
+                Circle()
+                    .stroke(
+                        Color.white,
+                        style: StrokeStyle(lineWidth: 18, lineCap: .round)
+                    )
+                    .padding(9)
+            }
+            .shadow(color: accent.opacity(0.16), radius: 5)
     }
 }
 
