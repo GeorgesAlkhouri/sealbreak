@@ -22,7 +22,7 @@ struct HomeViewState: Equatable {
             case .unknown:
                 return "Status unknown"
             case .sealed(let progress, let threshold, _):
-                return "\\(progress) of \\(threshold) shares submitted"
+                return "\(progress) of \(threshold) shares submitted"
             case .unsealed:
                 return "Server is available"
             }
