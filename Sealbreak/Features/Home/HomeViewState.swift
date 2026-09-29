@@ -3,21 +3,15 @@ import Foundation
 struct HomeViewState: Equatable {
     enum Status: Equatable {
         case unknown
-        case checking(activity: LocalizedStringResource)
         case sealed(progress: Int, threshold: Int, supportsUnseal: Bool)
-        case unsealing(activity: LocalizedStringResource)
         case unsealed
 
         var title: LocalizedStringResource {
             switch self {
             case .unknown:
                 return "UNKNOWN"
-            case .checking:
-                return "CHECKING"
             case .sealed:
                 return "SEALED"
-            case .unsealing:
-                return "UNSEALING"
             case .unsealed:
                 return "UNSEALED"
             }
@@ -27,8 +21,6 @@ struct HomeViewState: Equatable {
             switch self {
             case .unknown:
                 return "Status unknown"
-            case .checking(let activity), .unsealing(let activity):
-                return activity
             case .sealed(let progress, let threshold, _):
                 return "\(progress) of \(threshold) shares submitted"
             case .unsealed:
@@ -40,8 +32,6 @@ struct HomeViewState: Equatable {
             switch self {
             case .unknown:
                 return "Check status before sending"
-            case .checking, .unsealing:
-                return "Please keep the app open"
             case .sealed(_, _, let supportsUnseal):
                 return supportsUnseal ? "Shamir seal" : "Manual unseal unavailable"
             case .unsealed:
@@ -53,8 +43,6 @@ struct HomeViewState: Equatable {
             switch self {
             case .unknown:
                 return 0.20
-            case .checking, .unsealing:
-                return 0.66
             case .sealed(let progress, let threshold, _):
                 guard threshold > 0 else { return 0 }
                 return min(1, max(0, Double(progress) / Double(threshold)))
@@ -107,6 +95,7 @@ struct HomeViewState: Equatable {
     let primaryAction: PrimaryAction
     let notice: LocalizedStringResource?
     let isBusy: Bool
+    let isServerActivity: Bool
 
     init(
         profile: ServerProfile,
@@ -117,38 +106,37 @@ struct HomeViewState: Equatable {
         serverName = profile.name
         origin = Self.displayOrigin(profile.origin)
         isBusy = operation != nil
+        isServerActivity = operation?.isServerActivity == true
+
+        if let sealStatus {
+            if sealStatus.sealed {
+                status = .sealed(
+                    progress: sealStatus.progress,
+                    threshold: sealStatus.t,
+                    supportsUnseal: sealStatus.supportsUnseal
+                )
+            } else {
+                status = .unsealed
+            }
+        } else {
+            status = .unknown
+        }
 
         if let operation {
-            let activity = operation.activity
-            switch operation {
-            case .checkingTarget, .waitingForFaceID, .submittingShare, .verifyingStatus:
-                status = .unsealing(activity: activity)
-            case .checkingStatus, .removingLocalData:
-                status = .checking(activity: activity)
-            }
-            primaryAction = .working(title: activity)
+            primaryAction = .working(title: operation.activity)
             self.notice = nil
             return
         }
 
         guard let sealStatus else {
-            status = .unknown
             primaryAction = .checkStatus(enabled: true)
             self.notice = notice
             return
         }
 
-        if sealStatus.sealed {
-            status = .sealed(
-                progress: sealStatus.progress,
-                threshold: sealStatus.t,
-                supportsUnseal: sealStatus.supportsUnseal
-            )
-            primaryAction = .unseal(enabled: sealStatus.supportsUnseal)
-        } else {
-            status = .unsealed
-            primaryAction = .checkStatus(enabled: true)
-        }
+        primaryAction = sealStatus.sealed
+            ? .unseal(enabled: sealStatus.supportsUnseal)
+            : .checkStatus(enabled: true)
         self.notice = nil
     }
 
