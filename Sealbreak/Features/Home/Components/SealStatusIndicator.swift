@@ -139,7 +139,7 @@ struct SealStatusIndicator: View {
         }
 
         if let activityBecameVisibleAt {
-            let earliestDismissal = activityBecameVisibleAt.advanced(by: .seconds(3))
+            let earliestDismissal = activityBecameVisibleAt.advanced(by: .seconds(2))
             if clock.now < earliestDismissal {
                 do {
                     try await clock.sleep(until: earliestDismissal)
@@ -196,7 +196,7 @@ private struct PaperActivityArc: View {
         .animation(
             reduceMotion
                 ? .easeInOut(duration: 0.85).repeatForever(autoreverses: true)
-                : .linear(duration: 1.4).repeatForever(autoreverses: false),
+                : .linear(duration: 0.8).repeatForever(autoreverses: false),
             value: animates
         )
     }
