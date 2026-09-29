@@ -58,6 +58,7 @@ platform :ios do
       type: "appstore",
       app_identifier: app_identifier,
       git_url: match_git_url,
+      git_branch: "main",
       team_id: team_id,
       readonly: true
     )
