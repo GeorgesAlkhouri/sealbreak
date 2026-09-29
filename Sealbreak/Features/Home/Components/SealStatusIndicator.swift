@@ -6,6 +6,7 @@ struct SealStatusIndicator: View {
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var showsActivity = false
+    @State private var activityBecameVisibleAt: ContinuousClock.Instant?
 
     init(
         status: HomeViewState.Status,
@@ -46,6 +47,7 @@ struct SealStatusIndicator: View {
             Image(systemName: icon)
                 .font(.system(size: 66, weight: .bold))
                 .foregroundStyle(accent)
+                .offset(x: iconHorizontalOffset)
                 .shadow(color: .black.opacity(0.38), radius: 6, y: 8)
         }
         .frame(width: 170, height: 170)
@@ -107,33 +109,51 @@ struct SealStatusIndicator: View {
         }
     }
 
-    private func updateActivityVisibility() async {
-        if isServerActivity {
-            do {
-                try await Task.sleep(for: .milliseconds(150))
-            } catch {
-                return
-            }
+    private var iconHorizontalOffset: CGFloat {
+        switch status {
+        case .unsealed:
+            // SF Symbols centers the complete open-lock silhouette. Moving it
+            // slightly right centers the visually dominant lock body in the ring.
+            return 8
+        case .unknown, .sealed:
+            return 0
+        }
+    }
 
-            guard !Task.isCancelled else { return }
+    private func updateActivityVisibility() async {
+        let clock = ContinuousClock()
+
+        if isServerActivity {
+            activityBecameVisibleAt = clock.now
+            guard !showsActivity else { return }
+
             withAnimation(.easeOut(duration: 0.12)) {
                 showsActivity = true
             }
             return
         }
 
-        guard showsActivity else { return }
-
-        do {
-            try await Task.sleep(for: .milliseconds(250))
-        } catch {
+        guard showsActivity else {
+            activityBecameVisibleAt = nil
             return
+        }
+
+        if let activityBecameVisibleAt {
+            let earliestDismissal = activityBecameVisibleAt.advanced(by: .seconds(3))
+            if clock.now < earliestDismissal {
+                do {
+                    try await clock.sleep(until: earliestDismissal)
+                } catch {
+                    return
+                }
+            }
         }
 
         guard !Task.isCancelled else { return }
         withAnimation(.easeOut(duration: 0.16)) {
             showsActivity = false
         }
+        activityBecameVisibleAt = nil
     }
 }
 
