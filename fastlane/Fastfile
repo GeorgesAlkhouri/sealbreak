@@ -93,7 +93,6 @@ platform :ios do
       xcargs: [
         "MARKETING_VERSION=#{version}",
         "CURRENT_PROJECT_VERSION=#{build_number}",
-        "PRODUCT_BUNDLE_IDENTIFIER=#{app_identifier}",
         "COMPILER_INDEX_STORE_ENABLE=NO",
         "-skipMacroValidation"
       ].join(" ")
