@@ -68,7 +68,9 @@ struct ServerDetailsView: View {
                         }
                         LabeledContent("Type", value: status.type)
                         LabeledContent("Threshold / shares", value: "\(status.t) / \(status.n)")
-                        LabeledContent("Progress", value: "\(status.progress) / \(status.t)")
+                        if status.sealed {
+                            LabeledContent("Unseal progress", value: "\(status.progress) / \(status.t)")
+                        }
                     } else {
                         Text("Status unknown — check before sending.")
                             .foregroundStyle(.secondary)
