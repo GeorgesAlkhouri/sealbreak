@@ -73,6 +73,7 @@ struct HomeView: View {
             PrivacyCover(store: privacyStore) {
                 ServerDetailsView(store: detailsStore)
             }
+            .interactiveDismissDisabled(detailsStore.isRevealingShare)
         }
         .sheet(
             item: $store.scope(state: \.$replaceShare, action: \.replaceShare)

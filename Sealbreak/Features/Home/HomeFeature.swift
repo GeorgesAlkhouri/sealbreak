@@ -376,20 +376,13 @@ struct HomeFeature {
     }
 
     private func synchronizeServerDetails(_ state: inout State) {
-        guard state.serverDetails != nil else { return }
+        guard var details = state.serverDetails else { return }
 
-        let profile = state.profile
-        let status = state.status
-        let isBusy = state.isBusy
-        let activity = state.activity
-        let notice = state.notice
-
-        state.serverDetails = ServerDetailsFeature.State(
-            profile: profile,
-            status: status,
-            isBusy: isBusy,
-            activity: activity,
-            notice: notice
-        )
+        details.profile = state.profile
+        details.status = state.status
+        details.isBusy = state.isBusy
+        details.activity = state.activity
+        details.notice = state.notice
+        state.serverDetails = details
     }
 }
