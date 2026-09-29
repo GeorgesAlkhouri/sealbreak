@@ -15,13 +15,10 @@ struct HomeViewStateTests {
             progress: Double
         )] = [
             (.unknown, "UNKNOWN", "Status unknown", "Check status before sending", 0.20),
-            (.checking(activity: ""), "CHECKING", "", "Please keep the app open", 0.66),
-            (.checking(activity: "Checking target…"), "CHECKING", "Checking target…", "Please keep the app open", 0.66),
             (.sealed(progress: 1, threshold: 3, supportsUnseal: true), "SEALED", "1 of 3 shares submitted", "Shamir seal", 1.0 / 3.0),
             (.sealed(progress: 1, threshold: 0, supportsUnseal: false), "SEALED", "1 of 0 shares submitted", "Manual unseal unavailable", 0),
             (.sealed(progress: -1, threshold: 3, supportsUnseal: true), "SEALED", "-1 of 3 shares submitted", "Shamir seal", 0),
             (.sealed(progress: 5, threshold: 3, supportsUnseal: true), "SEALED", "5 of 3 shares submitted", "Shamir seal", 1),
-            (.unsealing(activity: "Submitting one share…"), "UNSEALING", "Submitting one share…", "Please keep the app open", 0.66),
             (.unsealed, "UNSEALED", "Server is available", "Status checked", 1)
         ]
 
@@ -57,32 +54,52 @@ struct HomeViewStateTests {
     }
 
     @Test
-    func viewStateMapsEveryOperationToVisibleActivity() throws {
+    func viewStateKeepsServerStatusStableAndSeparatesServerActivity() throws {
         let profile = try ServerProfile(id: UUID(), name: "Server", address: "https://bao.example.com/")
-        let operations: [(HomeFeature.State.Operation, HomeViewState.Status, LocalizedStringResource)] = [
-            (.checkingStatus, .checking(activity: "Checking seal status…"), "Checking seal status…"),
-            (.checkingTarget, .unsealing(activity: "Checking target…"), "Checking target…"),
-            (.waitingForFaceID, .unsealing(activity: "Waiting for Face ID…"), "Waiting for Face ID…"),
-            (.submittingShare, .unsealing(activity: "Submitting one share…"), "Submitting one share…"),
-            (.verifyingStatus, .unsealing(activity: "Verifying seal status…"), "Verifying seal status…"),
-            (.removingLocalData, .checking(activity: "Removing local data…"), "Removing local data…")
+        let currentStatus = sealStatus(sealed: true, supportsUnseal: true)
+        let expectedStatus = HomeViewState.Status.sealed(
+            progress: 1,
+            threshold: 3,
+            supportsUnseal: true
+        )
+        let operations: [(
+            operation: HomeFeature.State.Operation,
+            activity: LocalizedStringResource,
+            isServerActivity: Bool
+        )] = [
+            (.checkingStatus, "Checking seal status…", true),
+            (.checkingTarget, "Checking target…", true),
+            (.waitingForFaceID, "Waiting for Face ID…", false),
+            (.submittingShare, "Submitting one share…", true),
+            (.verifyingStatus, "Verifying seal status…", true),
+            (.removingLocalData, "Removing local data…", false)
         ]
 
-        for (operation, expectedStatus, expectedActivity) in operations {
+        for item in operations {
             let state = HomeViewState(
                 profile: profile,
-                sealStatus: nil,
-                operation: operation,
+                sealStatus: currentStatus,
+                operation: item.operation,
                 notice: "Hidden while busy"
             )
 
             #expect(state.serverName == "Server")
             #expect(state.origin == "bao.example.com")
             #expect(state.status == expectedStatus)
-            #expect(state.primaryAction == .working(title: expectedActivity))
+            #expect(state.primaryAction == .working(title: item.activity))
             #expect(state.notice == nil)
             #expect(state.isBusy)
+            #expect(state.isServerActivity == item.isServerActivity)
         }
+
+        let checkingWithoutKnownStatus = HomeViewState(
+            profile: profile,
+            sealStatus: nil,
+            operation: .checkingStatus,
+            notice: "Hidden while busy"
+        )
+        #expect(checkingWithoutKnownStatus.status == .unknown)
+        #expect(checkingWithoutKnownStatus.isServerActivity)
     }
 
     @Test
@@ -99,6 +116,7 @@ struct HomeViewStateTests {
         #expect(unknown.primaryAction == .checkStatus(enabled: true))
         #expect(unknown.notice == "Check the configured target.")
         #expect(!unknown.isBusy)
+        #expect(!unknown.isServerActivity)
 
         let sealed = HomeViewState(
             profile: profile,
@@ -109,6 +127,7 @@ struct HomeViewStateTests {
         #expect(sealed.status == .sealed(progress: 1, threshold: 3, supportsUnseal: true))
         #expect(sealed.primaryAction == .unseal(enabled: true))
         #expect(sealed.notice == nil)
+        #expect(!sealed.isServerActivity)
 
         let unsupported = HomeViewState(
             profile: profile,
@@ -127,6 +146,7 @@ struct HomeViewStateTests {
         #expect(unsealed.status == .unsealed)
         #expect(unsealed.primaryAction == .checkStatus(enabled: true))
         #expect(unsealed.notice == nil)
+        #expect(!unsealed.isServerActivity)
     }
 
     @Test
