@@ -4,7 +4,6 @@ struct ServerStatusCard: View {
     let state: HomeViewState
 
     @ScaledMetric(relativeTo: .largeTitle) private var statusTitleSize: CGFloat = 40
-    @ScaledMetric(relativeTo: .largeTitle) private var workingStatusTitleSize: CGFloat = 34
 
     var body: some View {
         PapercutCard {
@@ -24,12 +23,15 @@ struct ServerStatusCard: View {
 
                 Spacer(minLength: 18)
 
-                SealStatusIndicator(status: state.status)
+                SealStatusIndicator(
+                    status: state.status,
+                    isServerActivity: state.isServerActivity
+                )
 
                 Spacer(minLength: 10)
 
                 Text(state.status.title)
-                    .font(.system(size: currentStatusTitleSize, weight: .bold))
+                    .font(.system(size: statusTitleSize, weight: .bold))
                     .foregroundStyle(SealStatusIndicator(status: state.status).accent)
                     .shadow(color: .black.opacity(0.28), radius: 4, y: 4)
                     .fixedSize(horizontal: false, vertical: true)
@@ -56,12 +58,5 @@ struct ServerStatusCard: View {
         .frame(maxWidth: .infinity)
         .frame(minHeight: 460)
         .accessibilityElement(children: .combine)
-    }
-
-    private var currentStatusTitleSize: CGFloat {
-        if case .unsealing = state.status {
-            return workingStatusTitleSize
-        }
-        return statusTitleSize
     }
 }
