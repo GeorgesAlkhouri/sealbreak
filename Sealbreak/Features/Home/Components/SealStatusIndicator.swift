@@ -12,7 +12,6 @@ struct SealStatusIndicator: View {
     @State private var resultTrigger = 0
     @State private var unsealRevealTrigger = 0
     @State private var unsealRevealProgress: CGFloat
-    @State private var usesSymbolReplacement: Bool
 
     init(
         status: HomeViewState.Status,
@@ -24,9 +23,6 @@ struct SealStatusIndicator: View {
         self.interactionTrigger = interactionTrigger
         _unsealRevealProgress = State(
             initialValue: status.isUnsealed ? 1 : 0
-        )
-        _usesSymbolReplacement = State(
-            initialValue: status.isResolved
         )
     }
 
@@ -74,15 +70,9 @@ struct SealStatusIndicator: View {
                 .foregroundStyle(accent)
                 .offset(x: iconHorizontalOffset)
                 .shadow(color: .black.opacity(0.38), radius: 6, y: 8)
-                .contentTransition(
-                    usesSymbolReplacement
-                        ? .symbolEffect(.replace)
-                        : .opacity
-                )
+                .contentTransition(.symbolEffect(.replace))
                 .animation(
-                    usesSymbolReplacement
-                        ? .spring(response: 0.34, dampingFraction: 0.72)
-                        : .easeInOut(duration: 0.25),
+                    .spring(response: 0.34, dampingFraction: 0.72),
                     value: icon
                 )
         }
@@ -110,7 +100,6 @@ struct SealStatusIndicator: View {
                 if newPhase == .unsealed {
                     unsealRevealProgress = 1
                 }
-                usesSymbolReplacement = true
                 return
             }
 
