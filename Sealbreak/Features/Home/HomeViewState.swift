@@ -42,7 +42,7 @@ struct HomeViewState: Equatable {
         var progressFraction: Double {
             switch self {
             case .unknown:
-                return 0.20
+                return 0
             case .sealed(let progress, let threshold, _):
                 guard threshold > 0 else { return 0 }
                 return min(1, max(0, Double(progress) / Double(threshold)))
