@@ -54,7 +54,7 @@ struct HomeViewStateTests {
     }
 
     @Test
-    func viewStateKeepsServerStatusStableAndSeparatesServerActivity() throws {
+    func viewStateKeepsServerStatusStableWhileWorking() throws {
         let profile = try ServerProfile(id: UUID(), name: "Server", address: "https://bao.example.com/")
         let currentStatus = sealStatus(sealed: true, supportsUnseal: true)
         let expectedStatus = HomeViewState.Status.sealed(
@@ -64,15 +64,14 @@ struct HomeViewStateTests {
         )
         let operations: [(
             operation: HomeFeature.State.Operation,
-            activity: LocalizedStringResource,
-            isServerActivity: Bool
+            activity: LocalizedStringResource
         )] = [
-            (.checkingStatus, "Checking seal status…", true),
-            (.checkingTarget, "Checking target…", true),
-            (.waitingForFaceID, "Waiting for Face ID…", false),
-            (.submittingShare, "Submitting one share…", true),
-            (.verifyingStatus, "Verifying seal status…", true),
-            (.removingLocalData, "Removing local data…", false)
+            (.checkingStatus, "Checking seal status…"),
+            (.checkingTarget, "Checking target…"),
+            (.waitingForFaceID, "Waiting for Face ID…"),
+            (.submittingShare, "Submitting one share…"),
+            (.verifyingStatus, "Verifying seal status…"),
+            (.removingLocalData, "Removing local data…")
         ]
 
         for item in operations {
@@ -89,7 +88,6 @@ struct HomeViewStateTests {
             #expect(state.primaryAction == .working(title: item.activity))
             #expect(state.notice == nil)
             #expect(state.isBusy)
-            #expect(state.isServerActivity == item.isServerActivity)
         }
 
         let checkingWithoutKnownStatus = HomeViewState(
@@ -99,7 +97,6 @@ struct HomeViewStateTests {
             notice: "Hidden while busy"
         )
         #expect(checkingWithoutKnownStatus.status == .unknown)
-        #expect(checkingWithoutKnownStatus.isServerActivity)
     }
 
     @Test
@@ -116,7 +113,6 @@ struct HomeViewStateTests {
         #expect(unknown.primaryAction == .checkStatus(enabled: true))
         #expect(unknown.notice == "Check the configured target.")
         #expect(!unknown.isBusy)
-        #expect(!unknown.isServerActivity)
 
         let sealed = HomeViewState(
             profile: profile,
@@ -127,7 +123,6 @@ struct HomeViewStateTests {
         #expect(sealed.status == .sealed(progress: 1, threshold: 3, supportsUnseal: true))
         #expect(sealed.primaryAction == .unseal(enabled: true))
         #expect(sealed.notice == nil)
-        #expect(!sealed.isServerActivity)
 
         let unsupported = HomeViewState(
             profile: profile,
@@ -146,7 +141,6 @@ struct HomeViewStateTests {
         #expect(unsealed.status == .unsealed)
         #expect(unsealed.primaryAction == .checkStatus(enabled: true))
         #expect(unsealed.notice == nil)
-        #expect(!unsealed.isServerActivity)
     }
 
     @Test
