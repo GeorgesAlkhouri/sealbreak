@@ -282,9 +282,6 @@
     "Please keep the app open" : {
 
     },
-    "Unseal progress" : {
-
-    },
     "Protect this share for %@" : {
 
     },
@@ -340,6 +337,9 @@
 
     },
     "Resetting…" : {
+
+    },
+    "Result" : {
 
     },
     "Save replacement with Face ID" : {
@@ -582,6 +582,9 @@
 
     },
     "UNKNOWN" : {
+
+    },
+    "Unseal progress" : {
 
     },
     "Unseal share" : {
