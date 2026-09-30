@@ -2,21 +2,17 @@ import SwiftUI
 
 struct SealStatusIndicator: View {
     let status: HomeViewState.Status
-    let isServerActivity: Bool
     let interactionTrigger: Int
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @State private var showsActivity = false
     @State private var isPressed = false
     @State private var motion: SealStatusMotion
 
     init(
         status: HomeViewState.Status,
-        isServerActivity: Bool = false,
         interactionTrigger: Int = 0
     ) {
         self.status = status
-        self.isServerActivity = isServerActivity
         self.interactionTrigger = interactionTrigger
         _motion = State(
             initialValue: SealStatusMotion(phase: status.motionPhase)
@@ -27,14 +23,6 @@ struct SealStatusIndicator: View {
         ZStack {
             recessedTrack
             statusRing
-
-            if showsActivity {
-                PaperActivityArc(
-                    accent: activityAccent,
-                    reduceMotion: reduceMotion
-                )
-                .transition(.opacity)
-            }
 
             PapercutResultBurst(
                 animationID: motion.animationID,
@@ -66,9 +54,6 @@ struct SealStatusIndicator: View {
         .offset(y: isPressed && !reduceMotion ? 2 : 0)
         .opacity(isPressed && reduceMotion ? 0.82 : 1)
         .accessibilityHidden(true)
-        .task(id: isServerActivity) {
-            await updateActivityVisibility()
-        }
         .task(id: interactionTrigger) {
             await runPressFeedback()
         }
@@ -115,15 +100,6 @@ struct SealStatusIndicator: View {
         }
     }
 
-    private var activityAccent: Color {
-        switch status {
-        case .unknown:
-            return PapercutPalette.button
-        case .sealed, .unsealed:
-            return accent
-        }
-    }
-
     private var recessedTrack: some View {
         ZStack {
             Circle()
@@ -162,26 +138,6 @@ struct SealStatusIndicator: View {
             return 8
         case .unknown, .sealed:
             return 0
-        }
-    }
-
-    private func updateActivityVisibility() async {
-        if isServerActivity {
-            do {
-                try await Task.sleep(for: .seconds(MotionTiming.activityDelay))
-            } catch {
-                return
-            }
-
-            guard !Task.isCancelled else { return }
-            withAnimation(.easeOut(duration: MotionTiming.activityFade)) {
-                showsActivity = true
-            }
-            return
-        }
-
-        withAnimation(.easeOut(duration: MotionTiming.activityFade)) {
-            showsActivity = false
         }
     }
 
@@ -292,8 +248,6 @@ private extension HomeViewState.Status {
 }
 
 private enum MotionTiming {
-    static let activityDelay = 0.16
-    static let activityFade = 0.12
     static let pressDown = 0.08
     static let pressHold = 0.09
     static let unsealReveal = 0.46
