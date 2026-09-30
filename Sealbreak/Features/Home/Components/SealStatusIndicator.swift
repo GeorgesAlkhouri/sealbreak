@@ -8,11 +8,7 @@ struct SealStatusIndicator: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var showsActivity = false
     @State private var isPressed = false
-    @State private var resultScale: CGFloat = 1
-    @State private var resultTrigger = 0
-    @State private var unsealRevealTrigger = 0
-    @State private var unsealRevealProgress: CGFloat
-    @State private var animationGeneration = 0
+    @State private var motion: SealStatusMotion
 
     init(
         status: HomeViewState.Status,
@@ -22,30 +18,15 @@ struct SealStatusIndicator: View {
         self.status = status
         self.isServerActivity = isServerActivity
         self.interactionTrigger = interactionTrigger
-        _unsealRevealProgress = State(
-            initialValue: status.isUnsealed ? 1 : 0
+        _motion = State(
+            initialValue: SealStatusMotion(phase: status.motionPhase)
         )
     }
 
     var body: some View {
         ZStack {
             recessedTrack
-
-            if status.isUnsealed {
-                PapercutUnsealRingReveal(
-                    progress: unsealRevealProgress,
-                    accent: PapercutPalette.unsealed
-                )
-            } else if statusPhase != .unknown {
-                Circle()
-                    .trim(from: 0, to: status.progressFraction)
-                    .stroke(
-                        accent,
-                        style: StrokeStyle(lineWidth: 18, lineCap: .round)
-                    )
-                    .padding(9)
-                    .rotationEffect(.degrees(-90))
-            }
+            statusRing
 
             if showsActivity {
                 PaperActivityArc(
@@ -56,8 +37,7 @@ struct SealStatusIndicator: View {
             }
 
             PapercutResultBurst(
-                trigger: resultTrigger,
-                generation: animationGeneration,
+                animationID: motion.animationID,
                 accent: accent,
                 reduceMotion: reduceMotion
             )
@@ -80,7 +60,8 @@ struct SealStatusIndicator: View {
         }
         .frame(width: 170, height: 170)
         .scaleEffect(
-            (reduceMotion ? 1 : (isPressed ? 0.965 : 1)) * resultScale
+            (reduceMotion ? 1 : (isPressed ? 0.965 : 1))
+                * CGFloat(motion.resultScale)
         )
         .offset(y: reduceMotion ? 0 : (isPressed ? 2 : 0))
         .opacity(isPressed && reduceMotion ? 0.82 : 1)
@@ -91,37 +72,11 @@ struct SealStatusIndicator: View {
         .task(id: interactionTrigger) {
             await runPressFeedback()
         }
-        .task(id: resultAnimationID) {
-            await runResultFeedback(for: resultAnimationID)
+        .task(id: motion.animationID) {
+            await runStatusMotion(for: motion.animationID)
         }
-        .task(id: unsealRevealAnimationID) {
-            await runUnsealRingReveal(for: unsealRevealAnimationID)
-        }
-        .onChange(of: statusPhase) { oldPhase, newPhase in
-            guard oldPhase != newPhase else { return }
-
-            animationGeneration += 1
-            resultTrigger = 0
-            unsealRevealTrigger = 0
-            resultScale = 1
-
-            if newPhase == .unknown {
-                unsealRevealProgress = 0
-                return
-            }
-
-            if oldPhase == .unknown {
-                unsealRevealProgress = newPhase == .unsealed ? 1 : 0
-                return
-            }
-
-            if oldPhase == .sealed, newPhase == .unsealed {
-                unsealRevealProgress = 0
-                unsealRevealTrigger = 1
-            } else {
-                unsealRevealProgress = 0
-                resultTrigger = 1
-            }
+        .onChange(of: status.motionPhase) { _, newPhase in
+            motion.transition(to: newPhase)
         }
     }
 
@@ -133,6 +88,30 @@ struct SealStatusIndicator: View {
             return PapercutPalette.sealed
         case .unsealed:
             return PapercutPalette.unsealed
+        }
+    }
+
+    @ViewBuilder
+    private var statusRing: some View {
+        switch status.motionPhase {
+        case .unknown:
+            EmptyView()
+
+        case .sealed:
+            Circle()
+                .trim(from: 0, to: status.progressFraction)
+                .stroke(
+                    accent,
+                    style: StrokeStyle(lineWidth: 18, lineCap: .round)
+                )
+                .padding(9)
+                .rotationEffect(.degrees(-90))
+
+        case .unsealed:
+            PapercutUnsealRingReveal(
+                progress: CGFloat(motion.unsealRevealProgress),
+                accent: PapercutPalette.unsealed
+            )
         }
     }
 
@@ -186,47 +165,22 @@ struct SealStatusIndicator: View {
         }
     }
 
-    private var statusPhase: StatusPhase {
-        switch status {
-        case .unknown:
-            return .unknown
-        case .sealed:
-            return .sealed
-        case .unsealed:
-            return .unsealed
-        }
-    }
-
-    private var resultAnimationID: StatusMotionTaskID {
-        StatusMotionTaskID(
-            trigger: resultTrigger,
-            generation: animationGeneration
-        )
-    }
-
-    private var unsealRevealAnimationID: StatusMotionTaskID {
-        StatusMotionTaskID(
-            trigger: unsealRevealTrigger,
-            generation: animationGeneration
-        )
-    }
-
     private func updateActivityVisibility() async {
         if isServerActivity {
             do {
-                try await Task.sleep(for: .milliseconds(160))
+                try await Task.sleep(for: .seconds(MotionTiming.activityDelay))
             } catch {
                 return
             }
 
             guard !Task.isCancelled else { return }
-            withAnimation(.easeOut(duration: 0.12)) {
+            withAnimation(.easeOut(duration: MotionTiming.activityFade)) {
                 showsActivity = true
             }
             return
         }
 
-        withAnimation(.easeOut(duration: 0.12)) {
+        withAnimation(.easeOut(duration: MotionTiming.activityFade)) {
             showsActivity = false
         }
     }
@@ -234,12 +188,12 @@ struct SealStatusIndicator: View {
     private func runPressFeedback() async {
         guard interactionTrigger > 0 else { return }
 
-        withAnimation(.easeOut(duration: 0.08)) {
+        withAnimation(.easeOut(duration: MotionTiming.pressDown)) {
             isPressed = true
         }
 
         do {
-            try await Task.sleep(for: .milliseconds(90))
+            try await Task.sleep(for: .seconds(MotionTiming.pressHold))
         } catch {
             return
         }
@@ -250,245 +204,99 @@ struct SealStatusIndicator: View {
         }
     }
 
-    private func runUnsealRingReveal(
-        for animationID: StatusMotionTaskID
+    private func runStatusMotion(
+        for animationID: SealStatusMotion.AnimationID
     ) async {
-        guard animationID.trigger > 0,
-              animationID.generation == animationGeneration,
-              statusPhase == .unsealed
-        else {
+        switch animationID.effect {
+        case .none:
             return
-        }
 
+        case .unsealReveal:
+            await runUnsealReveal(for: animationID)
+
+        case .result:
+            await runResultFeedback(for: animationID)
+        }
+    }
+
+    private func runUnsealReveal(
+        for animationID: SealStatusMotion.AnimationID
+    ) async {
         if reduceMotion {
-            unsealRevealProgress = 1
+            motion.setUnsealRevealProgress(1, for: animationID)
         } else {
-            withAnimation(.easeOut(duration: 0.46)) {
-                unsealRevealProgress = 1
+            withAnimation(.easeOut(duration: MotionTiming.unsealReveal)) {
+                motion.setUnsealRevealProgress(1, for: animationID)
             }
 
             do {
-                try await Task.sleep(for: .milliseconds(460))
+                try await Task.sleep(
+                    for: .seconds(MotionTiming.unsealReveal)
+                )
             } catch {
                 return
             }
         }
 
-        guard !Task.isCancelled,
-              animationID.generation == animationGeneration,
-              statusPhase == .unsealed
-        else {
-            return
-        }
-
-        resultTrigger = 1
+        motion.completeUnsealReveal(for: animationID)
     }
 
     private func runResultFeedback(
-        for animationID: StatusMotionTaskID
+        for animationID: SealStatusMotion.AnimationID
     ) async {
-        guard animationID.trigger > 0,
-              animationID.generation == animationGeneration,
-              statusPhase.isResolved,
-              !reduceMotion
-        else {
-            return
-        }
+        guard !reduceMotion else { return }
 
-        withAnimation(.easeOut(duration: 0.08)) {
-            resultScale = 0.96
+        withAnimation(.easeOut(duration: MotionTiming.resultCompress)) {
+            motion.setResultScale(0.96, for: animationID)
         }
 
         do {
-            try await Task.sleep(for: .milliseconds(80))
+            try await Task.sleep(
+                for: .seconds(MotionTiming.resultCompress)
+            )
         } catch {
             return
         }
 
-        guard !Task.isCancelled,
-              animationID.generation == animationGeneration,
-              statusPhase.isResolved
-        else {
-            return
-        }
-
+        guard !Task.isCancelled else { return }
         withAnimation(.spring(response: 0.28, dampingFraction: 0.58)) {
-            resultScale = 1.045
+            motion.setResultScale(1.045, for: animationID)
         }
 
         do {
-            try await Task.sleep(for: .milliseconds(180))
+            try await Task.sleep(
+                for: .seconds(MotionTiming.resultSettleDelay)
+            )
         } catch {
             return
         }
 
-        guard !Task.isCancelled,
-              animationID.generation == animationGeneration,
-              statusPhase.isResolved
-        else {
-            return
-        }
-
+        guard !Task.isCancelled else { return }
         withAnimation(.spring(response: 0.24, dampingFraction: 0.78)) {
-            resultScale = 1
+            motion.setResultScale(1, for: animationID)
         }
     }
-
-    private enum StatusPhase: Equatable {
-        case unknown
-        case sealed
-        case unsealed
-
-        var isResolved: Bool {
-            self != .unknown
-        }
-    }
-}
-
-private struct StatusMotionTaskID: Equatable {
-    let trigger: Int
-    let generation: Int
 }
 
 private extension HomeViewState.Status {
-    var isUnsealed: Bool {
-        if case .unsealed = self {
-            return true
-        }
-        return false
-    }
-
-    var isResolved: Bool {
+    var motionPhase: SealStatusMotion.Phase {
         switch self {
         case .unknown:
-            return false
-        case .sealed, .unsealed:
-            return true
+            return .unknown
+        case .sealed:
+            return .sealed
+        case .unsealed:
+            return .unsealed
         }
     }
 }
 
-private struct PaperActivityArc: View {
-    let accent: Color
-    let reduceMotion: Bool
-
-    @State private var animates = false
-
-    var body: some View {
-        ZStack {
-            Circle()
-                .trim(from: 0, to: 0.22)
-                .stroke(
-                    accent.opacity(0.42),
-                    style: StrokeStyle(lineWidth: 20, lineCap: .round)
-                )
-                .padding(8)
-                .rotationEffect(.degrees(-90))
-                .offset(y: 3)
-                .shadow(color: .black.opacity(0.34), radius: 4, y: 4)
-
-            Circle()
-                .trim(from: 0, to: 0.22)
-                .stroke(
-                    accent,
-                    style: StrokeStyle(lineWidth: 18, lineCap: .round)
-                )
-                .padding(9)
-                .rotationEffect(.degrees(-90))
-                .shadow(color: accent.opacity(0.16), radius: 5)
-        }
-        .rotationEffect(
-            .degrees(reduceMotion ? -35 : (animates ? 360 : 0))
-        )
-        .opacity(reduceMotion ? (animates ? 0.62 : 1) : 1)
-        .onAppear {
-            animates = true
-        }
-        .animation(
-            reduceMotion
-                ? .easeInOut(duration: 0.85).repeatForever(autoreverses: true)
-                : .linear(duration: 0.8).repeatForever(autoreverses: false),
-            value: animates
-        )
-    }
-}
-
-private struct PapercutUnsealRingReveal: View {
-    let progress: CGFloat
-    let accent: Color
-
-    private var lineWidth: CGFloat {
-        18 * progress
-    }
-
-    private var diameter: CGFloat {
-        // Keep the inner edge fixed at the cutout radius while the green
-        // paper layer grows only outward until it fills the whole channel.
-        134 + lineWidth
-    }
-
-    var body: some View {
-        Circle()
-            .stroke(
-                accent,
-                style: StrokeStyle(lineWidth: lineWidth, lineCap: .round)
-            )
-            .frame(width: diameter, height: diameter)
-            .shadow(color: accent.opacity(0.16), radius: 5)
-    }
-}
-
-private struct PapercutResultBurst: View {
-    let trigger: Int
-    let generation: Int
-    let accent: Color
-    let reduceMotion: Bool
-
-    @State private var progress: CGFloat = 1
-
-    private var animationID: StatusMotionTaskID {
-        StatusMotionTaskID(
-            trigger: trigger,
-            generation: generation
-        )
-    }
-
-    var body: some View {
-        ZStack {
-            Circle()
-                .stroke(
-                    accent.opacity(reduceMotion ? 0.24 : 0.30),
-                    lineWidth: reduceMotion ? 8 : 11
-                )
-                .frame(width: 174, height: 174)
-                .offset(y: reduceMotion ? 0 : 3)
-                .shadow(
-                    color: .black.opacity(reduceMotion ? 0.18 : 0.30),
-                    radius: 4,
-                    y: 3
-                )
-
-            Circle()
-                .stroke(
-                    accent.opacity(reduceMotion ? 0.46 : 0.72),
-                    lineWidth: reduceMotion ? 5 : 7
-                )
-                .frame(width: 174, height: 174)
-        }
-        .scaleEffect(reduceMotion ? 1 : 0.94 + (0.22 * progress))
-        .opacity(trigger == 0 ? 0 : 1 - progress)
-        .task(id: animationID) {
-            guard animationID.trigger > 0 else {
-                progress = 1
-                return
-            }
-
-            progress = 0
-            withAnimation(
-                .easeOut(duration: reduceMotion ? 0.28 : 0.48)
-            ) {
-                progress = 1
-            }
-        }
-    }
+private enum MotionTiming {
+    static let activityDelay = 0.16
+    static let activityFade = 0.12
+    static let pressDown = 0.08
+    static let pressHold = 0.09
+    static let unsealReveal = 0.46
+    static let resultCompress = 0.08
+    static let resultSettleDelay = 0.18
 }
