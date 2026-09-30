@@ -29,15 +29,6 @@ struct HomeFeature {
                     return "Removing local data…"
                 }
             }
-
-            var isServerActivity: Bool {
-                switch self {
-                case .checkingStatus, .checkingTarget, .submittingShare, .verifyingStatus:
-                    return true
-                case .waitingForFaceID, .removingLocalData:
-                    return false
-                }
-            }
         }
 
         enum Confirmation: Equatable {
