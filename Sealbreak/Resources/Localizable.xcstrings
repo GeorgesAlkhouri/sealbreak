@@ -54,9 +54,6 @@
     "Check status before sending" : {
 
     },
-    "CHECKING" : {
-
-    },
     "Checking connection…" : {
 
     },
@@ -277,12 +274,6 @@
 
     },
     "Permanently remove Sealbreak’s local share; independent recovery will be required" : {
-
-    },
-    "Please keep the app open" : {
-
-    },
-    "Progress" : {
 
     },
     "Protect this share for %@" : {
@@ -587,6 +578,9 @@
     "UNKNOWN" : {
 
     },
+    "Unseal progress" : {
+
+    },
     "Unseal share" : {
 
     },
@@ -597,9 +591,6 @@
 
     },
     "UNSEALED" : {
-
-    },
-    "UNSEALING" : {
 
     },
     "Unsupported Keychain record version." : {
