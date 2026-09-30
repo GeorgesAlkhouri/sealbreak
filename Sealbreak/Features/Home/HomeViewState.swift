@@ -95,7 +95,6 @@ struct HomeViewState: Equatable {
     let primaryAction: PrimaryAction
     let notice: LocalizedStringResource?
     let isBusy: Bool
-    let isServerActivity: Bool
 
     init(
         profile: ServerProfile,
@@ -106,7 +105,6 @@ struct HomeViewState: Equatable {
         serverName = profile.name
         origin = Self.displayOrigin(profile.origin)
         isBusy = operation != nil
-        isServerActivity = operation?.isServerActivity == true
 
         if let sealStatus {
             if sealStatus.sealed {
