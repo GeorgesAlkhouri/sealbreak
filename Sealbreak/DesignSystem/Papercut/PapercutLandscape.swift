@@ -18,7 +18,7 @@ struct PapercutLandscape: View {
                     .fill(PapercutPalette.sun)
                     .frame(width: 84, height: 84)
                     .shadow(color: .black.opacity(0.22), radius: 5, y: 5)
-                    .offset(y: 44)
+                    .offset(y: -44)
 
                 WaterShape()
                     .fill(PapercutPalette.water)
