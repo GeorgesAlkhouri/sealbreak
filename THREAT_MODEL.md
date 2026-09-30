@@ -9,6 +9,7 @@ Sealbreak is an iOS application that stores one OpenBao Shamir unseal share on a
 In scope:
 
 - local storage of one Shamir share;
+- biometric-authorized display of a minimized share-comparison fragment;
 - Face ID authorization and Keychain access control;
 - server profile storage and share-to-target binding;
 - seal-status checks and manual unseal submission;
@@ -29,9 +30,9 @@ Out of scope:
 
 | ID | Asset | Security objective |
 | --- | --- | --- |
-| **A01** | Shamir share | Prevent disclosure except during an explicitly authorized unseal operation |
+| **A01** | Shamir share | Prevent disclosure of the complete share except during explicitly authorized sensitive operations; minimize and strictly limit any intentional partial disclosure |
 | **A02** | Share-to-server binding | Prevent a stored share from being redirected to another target |
-| **A03** | Operator intent | Require a current, explicit operator action before share release |
+| **A03** | Operator intent | Require a current, explicit operator action before share release or disclosure of share-derived data |
 | **A04** | Recovery capability | Device loss or Keychain invalidation must not cause permanent lock-out |
 | **A05** | OpenBao target identity | Prevent submission to an unintended or spoofed endpoint |
 | **A06** | Application integrity | Prevent a malicious build or update from stealing an authorized share |
@@ -68,6 +69,7 @@ flowchart TB
             MODEL["Operation and authorization lifecycle"]
             DISPLAY[("Non-secret profile catalog + persistence lifecycle")]
             MEM["Transient plaintext share / request body"]
+            FRAGMENT["Transient share-comparison fragment"]
             NET["OpenBao network client"]
         end
 
@@ -83,7 +85,7 @@ flowchart TB
     end
 
     OP -->|"Explicit action"| UI
-    IMPORT -->|"TB1: manual import"| UI
+    IMPORT -->|"TB1: share import"| UI
     BUILD -.->|"TB5: install / update"| APP
 
     UI <--> MODEL
@@ -92,6 +94,9 @@ flowchart TB
     AUTH -.->|"Keychain access control"| KC
     MODEL -->|"TB2: protected read/write"| KC
     KC -->|"Released share"| MEM
+    MEM -->|"Derive fixed 3 + 3 characters"| FRAGMENT
+    FRAGMENT -->|"Authorized transient display"| UI
+    UI -->|"Comparison fragment"| OP
     MEM -->|"Verify protected target binding"| NET
 
     NET <-->|"TB3: HTTPS"| BAO
@@ -105,7 +110,7 @@ flowchart TB
 
 | Boundary | Transition | Security relevance |
 | --- | --- | --- |
-| **TB1** | External import source → Sealbreak | Existing clipboard, password-manager, note, chat, or terminal copies are outside Sealbreak control |
+| **TB1** | External import source → Sealbreak | The external source and any copies it retains are outside Sealbreak control |
 | **TB2** | App → Keychain / Face ID | iOS must enforce access to the share itself, not merely access to the visible UI |
 | **TB3** | iPhone → OpenBao or TLS proxy | Server identity and transport must be authenticated; redirects must not retarget the share |
 | **TB4** | TLS proxy → OpenBao | A proxy expands the trusted infrastructure and can observe the share after TLS termination |
@@ -141,6 +146,29 @@ sequenceDiagram
 ```
 
 A successful HTTP response alone is not treated as proof that OpenBao is fully unsealed. Sealbreak re-checks the seal state after submission. If submission may already have reached the server but verification fails, the final outcome is treated as unknown and the app does not retry automatically.
+
+### 2.4 Security-Critical Share Comparison Flow
+
+```mermaid
+sequenceDiagram
+    participant U as Operator
+    participant A as Sealbreak
+    participant F as Face ID
+    participant K as iOS Keychain
+
+    U->>A: Tap reveal
+    A->>F: Request fresh biometric authorization
+    F-->>A: Success
+    A->>K: Read protected ShareRecord
+    K-->>A: Complete protected record
+    A->>A: Derive first 3 + last 3 characters
+    A->>A: Clear complete local ShareRecord where practical
+    A-->>U: Display comparison fragment
+    Note over A,U: Fragment is transient and is not a verification state
+    A->>A: Hide after 20 s, explicit hide, or privacy interruption
+```
+
+The Keychain releases the complete protected record after authorization; the fragment is derived inside the app process. The Keychain does not expose only the displayed characters. A matching fragment is therefore a limited manual comparison aid and is not proof that the complete stored share matches an independent copy.
 
 ## 3. Threat Analysis — STRIDE
 
@@ -226,9 +254,9 @@ Controls: **M12**
 
 #### T08 — Share remains in the import or recovery source
 
-A share may already exist in a password manager, clipboard history, note, screenshot, chat application, terminal, backup, or other external source before Sealbreak imports it.
+A share may already exist in a password manager, clipboard history, note, screenshot, chat application, terminal, backup, or other external source before Sealbreak imports it. Copies may remain available after import or may already have been synchronized or retained elsewhere.
 
-Sealbreak performs no automatic clipboard read and provides no share-export feature, but it cannot revoke or control copies that already exist elsewhere.
+Current controls limit the Sealbreak import path to an explicit system paste action and clear the current general pasteboard after a pasted value passes share-format validation. Sealbreak provides no share-export functionality. These controls cannot revoke copies retained by the source or already synchronized or stored elsewhere.
 
 Affected assets: **A01**
 
@@ -246,13 +274,15 @@ Controls: **M06, M12**
 
 #### T10 — Share read from process memory
 
-After successful Face ID authorization, the share must briefly exist in Sealbreak process memory so it can be serialized and transmitted.
+After successful Face ID authorization, the complete share must briefly exist in Sealbreak process memory during an unseal submission and when deriving a comparison fragment for the operator.
+
+For share comparison, Sealbreak derives only the configured fragment and does not expose the complete share to feature state or the user interface.
 
 Sealbreak performs best-effort cleanup of mutable buffers and uses short-lived request data, but Swift strings, serialization internals, networking, a debugger, or a sufficiently privileged process attacker may retain or inspect copies. Guaranteed memory erasure is not claimed.
 
 Affected assets: **A01, A06**
 
-Controls: **M01, M02, M06, M11**
+Controls: **M01, M02, M06, M11, M13**
 
 #### T11 — Unexpected synchronization, backup, or migration
 
@@ -263,6 +293,16 @@ The Keychain query explicitly disables synchronization and uses `WhenPasscodeSet
 Affected assets: **A01, A02**
 
 Controls: **M01, M06, M08**
+
+#### T18 — Disclosure of a share-comparison fragment
+
+After fresh biometric authorization, Sealbreak intentionally displays a fixed fragment derived from the protected Shamir share. An unauthorized observer or a captured screen may therefore obtain part of the share even though the complete value remains protected.
+
+Repeated reveals expose the same fixed fragment rather than additional portions of the share. The fragment is nevertheless secret-derived data and reduces the confidentiality of the complete share.
+
+Affected assets: **A01, A03**
+
+Controls: **M01, M02, M06, M13**
 
 ### 3.5 Denial of Service
 
@@ -381,9 +421,9 @@ A residual risk rating does not imply risk acceptance. This threat model does no
 | **T05** Local lifecycle state integrity failure | 2 | 3 | **6 Medium** | M08, M09 | Fail-closed lifecycle state, in-place replacement, bounded storage, and independent recovery |
 | **T06** Reuse of stolen share | 2 | 5 | **10 High** | M02, M05, M06, M09 | Copied Shamir share remains reusable outside Sealbreak |
 | **T07** Weak actor attribution | 3 | 2 | **6 Medium** | M12 | OpenBao receives no cryptographic proof of local Face ID or specific human identity |
-| **T08** External import/recovery copy stolen | 2 | 5 | **10 High** | M07, M09 | Sealbreak cannot control copies that exist outside the app |
+| **T08** External import/recovery copy stolen | 2 | 5 | **10 High** | M07, M09 | Explicit paste and clipboard clearing after successful validation reduce clipboard exposure; external or already synchronized copies remain outside app control |
 | **T09** Diagnostic leak | 1 | 5 | **5 Medium** | M06, M12 | No application logging or analytics; caches and response-body reflection disabled |
-| **T10** Runtime memory compromise | 2 | 5 | **10 High** | M01, M02, M06, M11 | Authorized share must exist transiently in process and networking memory |
+| **T10** Runtime memory compromise | 2 | 5 | **10 High** | M01, M02, M06, M11, M13 | Authorized share must exist transiently in process memory for submission and comparison-fragment derivation |
 | **T11** Unexpected synchronization or migration | 1 | 5 | **5 Medium** | M01, M06, M08 | `ThisDeviceOnly` plus synchronization disabled; platform behavior remains trusted |
 | **T12** Device, biometric, or identity loss | 2 | 5 | **10 High** | M08, M09 | Device binding can intentionally make the local item inaccessible; recovery is external |
 | **T13** Bootstrap dependency failure | 2 | 2 | **4 Low** | M05, M10 | App fails closed but depends on reachable DNS, VPN, certificates, and optional proxy |
@@ -391,6 +431,7 @@ A residual risk rating does not imply risk acceptance. This threat model does no
 | **T15** Malicious application or update | 2 | 5 | **10 High** | M11 | Authorized code can misuse an authorized Keychain release |
 | **T16** Compromised legitimate infrastructure | 2 | 5 | **10 High** | M10 | Correct TLS does not protect against a compromised intended target or proxy |
 | **T17** 1-of-1 quorum compromise | 2 | 5 | **10 High** | M09, M10 | One stolen share is the full quorum in the conservative baseline |
+| **T18** Comparison-fragment disclosure | 2 | 2 | **4 Low** | M01, M02, M06, M13 | Fresh Face ID, fixed partial reveal, transient state, no export, and privacy interruption limit exposure |
 
 ### 4.4 Controls
 
@@ -401,10 +442,11 @@ A residual risk rating does not imply risk acceptance. This threat model does no
 | **M03 — Transport** | Application | HTTPS only, normal certificate and hostname validation, TLS 1.2 or newer, and blocked redirects |
 | **M04 — Target binding** | Application | Store the authoritative server profile with the share and compare it before submission |
 | **M05 — State machine and request discipline** | Application | Validate seal state, permit only supported Shamir states, perform one explicit submission per action, never automatically retry, and verify state afterwards |
-| **M06 — Data minimization** | Application | Do not log, analyze, cache, export, or persist the share outside the protected record; minimize diagnostic detail and clear mutable buffers where practical |
-| **M07 — Secure import** | Application | Do not read the clipboard automatically and do not provide share export functionality |
+| **M06 — Data minimization** | Application | Do not log, cache, export, or persist the complete share outside the protected record; keep unavoidable plaintext processing transient and narrowly scoped; secret-derived data exposed to the user must be explicitly authorized, minimized to its purpose, transient, and removed when no longer required; minimize diagnostic detail and clear mutable buffers where practical |
+| **M07 — Secure import** | Application | Accept share input only through an explicit system paste control, validate the value before accepting it, clear the current general pasteboard after successful validation, do not read the clipboard automatically, and provide no share-export functionality |
 | **M08 — Safe local lifecycle** | Application | Require fresh authorization for sensitive local-share operations, persist a fail-closed lifecycle marker before changes that could leave protected share storage and profile metadata inconsistent, treat only fully committed local state as configured, reject incomplete or unsupported local state, use safe in-place updates, and enforce one encoded storage-size invariant across readers and writers |
 | **M09 — Recovery and incident response** | Operator / deployment | Maintain independent recovery and use OpenBao rekeying to replace compromised server-side shares |
 | **M10 — Secure infrastructure** | Operator / deployment | Protect OpenBao, TLS proxies, VPN, DNS, certificates, node routing, and bootstrap dependencies outside the application |
 | **M11 — Software supply chain** | Project / release | Protect signing rights and developer systems, keep dependencies minimal, and review distributed builds and updates |
 | **M12 — Minimal diagnostics and attribution claims** | Application / project | Never record secret material and do not claim server-verifiable proof of which human completed an unseal quorum |
+| **M13 — Minimized share comparison** | Application | Require fresh Face ID before revealing share-derived data; derive only a fixed first-three and last-three-character fragment; never expose the complete share to feature state or the UI; provide no copy or export action; keep the fragment only in transient state; allow immediate manual hiding; hide it automatically after 20 seconds and on privacy interruption; and never represent a fragment match as verification of the complete stored share |

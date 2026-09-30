@@ -6,6 +6,8 @@ struct HomeView: View {
     @Bindable var store: StoreOf<HomeFeature>
     let privacyStore: StoreOf<PrivacyFeature>
 
+    @State private var statusInteractionTrigger = 0
+
     var body: some View {
         GeometryReader { proxy in
             ZStack {
@@ -16,6 +18,7 @@ struct HomeView: View {
                         HomeHeader(isBusy: viewState.isBusy) { action in
                             switch action {
                             case .refresh:
+                                statusInteractionTrigger += 1
                                 store.send(.refreshTapped)
                             case .serverDetails:
                                 store.send(.serverDetailsTapped)
@@ -29,7 +32,10 @@ struct HomeView: View {
 
                         Spacer(minLength: 28)
 
-                        ServerStatusCard(state: viewState)
+                        ServerStatusCard(
+                            state: viewState,
+                            interactionTrigger: statusInteractionTrigger
+                        )
                             .frame(maxWidth: 335)
                             .padding(.horizontal, 29)
 
@@ -38,9 +44,13 @@ struct HomeView: View {
                         UnsealButton(state: viewState.primaryAction) {
                             switch viewState.primaryAction {
                             case .unseal:
+                                statusInteractionTrigger += 1
                                 store.send(.unsealTapped)
-                            case .checkStatus, .working:
+                            case .checkStatus:
+                                statusInteractionTrigger += 1
                                 store.send(.refreshTapped)
+                            case .working:
+                                break
                             }
                         }
                         .frame(maxWidth: 335)
@@ -73,6 +83,7 @@ struct HomeView: View {
             PrivacyCover(store: privacyStore) {
                 ServerDetailsView(store: detailsStore)
             }
+            .interactiveDismissDisabled(detailsStore.isRevealingShare)
         }
         .sheet(
             item: $store.scope(state: \.$replaceShare, action: \.replaceShare)

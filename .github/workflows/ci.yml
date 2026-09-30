@@ -80,6 +80,19 @@ jobs:
           persist-credentials: false
       - name: Compile complete iOS app for Simulator
         run: bash scripts/ci/build.sh simulator
+      - name: Check localization catalog drift
+        continue-on-error: true
+        run: |
+          if git diff --quiet -- \
+            Sealbreak/Resources/Localizable.xcstrings \
+            Sealbreak/Resources/InfoPlist.xcstrings; then
+            exit 0
+          fi
+          echo '::warning title=Localization catalogs out of sync::The Xcode build changed String Catalogs. Commit the generated catalog changes on the pull request branch.'
+          git diff -- \
+            Sealbreak/Resources/Localizable.xcstrings \
+            Sealbreak/Resources/InfoPlist.xcstrings
+          exit 1
 
   integration:
     name: CI / integration / ${{ matrix.server.name }} / iOS ${{ matrix.platform.ios }}

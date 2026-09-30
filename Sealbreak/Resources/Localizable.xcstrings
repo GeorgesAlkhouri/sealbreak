@@ -54,9 +54,6 @@
     "Check status before sending" : {
 
     },
-    "CHECKING" : {
-
-    },
     "Checking connection…" : {
 
     },
@@ -126,7 +123,7 @@
     "Done" : {
 
     },
-    "Enter one hexadecimal or Base64 Shamir share. Its validity is ultimately checked by the configured server." : {
+    "Enter one hexadecimal or Base64 Shamir share." : {
 
     },
     "Enter the direct HTTPS address of one server node." : {
@@ -148,6 +145,12 @@
 
     },
     "Generic server response" : {
+
+    },
+    "Hidden" : {
+
+    },
+    "Hide stored share fragment" : {
 
     },
     "HTTPS certificate valid" : {
@@ -243,9 +246,6 @@
     "No accessible share was found. Face ID or the device passcode may have changed. Recover from your independent copy." : {
 
     },
-    "One Shamir share" : {
-
-    },
     "Only initialized Shamir seals are supported. Initialization, auto-unseal, and seal migration are not supported." : {
 
     },
@@ -270,19 +270,10 @@
     "Origin" : {
 
     },
-    "Paste is explicit. Existing clipboard/password-manager copies cannot be erased by this app. The share is never displayed or exported after saving." : {
-
-    },
-    "Paste one Shamir share" : {
+    "Paste Shamir share" : {
 
     },
     "Permanently remove Sealbreak’s local share; independent recovery will be required" : {
-
-    },
-    "Please keep the app open" : {
-
-    },
-    "Progress" : {
 
     },
     "Protect this share for %@" : {
@@ -417,10 +408,16 @@
     "Shamir seal" : {
 
     },
+    "Shamir share added" : {
+
+    },
     "Share" : {
 
     },
     "Share protected on this iPhone. Check status to begin." : {
+
+    },
+    "Show stored share fragment" : {
 
     },
     "Status checked" : {
@@ -449,6 +446,9 @@
 
     },
     "Stored only on this iPhone" : {
+
+    },
+    "Stored share" : {
 
     },
     "Submission completed; still sealed. Progress: %lld/%lld. Other holders must submit their own shares to this same node." : {
@@ -578,6 +578,9 @@
     "UNKNOWN" : {
 
     },
+    "Unseal progress" : {
+
+    },
     "Unseal share" : {
 
     },
@@ -588,9 +591,6 @@
 
     },
     "UNSEALED" : {
-
-    },
-    "UNSEALING" : {
 
     },
     "Unsupported Keychain record version." : {

@@ -101,7 +101,6 @@ struct HomeFeature {
             case .refreshTapped, .refreshRequested:
                 guard !state.isBusy else { return .none }
                 state.operation = .checkingStatus
-                state.status = nil
                 synchronizeServerDetails(&state)
                 let profile = state.profile
                 let client = self.client
@@ -127,12 +126,6 @@ struct HomeFeature {
                 synchronizeServerDetails(&state)
                 return .none
 
-            case .refreshResponse(.failure(let failure)):
-                state.operation = nil
-                state.notice = failure.resource
-                synchronizeServerDetails(&state)
-                return .none
-
             case .unsealTapped:
                 guard state.canUnseal else { return .none }
                 state.confirmation = .unseal
@@ -146,7 +139,6 @@ struct HomeFeature {
                 guard state.canUnseal else { return .none }
                 state.confirmation = nil
                 state.operation = .checkingTarget
-                state.status = nil
                 synchronizeServerDetails(&state)
                 let target = state.profile
                 let client = self.client
@@ -210,9 +202,6 @@ struct HomeFeature {
 
             case .operationActivity(let operation):
                 state.operation = operation
-                if operation == .submittingShare {
-                    state.status = nil
-                }
                 synchronizeServerDetails(&state)
                 return .none
 
@@ -317,7 +306,8 @@ struct HomeFeature {
                     )
                 )
 
-            case .unsealFailed(let failure),
+            case .refreshResponse(.failure(let failure)),
+                 .unsealFailed(let failure),
                  .removeLocalDataResponse(.failure(let failure)):
                 state.operation = nil
                 state.status = nil
@@ -376,20 +366,13 @@ struct HomeFeature {
     }
 
     private func synchronizeServerDetails(_ state: inout State) {
-        guard state.serverDetails != nil else { return }
+        guard var details = state.serverDetails else { return }
 
-        let profile = state.profile
-        let status = state.status
-        let isBusy = state.isBusy
-        let activity = state.activity
-        let notice = state.notice
-
-        state.serverDetails = ServerDetailsFeature.State(
-            profile: profile,
-            status: status,
-            isBusy: isBusy,
-            activity: activity,
-            notice: notice
-        )
+        details.profile = state.profile
+        details.status = state.status
+        details.isBusy = state.isBusy
+        details.activity = state.activity
+        details.notice = state.notice
+        state.serverDetails = details
     }
 }

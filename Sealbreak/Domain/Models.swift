@@ -145,9 +145,24 @@ struct ShareRecord: Codable, Equatable, Sendable {
         }
         guard (16...1024).contains(text.utf8.count),
               isHex || Data(base64Encoded: text) != nil else {
-            throw AppFailure("Enter one hexadecimal or Base64 Shamir share. Its validity is ultimately checked by the configured server.")
+            throw AppFailure("Enter one hexadecimal or Base64 Shamir share.")
         }
         return text
+    }
+}
+
+struct ShareComparisonFragment: Equatable, Sendable {
+    let leading: String
+    let trailing: String
+
+    init(validatedShare: String) {
+        precondition(validatedShare.count >= 6)
+        leading = String(validatedShare.prefix(3))
+        trailing = String(validatedShare.suffix(3))
+    }
+
+    var displayValue: String {
+        "\(leading) … \(trailing)"
     }
 }
 

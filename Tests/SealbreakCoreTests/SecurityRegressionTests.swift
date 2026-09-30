@@ -8,6 +8,23 @@ struct SecurityRegressionTests {
     private let share = String(repeating: "a", count: 64)
 
     @Test
+    func invalidPasteClearsPreviouslyValidShareDraft() throws {
+        var draft = ""
+        let replacement = String(repeating: "b", count: 64)
+
+        try applySharePaste(share, to: &draft)
+        #expect(draft == share)
+
+        #expect(throws: AppFailure.self) {
+            try applySharePaste("not-a-share", to: &draft)
+        }
+        #expect(draft.isEmpty)
+
+        try applySharePaste(replacement, to: &draft)
+        #expect(draft == replacement)
+    }
+
+    @Test
     func homeFailuresDiscardStaleStatusSoTheNoticeRemainsVisible() async throws {
         let profile = try ServerProfile(id: UUID(), name: "Server", address: "https://bao.example.com")
         let status = SealStatus(

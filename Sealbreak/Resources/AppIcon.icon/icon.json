@@ -1,0 +1,92 @@
+{
+  "fill": {
+    "solid": "extended-srgb:0.06666667,0.19607843,0.30980392,1.00000000"
+  },
+  "groups": [
+    {
+      "layers": [
+        {
+          "image-name": "03-Upper-Seal-03-Stamp-Rim.svg",
+          "name": "03-Stamp-Rim"
+        },
+        {
+          "image-name": "03-Upper-Seal-02-Seal-Face.svg",
+          "name": "02-Seal-Face"
+        },
+        {
+          "image-name": "03-Upper-Seal-01-Paper-Edge.svg",
+          "name": "01-Paper-Edge"
+        }
+      ],
+      "lighting": "combined",
+      "shadow": {
+        "kind": "neutral",
+        "opacity": 0.25
+      },
+      "specular": false,
+      "translucency": {
+        "enabled": false,
+        "value": 0.5
+      },
+      "name": "03-Upper-Seal"
+    },
+    {
+      "layers": [
+        {
+          "image-name": "02-Lower-Seal-03-Stamp-Rim.svg",
+          "name": "03-Stamp-Rim"
+        },
+        {
+          "image-name": "02-Lower-Seal-02-Seal-Face.svg",
+          "name": "02-Seal-Face"
+        },
+        {
+          "image-name": "02-Lower-Seal-01-Paper-Edge.svg",
+          "name": "01-Paper-Edge"
+        }
+      ],
+      "lighting": "combined",
+      "shadow": {
+        "kind": "neutral",
+        "opacity": 0.25
+      },
+      "specular": false,
+      "translucency": {
+        "enabled": false,
+        "value": 0.5
+      },
+      "name": "02-Lower-Seal"
+    },
+    {
+      "layers": [
+        {
+          "image-name": "01-Paper-Backing-03-Top-Paper.svg",
+          "name": "03-Top-Paper"
+        },
+        {
+          "image-name": "01-Paper-Backing-02-Middle-Paper.svg",
+          "name": "02-Middle-Paper"
+        },
+        {
+          "image-name": "01-Paper-Backing-01-Deep-Paper.svg",
+          "name": "01-Deep-Paper"
+        }
+      ],
+      "lighting": "combined",
+      "shadow": {
+        "kind": "neutral",
+        "opacity": 0.25
+      },
+      "specular": false,
+      "translucency": {
+        "enabled": false,
+        "value": 0.5
+      },
+      "name": "01-Paper-Backing"
+    }
+  ],
+  "supported-platforms": {
+    "circles": [],
+    "squares": "shared"
+  }
+}
