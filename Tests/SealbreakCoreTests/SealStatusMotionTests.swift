@@ -15,6 +15,18 @@ struct SealStatusMotionTests {
     }
 
     @Test
+    func unknownToSealedResolvesWithoutHeroEffect() {
+        var motion = SealStatusMotion(phase: .unknown)
+
+        motion.transition(to: .sealed)
+
+        #expect(motion.phase == .sealed)
+        #expect(motion.effect == .none)
+        #expect(motion.unsealRevealProgress == 0)
+        #expect(motion.resultScale == 1)
+    }
+
+    @Test
     func sealedToUnsealedStartsRevealThenResultEffect() {
         var motion = SealStatusMotion(phase: .sealed)
 
