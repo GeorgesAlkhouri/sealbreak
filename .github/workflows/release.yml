@@ -59,7 +59,7 @@ jobs:
           test -n "$MATCH_GIT_BASIC_AUTHORIZATION"
 
       - name: Set up Ruby
-        uses: ruby/setup-ruby@14594264cd68ce8a2345dd349bc3d138a4ef85c8 # v1
+        uses: ruby/setup-ruby@14594264cd68ce8a2345dd349bc3d138a4ef85c8 # v1.327.0
         with:
           ruby-version: '3.4'
           bundler-cache: true
