@@ -60,10 +60,10 @@ struct SealStatusIndicator: View {
         }
         .frame(width: 170, height: 170)
         .scaleEffect(
-            (reduceMotion ? 1 : (isPressed ? 0.965 : 1))
+            (isPressed && !reduceMotion ? 0.965 : 1)
                 * CGFloat(motion.resultScale)
         )
-        .offset(y: reduceMotion ? 0 : (isPressed ? 2 : 0))
+        .offset(y: isPressed && !reduceMotion ? 2 : 0)
         .opacity(isPressed && reduceMotion ? 0.82 : 1)
         .accessibilityHidden(true)
         .task(id: isServerActivity) {
