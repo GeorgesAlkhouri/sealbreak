@@ -26,7 +26,6 @@ struct ServerStatusCard: View {
 
                 SealStatusIndicator(
                     status: state.status,
-                    isServerActivity: state.isServerActivity,
                     interactionTrigger: interactionTrigger
                 )
 
