@@ -49,26 +49,23 @@ struct SealStatusMotion: Equatable {
         effect = .none
         resultScale = 1
 
-        switch (oldPhase, newPhase) {
-        case (_, .unknown):
+        switch newPhase {
+        case .unknown:
             unsealRevealProgress = 0
 
-        case (.unknown, .unsealed):
-            unsealRevealProgress = 1
-
-        case (.unknown, .sealed):
+        case .sealed:
             unsealRevealProgress = 0
+            if oldPhase == .unsealed {
+                effect = .result
+            }
 
-        case (.sealed, .unsealed):
-            unsealRevealProgress = 0
-            effect = .unsealReveal
-
-        case (.unsealed, .sealed):
-            unsealRevealProgress = 0
-            effect = .result
-
-        case (.sealed, .sealed), (.unsealed, .unsealed):
-            break
+        case .unsealed:
+            if oldPhase == .unknown {
+                unsealRevealProgress = 1
+            } else {
+                unsealRevealProgress = 0
+                effect = .unsealReveal
+            }
         }
     }
 
