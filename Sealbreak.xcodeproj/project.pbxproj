@@ -27,6 +27,8 @@
 		000000000000000000000220 /* HomeFeature.swift in Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000120 /* HomeFeature.swift */; };
 		000000000000000000000221 /* HomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000121 /* HomeView.swift */; };
 		000000000000000000000222 /* HomeViewState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000122 /* HomeViewState.swift */; };
+		000000000000000000000261 /* SealStatusMotion.swift in Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000160 /* SealStatusMotion.swift */; };
+		000000000000000000000262 /* SealStatusMotionViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000161 /* SealStatusMotionViews.swift */; };
 		000000000000000000000224 /* HomeHeader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000124 /* HomeHeader.swift */; };
 		000000000000000000000225 /* HomeMenu.swift in Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000125 /* HomeMenu.swift */; };
 		000000000000000000000226 /* ServerStatusCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000126 /* ServerStatusCard.swift */; };
@@ -83,6 +85,8 @@
 		000000000000000000000120 /* HomeFeature.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeFeature.swift; sourceTree = "<group>"; };
 		000000000000000000000121 /* HomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeView.swift; sourceTree = "<group>"; };
 		000000000000000000000122 /* HomeViewState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeViewState.swift; sourceTree = "<group>"; };
+		000000000000000000000160 /* SealStatusMotion.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SealStatusMotion.swift; sourceTree = "<group>"; };
+		000000000000000000000161 /* SealStatusMotionViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SealStatusMotionViews.swift; sourceTree = "<group>"; };
 		000000000000000000000124 /* HomeHeader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeHeader.swift; sourceTree = "<group>"; };
 		000000000000000000000125 /* HomeMenu.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeMenu.swift; sourceTree = "<group>"; };
 		000000000000000000000126 /* ServerStatusCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServerStatusCard.swift; sourceTree = "<group>"; };
@@ -209,6 +213,7 @@
 				000000000000000000000120 /* HomeFeature.swift */,
 				000000000000000000000121 /* HomeView.swift */,
 				000000000000000000000122 /* HomeViewState.swift */,
+				000000000000000000000160 /* SealStatusMotion.swift */,
 				000000000000000000000303 /* Components */,
 			);
 			path = Home;
@@ -221,6 +226,7 @@
 				000000000000000000000125 /* HomeMenu.swift */,
 				000000000000000000000126 /* ServerStatusCard.swift */,
 				000000000000000000000127 /* SealStatusIndicator.swift */,
+				000000000000000000000161 /* SealStatusMotionViews.swift */,
 				000000000000000000000128 /* UnsealButton.swift */,
 			);
 			path = Components;
@@ -475,10 +481,12 @@
 				000000000000000000000220 /* HomeFeature.swift in Sources */,
 				000000000000000000000221 /* HomeView.swift in Sources */,
 				000000000000000000000222 /* HomeViewState.swift in Sources */,
+				000000000000000000000261 /* SealStatusMotion.swift in Sources */,
 				000000000000000000000224 /* HomeHeader.swift in Sources */,
 				000000000000000000000225 /* HomeMenu.swift in Sources */,
 				000000000000000000000226 /* ServerStatusCard.swift in Sources */,
 				000000000000000000000227 /* SealStatusIndicator.swift in Sources */,
+				000000000000000000000262 /* SealStatusMotionViews.swift in Sources */,
 				000000000000000000000228 /* UnsealButton.swift in Sources */,
 				000000000000000000000234 /* SetupFeature.swift in Sources */,
 				000000000000000000000230 /* SetupView.swift in Sources */,
