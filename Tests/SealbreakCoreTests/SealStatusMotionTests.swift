@@ -24,9 +24,15 @@ struct SealStatusMotionTests {
         #expect(motion.effect == .unsealReveal)
         #expect(motion.unsealRevealProgress == 0)
 
-        #expect(motion.setUnsealRevealProgress(1, for: revealID))
+        let didSetRevealProgress = motion.setUnsealRevealProgress(
+            1,
+            for: revealID
+        )
+        #expect(didSetRevealProgress)
         #expect(motion.unsealRevealProgress == 1)
-        #expect(motion.completeUnsealReveal(for: revealID))
+
+        let didCompleteReveal = motion.completeUnsealReveal(for: revealID)
+        #expect(didCompleteReveal)
 
         #expect(motion.effect == .result)
         #expect(motion.animationID != revealID)
@@ -44,8 +50,16 @@ struct SealStatusMotionTests {
         #expect(motion.effect == .none)
         #expect(motion.unsealRevealProgress == 0)
         #expect(motion.resultScale == 1)
-        #expect(!motion.completeUnsealReveal(for: staleRevealID))
-        #expect(!motion.setUnsealRevealProgress(1, for: staleRevealID))
+        let didCompleteStaleReveal = motion.completeUnsealReveal(
+            for: staleRevealID
+        )
+        let didSetStaleRevealProgress = motion.setUnsealRevealProgress(
+            1,
+            for: staleRevealID
+        )
+
+        #expect(!didCompleteStaleReveal)
+        #expect(!didSetStaleRevealProgress)
     }
 
     @Test
@@ -59,9 +73,17 @@ struct SealStatusMotionTests {
 
         #expect(motion.phase == .sealed)
         #expect(motion.effect == .result)
-        #expect(!motion.completeUnsealReveal(for: staleRevealID))
+        let didCompleteStaleReveal = motion.completeUnsealReveal(
+            for: staleRevealID
+        )
+        #expect(!didCompleteStaleReveal)
         #expect(motion.animationID == resealResultID)
-        #expect(motion.setResultScale(0.96, for: resealResultID))
+
+        let didSetResealScale = motion.setResultScale(
+            0.96,
+            for: resealResultID
+        )
+        #expect(didSetResealScale)
         #expect(motion.resultScale == 0.96)
     }
 
@@ -71,14 +93,22 @@ struct SealStatusMotionTests {
         motion.transition(to: .sealed)
         let staleResultID = motion.animationID
 
-        #expect(motion.setResultScale(0.96, for: staleResultID))
+        let didSetStaleScale = motion.setResultScale(
+            0.96,
+            for: staleResultID
+        )
+        #expect(didSetStaleScale)
         #expect(motion.resultScale == 0.96)
 
         motion.transition(to: .unknown)
 
         #expect(motion.resultScale == 1)
         #expect(motion.effect == .none)
-        #expect(!motion.setResultScale(1.045, for: staleResultID))
+        let didSetInvalidScale = motion.setResultScale(
+            1.045,
+            for: staleResultID
+        )
+        #expect(!didSetInvalidScale)
     }
 
     @Test
