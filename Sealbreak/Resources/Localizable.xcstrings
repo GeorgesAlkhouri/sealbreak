@@ -276,9 +276,6 @@
     "Permanently remove Sealbreak’s local share; independent recovery will be required" : {
 
     },
-    "Progress" : {
-
-    },
     "Protect this share for %@" : {
 
     },
@@ -579,6 +576,9 @@
 
     },
     "UNKNOWN" : {
+
+    },
+    "Unseal progress" : {
 
     },
     "Unseal share" : {
