@@ -6,6 +6,17 @@ struct PaperActivityArc: View {
 
     @State private var animates = false
 
+    private var rotationDegrees: Double {
+        if reduceMotion {
+            return -35
+        }
+        return animates ? 360 : 0
+    }
+
+    private var activityOpacity: Double {
+        reduceMotion && animates ? 0.62 : 1
+    }
+
     var body: some View {
         ZStack {
             Circle()
@@ -29,10 +40,8 @@ struct PaperActivityArc: View {
                 .rotationEffect(.degrees(-90))
                 .shadow(color: accent.opacity(0.16), radius: 5)
         }
-        .rotationEffect(
-            .degrees(reduceMotion ? -35 : (animates ? 360 : 0))
-        )
-        .opacity(reduceMotion ? (animates ? 0.62 : 1) : 1)
+        .rotationEffect(.degrees(rotationDegrees))
+        .opacity(activityOpacity)
         .onAppear {
             animates = true
         }
