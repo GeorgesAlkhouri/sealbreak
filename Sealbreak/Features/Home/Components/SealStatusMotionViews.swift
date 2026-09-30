@@ -1,59 +1,5 @@
 import SwiftUI
 
-struct PaperActivityArc: View {
-    let accent: Color
-    let reduceMotion: Bool
-
-    @State private var animates = false
-
-    private var rotationDegrees: Double {
-        if reduceMotion {
-            return -35
-        }
-        return animates ? 360 : 0
-    }
-
-    private var activityOpacity: Double {
-        reduceMotion && animates ? 0.62 : 1
-    }
-
-    var body: some View {
-        ZStack {
-            Circle()
-                .trim(from: 0, to: 0.22)
-                .stroke(
-                    accent.opacity(0.42),
-                    style: StrokeStyle(lineWidth: 20, lineCap: .round)
-                )
-                .padding(8)
-                .rotationEffect(.degrees(-90))
-                .offset(y: 3)
-                .shadow(color: .black.opacity(0.34), radius: 4, y: 4)
-
-            Circle()
-                .trim(from: 0, to: 0.22)
-                .stroke(
-                    accent,
-                    style: StrokeStyle(lineWidth: 18, lineCap: .round)
-                )
-                .padding(9)
-                .rotationEffect(.degrees(-90))
-                .shadow(color: accent.opacity(0.16), radius: 5)
-        }
-        .rotationEffect(.degrees(rotationDegrees))
-        .opacity(activityOpacity)
-        .onAppear {
-            animates = true
-        }
-        .animation(
-            reduceMotion
-                ? .easeInOut(duration: 0.85).repeatForever(autoreverses: true)
-                : .linear(duration: 0.8).repeatForever(autoreverses: false),
-            value: animates
-        )
-    }
-}
-
 struct PapercutUnsealRingReveal: View {
     let progress: CGFloat
     let accent: Color
