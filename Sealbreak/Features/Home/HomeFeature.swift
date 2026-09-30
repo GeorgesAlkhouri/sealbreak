@@ -135,13 +135,6 @@ struct HomeFeature {
                 synchronizeServerDetails(&state)
                 return .none
 
-            case .refreshResponse(.failure(let failure)):
-                state.operation = nil
-                state.status = nil
-                state.notice = failure.resource
-                synchronizeServerDetails(&state)
-                return .none
-
             case .unsealTapped:
                 guard state.canUnseal else { return .none }
                 state.confirmation = .unseal
@@ -322,7 +315,8 @@ struct HomeFeature {
                     )
                 )
 
-            case .unsealFailed(let failure),
+            case .refreshResponse(.failure(let failure)),
+                 .unsealFailed(let failure),
                  .removeLocalDataResponse(.failure(let failure)):
                 state.operation = nil
                 state.status = nil
