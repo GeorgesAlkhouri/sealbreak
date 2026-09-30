@@ -80,19 +80,26 @@ jobs:
           persist-credentials: false
       - name: Compile complete iOS app for Simulator
         run: bash scripts/ci/build.sh simulator
-      - name: Check localization catalog drift
-        continue-on-error: true
+
+  localization:
+    name: CI / localization
+    runs-on: macos-26
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_26.6.app/Contents/Developer
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - name: Verify Xcode 26.6 baseline
         run: |
-          if git diff --quiet -- \
-            Sealbreak/Resources/Localizable.xcstrings \
-            Sealbreak/Resources/InfoPlist.xcstrings; then
-            exit 0
-          fi
-          echo '::warning title=Localization catalogs out of sync::The Xcode build changed String Catalogs. Commit the generated catalog changes on the pull request branch.'
-          git diff -- \
-            Sealbreak/Resources/Localizable.xcstrings \
-            Sealbreak/Resources/InfoPlist.xcstrings
-          exit 1
+          test -d "$DEVELOPER_DIR"
+          xcodebuild -version
+      - name: Check String Catalog drift
+        run: bash scripts/ci/localization.sh
 
   integration:
     name: CI / integration / ${{ matrix.server.name }} / iOS ${{ matrix.platform.ios }}
@@ -171,7 +178,7 @@ jobs:
   ready:
     name: CI / ready
     if: ${{ always() }}
-    needs: [quality, tests, build, integration, sonar]
+    needs: [quality, tests, build, localization, integration, sonar]
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:
@@ -180,11 +187,13 @@ jobs:
           QUALITY_RESULT: ${{ needs.quality.result }}
           TESTS_RESULT: ${{ needs.tests.result }}
           BUILD_RESULT: ${{ needs.build.result }}
+          LOCALIZATION_RESULT: ${{ needs.localization.result }}
           INTEGRATION_RESULT: ${{ needs.integration.result }}
           SONAR_RESULT: ${{ needs.sonar.result }}
         run: |
           test "$QUALITY_RESULT" = success && \
           test "$TESTS_RESULT" = success && \
           test "$BUILD_RESULT" = success && \
+          test "$LOCALIZATION_RESULT" = success && \
           test "$INTEGRATION_RESULT" = success && \
           test "$SONAR_RESULT" = success
