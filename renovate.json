@@ -89,10 +89,5 @@
       "versioningTemplate": "semver-coerced",
       "extractVersionTemplate": "^v(?<version>\\d+\\.\\d+\\.\\d+)$"
     }
-  ],
-  "lockFileMaintenance": {
-    "schedule": [
-      "at any time"
-    ]
-  }
+  ]
 }
