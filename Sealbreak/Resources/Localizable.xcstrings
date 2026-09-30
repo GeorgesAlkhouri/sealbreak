@@ -180,9 +180,6 @@
     "Keep an independent recovery copy" : {
 
     },
-    "Keep one Shamir unseal share protected on this iPhone." : {
-
-    },
     "Keep setting up" : {
 
     },
@@ -244,6 +241,9 @@
 
     },
     "No accessible share was found. Face ID or the device passcode may have changed. Recover from your independent copy." : {
+
+    },
+    "One Shamir unseal share stays protected on this iPhone and is sent to your server only after Face ID." : {
 
     },
     "Only initialized Shamir seals are supported. Initialization, auto-unseal, and seal migration are not supported." : {
@@ -576,6 +576,9 @@
 
     },
     "UNKNOWN" : {
+
+    },
+    "Unlock OpenBao or Vault with Face ID." : {
 
     },
     "Unseal progress" : {
