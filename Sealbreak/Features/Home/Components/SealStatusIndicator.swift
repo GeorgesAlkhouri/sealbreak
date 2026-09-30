@@ -226,7 +226,7 @@ struct SealStatusIndicator: View {
             motion.setUnsealRevealProgress(1, for: animationID)
         } else {
             withAnimation(.easeOut(duration: MotionTiming.unsealReveal)) {
-                motion.setUnsealRevealProgress(1, for: animationID)
+                _ = motion.setUnsealRevealProgress(1, for: animationID)
             }
 
             do {
@@ -247,7 +247,7 @@ struct SealStatusIndicator: View {
         guard !reduceMotion else { return }
 
         withAnimation(.easeOut(duration: MotionTiming.resultCompress)) {
-            motion.setResultScale(0.96, for: animationID)
+            _ = motion.setResultScale(0.96, for: animationID)
         }
 
         do {
@@ -260,7 +260,7 @@ struct SealStatusIndicator: View {
 
         guard !Task.isCancelled else { return }
         withAnimation(.spring(response: 0.28, dampingFraction: 0.58)) {
-            motion.setResultScale(1.045, for: animationID)
+            _ = motion.setResultScale(1.045, for: animationID)
         }
 
         do {
@@ -273,7 +273,7 @@ struct SealStatusIndicator: View {
 
         guard !Task.isCancelled else { return }
         withAnimation(.spring(response: 0.24, dampingFraction: 0.78)) {
-            motion.setResultScale(1, for: animationID)
+            _ = motion.setResultScale(1, for: animationID)
         }
     }
 }
