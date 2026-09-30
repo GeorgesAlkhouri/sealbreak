@@ -12,6 +12,7 @@ struct SealStatusIndicator: View {
     @State private var resultTrigger = 0
     @State private var unsealRevealTrigger = 0
     @State private var unsealRevealProgress: CGFloat
+    @State private var animationGeneration = 0
 
     init(
         status: HomeViewState.Status,
@@ -56,6 +57,7 @@ struct SealStatusIndicator: View {
 
             PapercutResultBurst(
                 trigger: resultTrigger,
+                generation: animationGeneration,
                 accent: accent,
                 reduceMotion: reduceMotion
             )
@@ -89,32 +91,36 @@ struct SealStatusIndicator: View {
         .task(id: interactionTrigger) {
             await runPressFeedback()
         }
-        .task(id: resultTrigger) {
-            await runResultFeedback()
+        .task(id: resultAnimationID) {
+            await runResultFeedback(for: resultAnimationID)
         }
-        .task(id: unsealRevealTrigger) {
-            await runUnsealRingReveal()
+        .task(id: unsealRevealAnimationID) {
+            await runUnsealRingReveal(for: unsealRevealAnimationID)
         }
         .onChange(of: statusPhase) { oldPhase, newPhase in
-            if oldPhase == .unknown {
-                if newPhase == .unsealed {
-                    unsealRevealProgress = 1
-                }
+            guard oldPhase != newPhase else { return }
+
+            animationGeneration += 1
+            resultTrigger = 0
+            unsealRevealTrigger = 0
+            resultScale = 1
+
+            if newPhase == .unknown {
+                unsealRevealProgress = 0
                 return
             }
 
-            guard newPhase.isResolved,
-                  oldPhase != newPhase
-            else {
+            if oldPhase == .unknown {
+                unsealRevealProgress = newPhase == .unsealed ? 1 : 0
                 return
             }
 
             if oldPhase == .sealed, newPhase == .unsealed {
                 unsealRevealProgress = 0
-                unsealRevealTrigger += 1
+                unsealRevealTrigger = 1
             } else {
                 unsealRevealProgress = 0
-                resultTrigger += 1
+                resultTrigger = 1
             }
         }
     }
@@ -191,6 +197,20 @@ struct SealStatusIndicator: View {
         }
     }
 
+    private var resultAnimationID: StatusMotionTaskID {
+        StatusMotionTaskID(
+            trigger: resultTrigger,
+            generation: animationGeneration
+        )
+    }
+
+    private var unsealRevealAnimationID: StatusMotionTaskID {
+        StatusMotionTaskID(
+            trigger: unsealRevealTrigger,
+            generation: animationGeneration
+        )
+    }
+
     private func updateActivityVisibility() async {
         if isServerActivity {
             do {
@@ -230,8 +250,15 @@ struct SealStatusIndicator: View {
         }
     }
 
-    private func runUnsealRingReveal() async {
-        guard unsealRevealTrigger > 0 else { return }
+    private func runUnsealRingReveal(
+        for animationID: StatusMotionTaskID
+    ) async {
+        guard animationID.trigger > 0,
+              animationID.generation == animationGeneration,
+              statusPhase == .unsealed
+        else {
+            return
+        }
 
         if reduceMotion {
             unsealRevealProgress = 1
@@ -247,12 +274,26 @@ struct SealStatusIndicator: View {
             }
         }
 
-        guard !Task.isCancelled else { return }
-        resultTrigger += 1
+        guard !Task.isCancelled,
+              animationID.generation == animationGeneration,
+              statusPhase == .unsealed
+        else {
+            return
+        }
+
+        resultTrigger = 1
     }
 
-    private func runResultFeedback() async {
-        guard resultTrigger > 0, !reduceMotion else { return }
+    private func runResultFeedback(
+        for animationID: StatusMotionTaskID
+    ) async {
+        guard animationID.trigger > 0,
+              animationID.generation == animationGeneration,
+              statusPhase.isResolved,
+              !reduceMotion
+        else {
+            return
+        }
 
         withAnimation(.easeOut(duration: 0.08)) {
             resultScale = 0.96
@@ -261,6 +302,13 @@ struct SealStatusIndicator: View {
         do {
             try await Task.sleep(for: .milliseconds(80))
         } catch {
+            return
+        }
+
+        guard !Task.isCancelled,
+              animationID.generation == animationGeneration,
+              statusPhase.isResolved
+        else {
             return
         }
 
@@ -274,7 +322,13 @@ struct SealStatusIndicator: View {
             return
         }
 
-        guard !Task.isCancelled else { return }
+        guard !Task.isCancelled,
+              animationID.generation == animationGeneration,
+              statusPhase.isResolved
+        else {
+            return
+        }
+
         withAnimation(.spring(response: 0.24, dampingFraction: 0.78)) {
             resultScale = 1
         }
@@ -289,6 +343,11 @@ struct SealStatusIndicator: View {
             self != .unknown
         }
     }
+}
+
+private struct StatusMotionTaskID: Equatable {
+    let trigger: Int
+    let generation: Int
 }
 
 private extension HomeViewState.Status {
@@ -381,10 +440,18 @@ private struct PapercutUnsealRingReveal: View {
 
 private struct PapercutResultBurst: View {
     let trigger: Int
+    let generation: Int
     let accent: Color
     let reduceMotion: Bool
 
     @State private var progress: CGFloat = 1
+
+    private var animationID: StatusMotionTaskID {
+        StatusMotionTaskID(
+            trigger: trigger,
+            generation: generation
+        )
+    }
 
     var body: some View {
         ZStack {
@@ -410,8 +477,11 @@ private struct PapercutResultBurst: View {
         }
         .scaleEffect(reduceMotion ? 1 : 0.94 + (0.22 * progress))
         .opacity(trigger == 0 ? 0 : 1 - progress)
-        .task(id: trigger) {
-            guard trigger > 0 else { return }
+        .task(id: animationID) {
+            guard animationID.trigger > 0 else {
+                progress = 1
+                return
+            }
 
             progress = 0
             withAnimation(
