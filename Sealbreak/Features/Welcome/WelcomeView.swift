@@ -195,10 +195,9 @@ struct WelcomeView: View {
                     Text("Works with")
                     compatibilityProduct(
                         icon: "OpenBaoMark",
-                        name: "OpenBao",
+                        name: "OpenBao,",
                         visibleHeightFraction: openBaoVisibleHeightFraction
                     )
-                    Text("and")
                     compatibilityProduct(icon: "VaultMark", name: "Vault", tint: vaultBrand)
                 }
             }
