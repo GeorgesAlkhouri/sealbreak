@@ -282,9 +282,6 @@
     "Please keep the app open" : {
 
     },
-    "Progress" : {
-
-    },
     "Protect this share for %@" : {
 
     },
@@ -585,6 +582,9 @@
 
     },
     "UNKNOWN" : {
+
+    },
+    "Unseal progress" : {
 
     },
     "Unseal share" : {
