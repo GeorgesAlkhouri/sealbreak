@@ -101,7 +101,6 @@ struct HomeFeature {
             case .refreshTapped, .refreshRequested:
                 guard !state.isBusy else { return .none }
                 state.operation = .checkingStatus
-                state.status = nil
                 synchronizeServerDetails(&state)
                 let profile = state.profile
                 let client = self.client
@@ -127,12 +126,6 @@ struct HomeFeature {
                 synchronizeServerDetails(&state)
                 return .none
 
-            case .refreshResponse(.failure(let failure)):
-                state.operation = nil
-                state.notice = failure.resource
-                synchronizeServerDetails(&state)
-                return .none
-
             case .unsealTapped:
                 guard state.canUnseal else { return .none }
                 state.confirmation = .unseal
@@ -146,7 +139,6 @@ struct HomeFeature {
                 guard state.canUnseal else { return .none }
                 state.confirmation = nil
                 state.operation = .checkingTarget
-                state.status = nil
                 synchronizeServerDetails(&state)
                 let target = state.profile
                 let client = self.client
@@ -210,9 +202,6 @@ struct HomeFeature {
 
             case .operationActivity(let operation):
                 state.operation = operation
-                if operation == .submittingShare {
-                    state.status = nil
-                }
                 synchronizeServerDetails(&state)
                 return .none
 
@@ -317,7 +306,8 @@ struct HomeFeature {
                     )
                 )
 
-            case .unsealFailed(let failure),
+            case .refreshResponse(.failure(let failure)),
+                 .unsealFailed(let failure),
                  .removeLocalDataResponse(.failure(let failure)):
                 state.operation = nil
                 state.status = nil

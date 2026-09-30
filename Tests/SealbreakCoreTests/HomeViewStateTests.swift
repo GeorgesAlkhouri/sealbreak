@@ -14,14 +14,11 @@ struct HomeViewStateTests {
             secondaryDetail: String,
             progress: Double
         )] = [
-            (.unknown, "UNKNOWN", "Status unknown", "Check status before sending", 0.20),
-            (.checking(activity: ""), "CHECKING", "", "Please keep the app open", 0.66),
-            (.checking(activity: "Checking target…"), "CHECKING", "Checking target…", "Please keep the app open", 0.66),
+            (.unknown, "UNKNOWN", "Status unknown", "Check status before sending", 0),
             (.sealed(progress: 1, threshold: 3, supportsUnseal: true), "SEALED", "1 of 3 shares submitted", "Shamir seal", 1.0 / 3.0),
             (.sealed(progress: 1, threshold: 0, supportsUnseal: false), "SEALED", "1 of 0 shares submitted", "Manual unseal unavailable", 0),
             (.sealed(progress: -1, threshold: 3, supportsUnseal: true), "SEALED", "-1 of 3 shares submitted", "Shamir seal", 0),
             (.sealed(progress: 5, threshold: 3, supportsUnseal: true), "SEALED", "5 of 3 shares submitted", "Shamir seal", 1),
-            (.unsealing(activity: "Submitting one share…"), "UNSEALING", "Submitting one share…", "Please keep the app open", 0.66),
             (.unsealed, "UNSEALED", "Server is available", "Status checked", 1)
         ]
 
@@ -57,32 +54,49 @@ struct HomeViewStateTests {
     }
 
     @Test
-    func viewStateMapsEveryOperationToVisibleActivity() throws {
+    func viewStateKeepsServerStatusStableWhileWorking() throws {
         let profile = try ServerProfile(id: UUID(), name: "Server", address: "https://bao.example.com/")
-        let operations: [(HomeFeature.State.Operation, HomeViewState.Status, LocalizedStringResource)] = [
-            (.checkingStatus, .checking(activity: "Checking seal status…"), "Checking seal status…"),
-            (.checkingTarget, .unsealing(activity: "Checking target…"), "Checking target…"),
-            (.waitingForFaceID, .unsealing(activity: "Waiting for Face ID…"), "Waiting for Face ID…"),
-            (.submittingShare, .unsealing(activity: "Submitting one share…"), "Submitting one share…"),
-            (.verifyingStatus, .unsealing(activity: "Verifying seal status…"), "Verifying seal status…"),
-            (.removingLocalData, .checking(activity: "Removing local data…"), "Removing local data…")
+        let currentStatus = sealStatus(sealed: true, supportsUnseal: true)
+        let expectedStatus = HomeViewState.Status.sealed(
+            progress: 1,
+            threshold: 3,
+            supportsUnseal: true
+        )
+        let operations: [(
+            operation: HomeFeature.State.Operation,
+            activity: LocalizedStringResource
+        )] = [
+            (.checkingStatus, "Checking seal status…"),
+            (.checkingTarget, "Checking target…"),
+            (.waitingForFaceID, "Waiting for Face ID…"),
+            (.submittingShare, "Submitting one share…"),
+            (.verifyingStatus, "Verifying seal status…"),
+            (.removingLocalData, "Removing local data…")
         ]
 
-        for (operation, expectedStatus, expectedActivity) in operations {
+        for item in operations {
             let state = HomeViewState(
                 profile: profile,
-                sealStatus: nil,
-                operation: operation,
+                sealStatus: currentStatus,
+                operation: item.operation,
                 notice: "Hidden while busy"
             )
 
             #expect(state.serverName == "Server")
             #expect(state.origin == "bao.example.com")
             #expect(state.status == expectedStatus)
-            #expect(state.primaryAction == .working(title: expectedActivity))
+            #expect(state.primaryAction == .working(title: item.activity))
             #expect(state.notice == nil)
             #expect(state.isBusy)
         }
+
+        let checkingWithoutKnownStatus = HomeViewState(
+            profile: profile,
+            sealStatus: nil,
+            operation: .checkingStatus,
+            notice: "Hidden while busy"
+        )
+        #expect(checkingWithoutKnownStatus.status == .unknown)
     }
 
     @Test
