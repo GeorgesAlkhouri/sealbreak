@@ -1,36 +1,36 @@
 import Foundation
 
 // Readers and writers must agree on the size of the complete encoded payload.
-enum StorageLimits {
-    static let maxRecordBytes = 4_096
-    static let maxProfileCatalogBytes = 262_144
+package enum StorageLimits {
+    package static let maxRecordBytes = 4_096
+    package static let maxProfileCatalogBytes = 262_144
 
-    static func validateEncodedSize(_ data: Data) throws {
+    package static func validateEncodedSize(_ data: Data) throws {
         guard data.count <= maxRecordBytes else {
             throw AppFailure("The record exceeds the \(maxRecordBytes)-byte storage limit. Shorten the server name; nothing was saved.")
         }
     }
 
-    static func validateProfileCatalogSize(_ data: Data) throws {
+    package static func validateProfileCatalogSize(_ data: Data) throws {
         guard data.count <= maxProfileCatalogBytes else {
             throw AppFailure("The profile catalog exceeds the supported local storage limit. Nothing was saved.")
         }
     }
 }
 
-enum ServerProduct: String, Codable, Equatable, Sendable {
+public enum ServerProduct: String, Codable, Equatable, Sendable {
     case openBao = "OpenBao"
     case vault = "Vault"
     case generic = "Generic"
 }
 
-struct ServerProfile: Codable, Equatable, Identifiable, Sendable {
-    let id: UUID
-    let name: String
-    let origin: String
-    let product: ServerProduct
+public struct ServerProfile: Codable, Equatable, Identifiable, Sendable {
+    public let id: UUID
+    public let name: String
+    public let origin: String
+    public let product: ServerProduct
 
-    init(
+    public init(
         id: UUID,
         name: String,
         address: String,
@@ -49,20 +49,20 @@ struct ServerProfile: Codable, Equatable, Identifiable, Sendable {
         self.product = product
     }
 
-    func validated() throws -> Self {
+    public func validated() throws -> Self {
         guard try ServerProfile(id: id, name: name, address: origin, product: product) == self else {
             throw AppFailure("The server profile is invalid. Set up this server profile again.")
         }
         return self
     }
 
-    func endpoint(_ path: String) throws -> URL {
+    public func endpoint(_ path: String) throws -> URL {
         _ = try validated()
         return try Self.url(fromCanonicalOrigin: origin)
             .appendingPathComponent("v1/sys/\(path)")
     }
 
-    static func canonicalOrigin(_ input: String) throws -> String {
+    public static func canonicalOrigin(_ input: String) throws -> String {
         let value = input.trimmingCharacters(in: .whitespacesAndNewlines)
         guard value.utf8.count <= 512,
               value.unicodeScalars.allSatisfy({ $0.value > 32 && $0.value < 127 }),
@@ -89,14 +89,14 @@ struct ServerProfile: Codable, Equatable, Identifiable, Sendable {
         return try url(from: parts).absoluteString
     }
 
-    static func url(from components: URLComponents) throws -> URL {
+    public static func url(from components: URLComponents) throws -> URL {
         guard let url = components.url else {
             throw AppFailure("Unable to construct a canonical HTTPS server origin.")
         }
         return url
     }
 
-    static func url(
+    public static func url(
         fromCanonicalOrigin origin: String,
         parser: (String) -> URL? = { URL(string: $0) }
     ) throws -> URL {
@@ -107,13 +107,13 @@ struct ServerProfile: Codable, Equatable, Identifiable, Sendable {
     }
 }
 
-struct ShareRecord: Codable, Equatable, Sendable {
-    let version: Int
-    let profileID: UUID
-    let boundOrigin: String
-    var share: String
+public struct ShareRecord: Codable, Equatable, Sendable {
+    public let version: Int
+    public let profileID: UUID
+    public let boundOrigin: String
+    public var share: String
 
-    init(profile: ServerProfile, input: String) throws {
+    public init(profile: ServerProfile, input: String) throws {
         let profile = try profile.validated()
         self.version = 1
         self.profileID = profile.id
@@ -121,7 +121,7 @@ struct ShareRecord: Codable, Equatable, Sendable {
         self.share = try Self.validateShare(input)
     }
 
-    func validated() throws -> Self {
+    public func validated() throws -> Self {
         guard version == 1 else {
             throw AppFailure("Unsupported Keychain record version.")
         }
@@ -138,7 +138,7 @@ struct ShareRecord: Codable, Equatable, Sendable {
             .appendingPathComponent("v1/sys/\(path)")
     }
 
-    static func validateShare(_ input: String) throws -> String {
+    public static func validateShare(_ input: String) throws -> String {
         let text = input.trimmingCharacters(in: .whitespacesAndNewlines)
         let isHex = text.utf8.count.isMultiple(of: 2) && text.utf8.allSatisfy {
             (48...57).contains($0) || (65...70).contains($0) || (97...102).contains($0)
@@ -151,37 +151,57 @@ struct ShareRecord: Codable, Equatable, Sendable {
     }
 }
 
-struct ShareComparisonFragment: Equatable, Sendable {
-    let leading: String
-    let trailing: String
+package struct ShareComparisonFragment: Equatable, Sendable {
+    package let leading: String
+    package let trailing: String
 
-    init(validatedShare: String) {
+    package init(validatedShare: String) {
         precondition(validatedShare.count >= 6)
         leading = String(validatedShare.prefix(3))
         trailing = String(validatedShare.suffix(3))
     }
 
-    var displayValue: String {
+    package var displayValue: String {
         "\(leading) … \(trailing)"
     }
 }
 
-struct SealStatus: Decodable, Equatable, Sendable {
-    let type: String
-    let initialized: Bool
-    let sealed: Bool
-    let t: Int
-    let n: Int
-    let progress: Int
-    let migration: Bool?
-    let recoverySeal: Bool?
+public struct SealStatus: Decodable, Equatable, Sendable {
+    public let type: String
+    public let initialized: Bool
+    public let sealed: Bool
+    public let t: Int
+    public let n: Int
+    public let progress: Int
+    public let migration: Bool?
+    public let recoverySeal: Bool?
 
     enum CodingKeys: String, CodingKey {
         case type, initialized, sealed, t, n, progress, migration
         case recoverySeal = "recovery_seal"
     }
 
-    var supportsUnseal: Bool {
+    public init(
+        type: String,
+        initialized: Bool,
+        sealed: Bool,
+        t: Int,
+        n: Int,
+        progress: Int,
+        migration: Bool?,
+        recoverySeal: Bool?
+    ) {
+        self.type = type
+        self.initialized = initialized
+        self.sealed = sealed
+        self.t = t
+        self.n = n
+        self.progress = progress
+        self.migration = migration
+        self.recoverySeal = recoverySeal
+    }
+
+    public var supportsUnseal: Bool {
         initialized && type == "shamir" && migration != true && recoverySeal != true
     }
 
