@@ -3,11 +3,11 @@ import LocalAuthentication
 import Security
 
 package protocol KeychainAccessing {
-    package func makeBiometricAccessControl() -> SecAccessControl?
-    package func copyMatching(_ request: [String: Any]) -> (OSStatus, Data?)
-    package func add(_ request: [String: Any]) -> OSStatus
-    package func update(_ request: [String: Any], attributes: [String: Any]) -> OSStatus
-    package func delete(_ request: [String: Any]) -> OSStatus
+    func makeBiometricAccessControl() -> SecAccessControl?
+    func copyMatching(_ request: [String: Any]) -> (OSStatus, Data?)
+    func add(_ request: [String: Any]) -> OSStatus
+    func update(_ request: [String: Any], attributes: [String: Any]) -> OSStatus
+    func delete(_ request: [String: Any]) -> OSStatus
 }
 
 package struct SystemKeychainAccess: KeychainAccessing {
