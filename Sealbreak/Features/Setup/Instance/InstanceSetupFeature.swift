@@ -9,7 +9,9 @@ struct InstanceSetupFeature {
         var address = ""
         var checkedProfile: ServerProfile?
         var dnssecStatus: DNSSECStatus?
-        var notice: LocalizedStringResource?
+        var nameValidationError: LocalizedStringResource?
+        var addressValidationError: LocalizedStringResource?
+        var feedback: AppFeedback?
         var isCheckingConnection = false
 
         var canCheckConnection: Bool {
@@ -31,7 +33,9 @@ struct InstanceSetupFeature {
         mutating func invalidateConnectionCheck() {
             checkedProfile = nil
             dnssecStatus = nil
-            notice = nil
+            nameValidationError = nil
+            addressValidationError = nil
+            feedback = nil
         }
     }
 
@@ -76,18 +80,26 @@ struct InstanceSetupFeature {
             case .checkConnectionTapped:
                 guard state.canCheckConnection else { return .none }
 
+                do {
+                    _ = try ServerProfile.canonicalOrigin(state.address)
+                } catch {
+                    state.invalidateConnectionCheck()
+                    state.addressValidationError = normalizedAppFailure(error).feedback.text
+                    return .none
+                }
+
                 let profile: ServerProfile
                 do {
                     profile = try ServerProfile(id: uuid(), name: state.name, address: state.address)
                 } catch {
                     state.invalidateConnectionCheck()
-                    state.notice = normalizedAppFailure(error).resource
+                    state.nameValidationError = normalizedAppFailure(error).feedback.text
                     return .none
                 }
 
                 state.checkedProfile = nil
                 state.dnssecStatus = nil
-                state.notice = nil
+                state.feedback = nil
                 state.isCheckingConnection = true
 
                 let client = self.client
@@ -148,13 +160,13 @@ struct InstanceSetupFeature {
             case .connectionResponse(.success(let profile)):
                 state.isCheckingConnection = false
                 state.checkedProfile = profile
-                state.notice = nil
+                state.feedback = nil
                 return .none
 
             case .connectionResponse(.failure(let failure)):
                 state.isCheckingConnection = false
                 state.checkedProfile = nil
-                state.notice = failure.resource
+                state.feedback = failure.feedback
                 return .none
 
             case .continueTapped:
@@ -169,7 +181,7 @@ struct InstanceSetupFeature {
                 state.isCheckingConnection = false
                 state.checkedProfile = nil
                 if wasChecking {
-                    state.notice = "Connection check interrupted. Try again."
+                    state.feedback = .warning("Connection check interrupted. Try again.")
                 }
                 return .cancel(id: CancelID.connectionCheck)
 

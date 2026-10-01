@@ -66,7 +66,7 @@ struct AppFeature {
                 state.home = nil
                 state.setup = nil
                 state.welcome = WelcomeFeature.State(
-                    notice: notice,
+                    feedback: .warning(notice),
                     requiresLocalReset: true
                 )
                 return .none
@@ -76,7 +76,9 @@ struct AppFeature {
                 state.home = nil
                 state.setup = nil
                 state.welcome = WelcomeFeature.State(
-                    notice: "Local Sealbreak configuration could not be read. Reset local data to continue, then set up again using your independent share copy.",
+                    feedback: .warning(
+                        "Local Sealbreak configuration could not be read. Reset local data to continue, then set up again using your independent share copy."
+                    ),
                     requiresLocalReset: true
                 )
                 return .none
@@ -99,11 +101,11 @@ struct AppFeature {
                 guard state.home?.isBusy == false else { return .none }
                 return state.home == nil ? .none : .send(.home(.refreshRequested))
 
-            case .home(.delegate(.localDataRemoved(let notice, let requiresLocalReset))):
+            case .home(.delegate(.localDataRemoved(let feedback, let requiresLocalReset))):
                 state.home = nil
                 state.setup = nil
                 state.welcome = WelcomeFeature.State(
-                    notice: notice,
+                    feedback: feedback,
                     requiresLocalReset: requiresLocalReset
                 )
                 return .none
@@ -122,19 +124,19 @@ struct AppFeature {
                 state.welcome = WelcomeFeature.State()
                 return .none
 
-            case .setup(.delegate(.localResetRequired(let notice))):
+            case .setup(.delegate(.localResetRequired(let feedback))):
                 state.home = nil
                 state.setup = nil
                 state.welcome = WelcomeFeature.State(
-                    notice: notice,
+                    feedback: feedback,
                     requiresLocalReset: true
                 )
                 return .none
 
-            case .setup(.delegate(.profileReady(let profile, let notice))):
+            case .setup(.delegate(.profileReady(let profile, let feedback))):
                 state.welcome = nil
                 state.setup = nil
-                state.home = HomeFeature.State(profile: profile, notice: notice)
+                state.home = HomeFeature.State(profile: profile, feedback: feedback)
                 return .send(.home(.refreshRequested))
 
             case .privacy, .welcome, .home, .setup:

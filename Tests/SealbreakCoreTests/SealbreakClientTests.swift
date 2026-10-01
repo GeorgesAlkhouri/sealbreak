@@ -80,6 +80,21 @@ struct SealbreakClientTests {
     }
 
     @Test
+    func appFeedbackPreservesSeverity() {
+        #expect(AppFeedback.info("info").level == .info)
+        #expect(AppFeedback.success("success").level == .success)
+        #expect(AppFeedback.warning("warning").level == .warning)
+        #expect(AppFeedback.error("error").level == .error)
+
+        let defaultFailure = AppFailure("failed")
+        #expect(defaultFailure.feedback == .error("failed"))
+
+        let warningFailure = AppFailure(feedback: .warning("cancelled"))
+        #expect(warningFailure.feedback == .warning("cancelled"))
+        #expect(warningFailure.message == "cancelled")
+    }
+
+    @Test
     func unknownErrorsAreNormalizedWithoutSensitiveDetails() {
         let failure = normalizedAppFailure(ForeignError())
 

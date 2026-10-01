@@ -8,7 +8,7 @@ struct ReplaceShareFeature {
         var profile: ServerProfile
         var isBusy = false
         var activity: LocalizedStringResource?
-        var notice: LocalizedStringResource?
+        var feedback: AppFeedback?
     }
 
     enum Action: Equatable {
@@ -38,7 +38,7 @@ struct ReplaceShareFeature {
             case .saveTapped(let input, let recoveryConfirmed):
                 guard !state.isBusy else { return .none }
                 guard recoveryConfirmed else {
-                    state.notice = "Confirm recovery for the replacement share before saving."
+                    state.feedback = .warning("Confirm recovery for the replacement share before saving.")
                     return .none
                 }
 
@@ -46,7 +46,7 @@ struct ReplaceShareFeature {
                 do {
                     replacement = try ShareRecord(profile: state.profile, input: input)
                 } catch {
-                    state.notice = normalizedAppFailure(error).resource
+                    state.feedback = normalizedAppFailure(error).feedback
                     return .none
                 }
 
@@ -76,19 +76,19 @@ struct ReplaceShareFeature {
             case .saveSucceeded:
                 state.isBusy = false
                 state.activity = nil
-                state.notice = nil
+                state.feedback = nil
                 return .send(.delegate(.saved))
 
             case .saveFailed(let failure):
                 state.isBusy = false
                 state.activity = nil
-                state.notice = failure.resource
+                state.feedback = failure.feedback
                 return .none
 
             case .operationCancelled:
                 state.isBusy = false
                 state.activity = nil
-                state.notice = "Operation cancelled. Refresh status before retrying; a submitted request may already have been processed."
+                state.feedback = .warning("Operation cancelled. Refresh status before retrying; a submitted request may already have been processed.")
                 return .none
 
             case .cancelTapped:
@@ -100,7 +100,7 @@ struct ReplaceShareFeature {
                 state.isBusy = false
                 state.activity = nil
                 if wasBusy {
-                    state.notice = "Operation interrupted. Check status on return; an already submitted request cannot be recalled."
+                    state.feedback = .warning("Operation interrupted. Check status on return; an already submitted request cannot be recalled.")
                 }
                 let client = self.client
                 return .merge(

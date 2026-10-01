@@ -79,14 +79,14 @@ struct HomeViewStateTests {
                 profile: profile,
                 sealStatus: currentStatus,
                 operation: item.operation,
-                notice: "Hidden while busy"
+                feedback: .warning("Hidden while busy")
             )
 
             #expect(state.serverName == "Server")
             #expect(state.origin == "bao.example.com")
             #expect(state.status == expectedStatus)
             #expect(state.primaryAction == .working(title: item.activity))
-            #expect(state.notice == nil)
+            #expect(state.feedback == nil)
             #expect(state.isBusy)
         }
 
@@ -94,53 +94,64 @@ struct HomeViewStateTests {
             profile: profile,
             sealStatus: nil,
             operation: .checkingStatus,
-            notice: "Hidden while busy"
+            feedback: .warning("Hidden while busy")
         )
         #expect(checkingWithoutKnownStatus.status == .unknown)
     }
 
     @Test
-    func viewStateMapsUnknownSealedAndUnsealedStates() throws {
+    func viewStateMapsFeedbackBySeverity() throws {
         let profile = try ServerProfile(id: UUID(), name: "Server", address: "https://bao.example.com")
+        let sealedStatus = sealStatus(sealed: true, supportsUnseal: true)
 
         let unknown = HomeViewState(
             profile: profile,
             sealStatus: nil,
             operation: nil,
-            notice: "Check the configured target."
+            feedback: .error("Check the configured target.")
         )
         #expect(unknown.status == .unknown)
         #expect(unknown.primaryAction == .checkStatus(enabled: true))
-        #expect(unknown.notice == "Check the configured target.")
+        #expect(unknown.feedback == .error("Check the configured target."))
         #expect(!unknown.isBusy)
 
-        let sealed = HomeViewState(
+        let sealedInfo = HomeViewState(
             profile: profile,
-            sealStatus: sealStatus(sealed: true, supportsUnseal: true),
+            sealStatus: sealedStatus,
             operation: nil,
-            notice: "Ignored"
+            feedback: .info("Ignored")
         )
-        #expect(sealed.status == .sealed(progress: 1, threshold: 3, supportsUnseal: true))
-        #expect(sealed.primaryAction == .unseal(enabled: true))
-        #expect(sealed.notice == nil)
+        #expect(sealedInfo.status == .sealed(progress: 1, threshold: 3, supportsUnseal: true))
+        #expect(sealedInfo.primaryAction == .unseal(enabled: true))
+        #expect(sealedInfo.feedback == nil)
+
+        let sealedError = HomeViewState(
+            profile: profile,
+            sealStatus: sealedStatus,
+            operation: nil,
+            feedback: .error("Face ID failed")
+        )
+        #expect(sealedError.status == .sealed(progress: 1, threshold: 3, supportsUnseal: true))
+        #expect(sealedError.feedback == .error("Face ID failed"))
 
         let unsupported = HomeViewState(
             profile: profile,
             sealStatus: sealStatus(sealed: true, supportsUnseal: false),
             operation: nil,
-            notice: "Ignored"
+            feedback: .warning("Manual unseal unavailable")
         )
         #expect(unsupported.primaryAction == .unseal(enabled: false))
+        #expect(unsupported.feedback == .warning("Manual unseal unavailable"))
 
         let unsealed = HomeViewState(
             profile: profile,
             sealStatus: sealStatus(sealed: false, supportsUnseal: true),
             operation: nil,
-            notice: "Ignored"
+            feedback: .success("Checked")
         )
         #expect(unsealed.status == .unsealed)
         #expect(unsealed.primaryAction == .checkStatus(enabled: true))
-        #expect(unsealed.notice == nil)
+        #expect(unsealed.feedback == nil)
     }
 
     @Test
@@ -151,8 +162,7 @@ struct HomeViewStateTests {
                 profile: profile,
                 status: nil,
                 isBusy: false,
-                activity: nil,
-                notice: ""
+                activity: nil
             )
         ) {
             ServerDetailsFeature()
