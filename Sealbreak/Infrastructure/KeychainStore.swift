@@ -2,16 +2,16 @@ import Foundation
 import LocalAuthentication
 import Security
 
-protocol KeychainAccessing {
-    func makeBiometricAccessControl() -> SecAccessControl?
-    func copyMatching(_ request: [String: Any]) -> (OSStatus, Data?)
-    func add(_ request: [String: Any]) -> OSStatus
-    func update(_ request: [String: Any], attributes: [String: Any]) -> OSStatus
-    func delete(_ request: [String: Any]) -> OSStatus
+package protocol KeychainAccessing {
+    package func makeBiometricAccessControl() -> SecAccessControl?
+    package func copyMatching(_ request: [String: Any]) -> (OSStatus, Data?)
+    package func add(_ request: [String: Any]) -> OSStatus
+    package func update(_ request: [String: Any], attributes: [String: Any]) -> OSStatus
+    package func delete(_ request: [String: Any]) -> OSStatus
 }
 
-struct SystemKeychainAccess: KeychainAccessing {
-    func makeBiometricAccessControl() -> SecAccessControl? {
+package struct SystemKeychainAccess: KeychainAccessing {
+    package func makeBiometricAccessControl() -> SecAccessControl? {
         SecAccessControlCreateWithFlags(
             nil,
             kSecAttrAccessibleWhenPasscodeSetThisDeviceOnly,
@@ -20,29 +20,29 @@ struct SystemKeychainAccess: KeychainAccessing {
         )
     }
 
-    func copyMatching(_ request: [String: Any]) -> (OSStatus, Data?) {
+    package func copyMatching(_ request: [String: Any]) -> (OSStatus, Data?) {
         var result: CFTypeRef?
         let status = SecItemCopyMatching(request as CFDictionary, &result)
         return (status, result as? Data)
     }
 
-    func add(_ request: [String: Any]) -> OSStatus {
+    package func add(_ request: [String: Any]) -> OSStatus {
         SecItemAdd(request as CFDictionary, nil)
     }
 
-    func update(_ request: [String: Any], attributes: [String: Any]) -> OSStatus {
+    package func update(_ request: [String: Any], attributes: [String: Any]) -> OSStatus {
         SecItemUpdate(request as CFDictionary, attributes as CFDictionary)
     }
 
-    func delete(_ request: [String: Any]) -> OSStatus {
+    package func delete(_ request: [String: Any]) -> OSStatus {
         SecItemDelete(request as CFDictionary)
     }
 }
 
-struct KeychainStore {
+package struct KeychainStore {
     private let access: any KeychainAccessing
 
-    init(access: any KeychainAccessing = SystemKeychainAccess()) {
+    package init(access: any KeychainAccessing = SystemKeychainAccess()) {
         self.access = access
     }
 
@@ -59,7 +59,7 @@ struct KeychainStore {
         ]
     }
 
-    func read(profileID: UUID, context: LAContext) throws -> ShareRecord {
+    package func read(profileID: UUID, context: LAContext) throws -> ShareRecord {
         var request = query(profileID: profileID)
         request[kSecReturnData as String] = true
         request[kSecMatchLimit as String] = kSecMatchLimitOne
@@ -89,7 +89,7 @@ struct KeychainStore {
         return record
     }
 
-    func insert(_ record: ShareRecord, context: LAContext) throws {
+    package func insert(_ record: ShareRecord, context: LAContext) throws {
         guard let accessControl = access.makeBiometricAccessControl() else {
             throw AppFailure("Could not create biometric Keychain protection. A device passcode and Face ID are required.")
         }
@@ -110,7 +110,7 @@ struct KeychainStore {
         }
     }
 
-    func replace(_ record: ShareRecord, context: LAContext) throws {
+    package func replace(_ record: ShareRecord, context: LAContext) throws {
         var data = try JSONEncoder().encode(record.validated())
         defer {
             data.resetBytes(in: data.startIndex..<data.endIndex)
@@ -128,7 +128,7 @@ struct KeychainStore {
         }
     }
 
-    func delete(profileID: UUID, context: LAContext) throws {
+    package func delete(profileID: UUID, context: LAContext) throws {
         var request = query(profileID: profileID)
         request[kSecUseAuthenticationContext as String] = context
         let status = access.delete(request)
@@ -137,7 +137,7 @@ struct KeychainStore {
         }
     }
 
-    func deleteAll() throws {
+    package func deleteAll() throws {
         let request: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: service,
@@ -164,18 +164,18 @@ struct KeychainStore {
     }
 }
 
-enum StoredProfileState: String, Codable, Equatable {
+package enum StoredProfileState: String, Codable, Equatable {
     case creating
     case ready
     case removing
 }
 
-struct StoredProfile: Codable, Equatable {
-    let profile: ServerProfile
-    var state: StoredProfileState
+package struct StoredProfile: Codable, Equatable {
+    package let profile: ServerProfile
+    package var state: StoredProfileState
 }
 
-enum ProfileCatalogState: String, Codable, Equatable {
+package enum ProfileCatalogState: String, Codable, Equatable {
     case active
     case resetting
 }
@@ -188,10 +188,10 @@ private struct ProfileCatalog: Codable {
     var profiles: [StoredProfile]
 }
 
-struct ProfileStore {
+package struct ProfileStore {
     private let baseDirectory: URL
 
-    init(baseDirectory: URL? = nil) {
+    package init(baseDirectory: URL? = nil) {
         self.baseDirectory = baseDirectory ?? FileManager.default.urls(
             for: .applicationSupportDirectory,
             in: .userDomainMask
@@ -206,7 +206,7 @@ struct ProfileStore {
         directory.appendingPathComponent("profiles.json")
     }
 
-    func loadAll() throws -> [StoredProfile] {
+    package func loadAll() throws -> [StoredProfile] {
         guard FileManager.default.fileExists(atPath: file.path) else {
             return []
         }
@@ -266,7 +266,7 @@ struct ProfileStore {
         return validated
     }
 
-    func begin(_ profile: ServerProfile) throws {
+    package func begin(_ profile: ServerProfile) throws {
         let profile = try profile.validated()
         try StorageLimits.validateEncodedSize(JSONEncoder().encode(profile))
 
@@ -285,7 +285,7 @@ struct ProfileStore {
         try write(entries)
     }
 
-    func commit(id: UUID) throws {
+    package func commit(id: UUID) throws {
         var entries = try loadAll()
         guard entries.count == 1,
               entries[0].profile.id == id,
@@ -299,7 +299,7 @@ struct ProfileStore {
         try write(entries)
     }
 
-    func beginRemoval(id: UUID) throws {
+    package func beginRemoval(id: UUID) throws {
         var entries = try loadAll()
         guard entries.count == 1,
               entries[0].profile.id == id,
@@ -313,7 +313,7 @@ struct ProfileStore {
         try write(entries)
     }
 
-    func delete(id: UUID) throws {
+    package func delete(id: UUID) throws {
         var entries = try loadAll()
         entries.removeAll { $0.profile.id == id }
 
@@ -327,7 +327,7 @@ struct ProfileStore {
         try write(entries)
     }
 
-    func prepareForReset() throws {
+    package func prepareForReset() throws {
         try writeCatalog(
             ProfileCatalog(
                 version: ProfileCatalog.currentVersion,
@@ -337,7 +337,7 @@ struct ProfileStore {
         )
     }
 
-    func reset() throws {
+    package func reset() throws {
         guard FileManager.default.fileExists(atPath: file.path) else {
             return
         }
@@ -374,7 +374,7 @@ struct ProfileStore {
     }
 }
 
-func resolveLocalSetupState(
+package func resolveLocalSetupState(
     profiles: [StoredProfile]
 ) -> LocalSetupState {
     guard profiles.count <= 1 else {
@@ -403,7 +403,7 @@ func resolveLocalSetupState(
     }
 }
 
-func createLocalProfileTransaction(
+package func createLocalProfileTransaction(
     beginProfile: () throws -> Void,
     insertShare: () throws -> Void,
     commitProfile: () throws -> Void
@@ -420,7 +420,7 @@ func createLocalProfileTransaction(
     }
 }
 
-func removeLocalProfileTransaction(
+package func removeLocalProfileTransaction(
     beginRemoval: () throws -> Void,
     deleteShare: () throws -> Void,
     deleteProfile: () throws -> Void
@@ -437,7 +437,7 @@ func removeLocalProfileTransaction(
     }
 }
 
-func resetLocalStorage(
+package func resetLocalStorage(
     prepareReset: () throws -> Void,
     deleteShares: () throws -> Void,
     resetProfiles: () throws -> Void
