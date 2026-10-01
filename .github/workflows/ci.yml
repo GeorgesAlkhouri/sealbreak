@@ -150,7 +150,7 @@ jobs:
 
   sonar:
     name: CI / sonar
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     timeout-minutes: 20
     steps:
       - name: Reject Sonar analysis for fork PRs
@@ -172,7 +172,7 @@ jobs:
     name: CI / ready
     if: ${{ always() }}
     needs: [quality, tests, build, integration, sonar]
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     timeout-minutes: 5
     steps:
       - name: Require actual success from every gate
