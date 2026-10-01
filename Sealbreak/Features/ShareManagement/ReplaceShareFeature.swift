@@ -2,17 +2,18 @@ import ComposableArchitecture
 import Foundation
 
 @Reducer
-struct ReplaceShareFeature {
+package struct ReplaceShareFeature {
+    package init() {}
     @ObservableState
-    struct State: Equatable {
-        var profile: ServerProfile
-        var isBusy = false
-        var activity: LocalizedStringResource?
-        var feedback: AppFeedback?
+    package struct State: Equatable {
+        package var profile: ServerProfile
+        package var isBusy = false
+        package var activity: LocalizedStringResource?
+        package var feedback: AppFeedback?
     }
 
-    enum Action: Equatable {
-        enum Delegate: Equatable {
+    package enum Action: Equatable {
+        package enum Delegate: Equatable {
             case saved
             case dismissRequested
         }
@@ -32,7 +33,7 @@ struct ReplaceShareFeature {
 
     @Dependency(\.sealbreakClient) private var client
 
-    var body: some ReducerOf<Self> {
+    package var body: some ReducerOf<Self> {
         Reduce { state, action in
             switch action {
             case .saveTapped(let input, let recoveryConfirmed):
