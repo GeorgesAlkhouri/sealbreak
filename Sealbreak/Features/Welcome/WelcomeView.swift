@@ -5,6 +5,9 @@ import SwiftUI
 struct WelcomeView: View {
     let store: StoreOf<WelcomeFeature>
 
+    @ScaledMetric(relativeTo: .subheadline)
+    private var compatibilityGlyphHeight: CGFloat = 15
+
     var body: some View {
         GeometryReader { proxy in
             ZStack {
@@ -28,13 +31,23 @@ struct WelcomeView: View {
                             .fixedSize(horizontal: false, vertical: true)
                             .padding(.top, 12)
 
-                        Text("Keep one Shamir unseal share protected on this iPhone.")
-                            .font(.body.weight(.medium))
-                            .foregroundStyle(PapercutPalette.cream.opacity(0.94))
+                        Text("Unlock OpenBao or Vault with Face ID.")
+                            .font(.body.weight(.semibold))
+                            .foregroundStyle(PapercutPalette.cream)
                             .multilineTextAlignment(.center)
                             .fixedSize(horizontal: false, vertical: true)
                             .padding(.top, 16)
                             .frame(maxWidth: 310)
+
+                        Text(
+                            "One Shamir unseal share stays protected on this iPhone and is sent to your server only after Face ID."
+                        )
+                        .font(.subheadline.weight(.medium))
+                        .foregroundStyle(PapercutPalette.cream.opacity(0.86))
+                        .multilineTextAlignment(.center)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .padding(.top, 8)
+                        .frame(maxWidth: 320)
 
                         compatibilityCopy
                             .font(.subheadline.weight(.medium))
@@ -48,23 +61,9 @@ struct WelcomeView: View {
                                 "Works with OpenBao, Vault, and compatible Shamir seal servers."
                             )
 
-                        if let notice = store.notice {
-                            Text(notice)
-                                .font(.footnote.weight(.medium))
-                                .foregroundStyle(PapercutPalette.cream)
-                                .multilineTextAlignment(.center)
-                                .fixedSize(horizontal: false, vertical: true)
-                                .padding(.horizontal, 16)
-                                .padding(.vertical, 12)
+                        if let feedback = store.feedback {
+                            PapercutFeedback(feedback: feedback)
                                 .frame(maxWidth: 330)
-                                .background {
-                                    RoundedRectangle(cornerRadius: 18, style: .continuous)
-                                        .fill(PapercutPalette.card.opacity(0.92))
-                                        .overlay {
-                                            RoundedRectangle(cornerRadius: 18, style: .continuous)
-                                                .stroke(PapercutPalette.ring, lineWidth: 1)
-                                        }
-                                }
                                 .padding(.top, 18)
                         }
 
@@ -169,16 +168,22 @@ struct WelcomeView: View {
             ViewThatFits(in: .horizontal) {
                 HStack(spacing: 6) {
                     Text("Works with")
-                    compatibilityProduct(icon: "OpenBaoMark", name: "OpenBao")
-                    Text("and")
+                    compatibilityProduct(
+                        icon: "OpenBaoMark",
+                        name: "OpenBao,",
+                        visibleHeightFraction: openBaoVisibleHeightFraction
+                    )
                     compatibilityProduct(icon: "VaultMark", name: "Vault", tint: vaultBrand)
                 }
                 .fixedSize(horizontal: true, vertical: false)
 
                 VStack(spacing: 6) {
                     Text("Works with")
-                    compatibilityProduct(icon: "OpenBaoMark", name: "OpenBao")
-                    Text("and")
+                    compatibilityProduct(
+                        icon: "OpenBaoMark",
+                        name: "OpenBao,",
+                        visibleHeightFraction: openBaoVisibleHeightFraction
+                    )
                     compatibilityProduct(icon: "VaultMark", name: "Vault", tint: vaultBrand)
                 }
             }
@@ -191,19 +196,31 @@ struct WelcomeView: View {
     private func compatibilityProduct(
         icon: String,
         name: String,
-        tint: Color? = nil
+        tint: Color? = nil,
+        visibleHeightFraction: CGFloat = 1
     ) -> some View {
-        HStack(spacing: 4) {
+        let iconCanvasSize = compatibilityGlyphHeight / visibleHeightFraction
+
+        return HStack(spacing: 4) {
             Image(icon)
                 .resizable()
                 .scaledToFit()
-                .frame(width: 16, height: 16)
+                .frame(width: iconCanvasSize, height: iconCanvasSize)
+                .frame(width: iconCanvasSize, height: compatibilityGlyphHeight)
+                .clipped()
                 .foregroundStyle(tint ?? PapercutPalette.secondaryText)
                 .accessibilityHidden(true)
 
             Text(verbatim: name)
                 .fixedSize(horizontal: false, vertical: true)
         }
+    }
+
+    // Simple Icons' OpenBao path is vertically centered inside a 24×24 viewBox and
+    // visibly spans y = 4.631 ... 19.369. Normalize that visible glyph to the
+    // same Dynamic Type-scaled height as the neighboring subheadline text.
+    private var openBaoVisibleHeightFraction: CGFloat {
+        (19.369 - 4.631) / 24
     }
 
     private var vaultBrand: Color {

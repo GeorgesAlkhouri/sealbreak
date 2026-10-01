@@ -9,8 +9,8 @@ repos:
       - id: check-symlinks
       - id: check-yaml
       - id: end-of-file-fixer
-        # Keep the vendored Vault SVG byte-identical to its upstream MPL-2.0 source.
-        exclude: '^Sealbreak/Resources/Brand\.xcassets/VaultMark\.imageset/VaultMark\.svg$'
+        # Keep the vendored Simple Icons SVGs byte-identical to their pinned upstream files.
+        exclude: '^Sealbreak/Resources/Brand\.xcassets/(OpenBaoMark\.imageset/OpenBaoMark|VaultMark\.imageset/VaultMark)\.svg$'
       - id: trailing-whitespace
 
   - repo: local

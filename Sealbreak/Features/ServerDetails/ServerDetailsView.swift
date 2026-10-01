@@ -68,24 +68,13 @@ struct ServerDetailsView: View {
                         }
                         LabeledContent("Type", value: status.type)
                         LabeledContent("Threshold / shares", value: "\(status.t) / \(status.n)")
-                        LabeledContent("Progress", value: "\(status.progress) / \(status.t)")
+                        if status.sealed {
+                            LabeledContent("Unseal progress", value: "\(status.progress) / \(status.t)")
+                        }
                     } else {
                         Text("Status unknown — check before sending.")
                             .foregroundStyle(.secondary)
                     }
-
-                    Button("Check status", systemImage: "arrow.clockwise") {
-                        store.send(.refreshTapped)
-                    }
-                    .disabled(store.isBusy || store.isRevealingShare)
-                }
-
-                Section("Result") {
-                    if store.isBusy, let activity = store.activity {
-                        ProgressView(activity)
-                    }
-                    Text(store.notice)
-                        .font(.callout)
                 }
             }
             .navigationTitle("Server details")

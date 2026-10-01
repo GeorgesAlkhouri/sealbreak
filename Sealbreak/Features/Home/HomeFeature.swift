@@ -39,7 +39,7 @@ struct HomeFeature {
         var profile: ServerProfile
         var status: SealStatus?
         var operation: Operation?
-        var notice: LocalizedStringResource
+        var feedback: AppFeedback
         var confirmation: Confirmation?
         @Presents var serverDetails: ServerDetailsFeature.State?
         @Presents var replaceShare: ReplaceShareFeature.State?
@@ -47,11 +47,11 @@ struct HomeFeature {
         init(
             profile: ServerProfile,
             status: SealStatus? = nil,
-            notice: LocalizedStringResource = "Prototype: use disposable test shares until the security checks in issue #1 have been completed."
+            feedback: AppFeedback = .info("Prototype: use disposable test shares until the security checks in issue #1 have been completed.")
         ) {
             self.profile = profile
             self.status = status
-            self.notice = notice
+            self.feedback = feedback
         }
 
         var isBusy: Bool { operation != nil }
@@ -63,7 +63,7 @@ struct HomeFeature {
 
     enum Action: Equatable {
         enum Delegate: Equatable {
-            case localDataRemoved(notice: LocalizedStringResource, requiresLocalReset: Bool)
+            case localDataRemoved(feedback: AppFeedback, requiresLocalReset: Bool)
         }
 
         case refreshTapped
@@ -74,9 +74,11 @@ struct HomeFeature {
         case confirmationDismissed
         case operationActivity(State.Operation)
         case unsealPreflightStatus(SealStatus)
+        case unsealPreflightFailed(AppFailure)
         case unsealAlreadyUnsealed(SealStatus)
         case unsealCompleted(SealStatus)
         case unsealFailed(AppFailure)
+        case unsealOutcomeUnknown(AppFeedback)
         case operationCancelled
         case serverDetailsTapped
         case replaceShareTapped
@@ -101,7 +103,6 @@ struct HomeFeature {
             case .refreshTapped, .refreshRequested:
                 guard !state.isBusy else { return .none }
                 state.operation = .checkingStatus
-                state.status = nil
                 synchronizeServerDetails(&state)
                 let profile = state.profile
                 let client = self.client
@@ -121,15 +122,9 @@ struct HomeFeature {
             case .refreshResponse(.success(let status)):
                 state.operation = nil
                 state.status = status
-                state.notice = status.supportsUnseal
-                    ? "Status checked. Nothing is sent automatically."
-                    : "Only initialized Shamir seals are supported. Initialization, auto-unseal, and seal migration are not supported."
-                synchronizeServerDetails(&state)
-                return .none
-
-            case .refreshResponse(.failure(let failure)):
-                state.operation = nil
-                state.notice = failure.resource
+                state.feedback = status.supportsUnseal
+                    ? .success("Status checked. Nothing is sent automatically.")
+                    : .warning("Only initialized Shamir seals are supported. Initialization, auto-unseal, and seal migration are not supported.")
                 synchronizeServerDetails(&state)
                 return .none
 
@@ -146,15 +141,16 @@ struct HomeFeature {
                 guard state.canUnseal else { return .none }
                 state.confirmation = nil
                 state.operation = .checkingTarget
-                state.status = nil
                 synchronizeServerDetails(&state)
                 let target = state.profile
                 let client = self.client
                 return .run { send in
+                    var preflightCompleted = false
                     var submissionStarted = false
                     do {
                         try await client.waitForForeground()
                         let before = try await client.status(target)
+                        preflightCompleted = true
                         await send(.unsealPreflightStatus(before))
 
                         guard before.supportsUnseal else {
@@ -192,17 +188,20 @@ struct HomeFeature {
                         await send(.operationCancelled)
                     } catch {
                         if submissionStarted {
-                            let detailResource: LocalizedStringResource = (error as? AppFailure)?.resource ?? "Request failed."
+                            let detailResource: LocalizedStringResource =
+                                (error as? AppFailure)?.feedback.text ?? "Request failed."
                             let detail = String(localized: detailResource)
                             await send(
-                                .unsealFailed(
-                                    AppFailure(
+                                .unsealOutcomeUnknown(
+                                    .warning(
                                         "\(detail) The final outcome is unknown. Check status before another attempt; a request already received cannot be undone."
                                     )
                                 )
                             )
-                        } else {
+                        } else if preflightCompleted {
                             await send(.unsealFailed(normalizedAppFailure(error)))
+                        } else {
+                            await send(.unsealPreflightFailed(normalizedAppFailure(error)))
                         }
                     }
                 }
@@ -210,9 +209,6 @@ struct HomeFeature {
 
             case .operationActivity(let operation):
                 state.operation = operation
-                if operation == .submittingShare {
-                    state.status = nil
-                }
                 synchronizeServerDetails(&state)
                 return .none
 
@@ -224,23 +220,26 @@ struct HomeFeature {
             case .unsealAlreadyUnsealed(let status):
                 state.operation = nil
                 state.status = status
-                state.notice = "Already unsealed. No share was read or sent."
+                state.feedback = .info("Already unsealed. No share was read or sent.")
                 synchronizeServerDetails(&state)
                 return .none
 
             case .unsealCompleted(let status):
                 state.operation = nil
                 state.status = status
-                state.notice = status.sealed
+                let feedbackText: LocalizedStringResource = status.sealed
                     ? "Submission completed; still sealed. Progress: \(status.progress)/\(status.t). Other holders must submit their own shares to this same node."
                     : "Verified: this endpoint now reports unsealed. This does not prove which operator completed the quorum."
+                state.feedback = .success(feedbackText)
                 synchronizeServerDetails(&state)
                 return .none
 
             case .operationCancelled:
                 state.operation = nil
                 state.status = nil
-                state.notice = "Operation cancelled. Refresh status before retrying; a submitted request may already have been processed."
+                state.feedback = .warning(
+                    "Operation cancelled. Refresh status before retrying; a submitted request may already have been processed."
+                )
                 synchronizeServerDetails(&state)
                 return .none
 
@@ -249,8 +248,7 @@ struct HomeFeature {
                     profile: state.profile,
                     status: state.status,
                     isBusy: state.isBusy,
-                    activity: state.activity,
-                    notice: state.notice
+                    activity: state.activity
                 )
                 return .none
 
@@ -287,41 +285,58 @@ struct HomeFeature {
                 .cancellable(id: CancelID.operation)
 
             case .removeLocalDataResponse(.success(.completed)):
-                let notice: LocalizedStringResource = "Local share removed. Copies elsewhere remain valid; only server-side rekeying replaces the server’s Shamir shares."
+                let feedback = AppFeedback.success(
+                    "Local share removed. Copies elsewhere remain valid; only server-side rekeying replaces the server’s Shamir shares."
+                )
                 state.operation = nil
                 state.status = nil
-                state.notice = notice
+                state.feedback = feedback
                 state.serverDetails = nil
                 state.replaceShare = nil
                 return .send(
                     .delegate(
                         .localDataRemoved(
-                            notice: notice,
+                            feedback: feedback,
                             requiresLocalReset: false
                         )
                     )
                 )
 
             case .removeLocalDataResponse(.success(.recoveryRequired(let notice))):
+                let feedback = AppFeedback.warning(notice)
                 state.operation = nil
                 state.status = nil
-                state.notice = notice
+                state.feedback = feedback
                 state.serverDetails = nil
                 state.replaceShare = nil
                 return .send(
                     .delegate(
                         .localDataRemoved(
-                            notice: notice,
+                            feedback: feedback,
                             requiresLocalReset: true
                         )
                     )
                 )
 
-            case .unsealFailed(let failure),
+            case .refreshResponse(.failure(let failure)),
+                 .unsealPreflightFailed(let failure),
                  .removeLocalDataResponse(.failure(let failure)):
                 state.operation = nil
                 state.status = nil
-                state.notice = failure.resource
+                state.feedback = failure.feedback
+                synchronizeServerDetails(&state)
+                return .none
+
+            case .unsealFailed(let failure):
+                state.operation = nil
+                state.feedback = failure.feedback
+                synchronizeServerDetails(&state)
+                return .none
+
+            case .unsealOutcomeUnknown(let feedback):
+                state.operation = nil
+                state.status = nil
+                state.feedback = feedback
                 synchronizeServerDetails(&state)
                 return .none
 
@@ -341,7 +356,9 @@ struct HomeFeature {
                 let wasBusy = state.isBusy
                 state.operation = nil
                 if wasBusy {
-                    state.notice = "Operation interrupted. Check status on return; an already submitted request cannot be recalled."
+                    state.feedback = .warning(
+                        "Operation interrupted. Check status on return; an already submitted request cannot be recalled."
+                    )
                 }
                 return .merge(
                     .cancel(id: CancelID.operation),
@@ -382,7 +399,6 @@ struct HomeFeature {
         details.status = state.status
         details.isBusy = state.isBusy
         details.activity = state.activity
-        details.notice = state.notice
         state.serverDetails = details
     }
 }

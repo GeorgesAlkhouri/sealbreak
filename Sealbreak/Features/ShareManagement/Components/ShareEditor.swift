@@ -47,7 +47,7 @@ struct SharePasteControl: View {
             try applySharePaste(values.first, to: &share)
             UIPasteboard.general.items = []
         } catch {
-            pasteError = normalizedAppFailure(error).resource
+            pasteError = normalizedAppFailure(error).feedback.text
         }
     }
 }

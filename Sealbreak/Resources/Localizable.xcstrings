@@ -27,13 +27,13 @@
         }
       }
     },
+    "A device passcode is required before Face ID can be used." : {
+
+    },
     "A protected share already exists for this server profile." : {
 
     },
     "Already unsealed. No share was read or sent." : {
-
-    },
-    "and" : {
 
     },
     "and compatible Shamir seal servers." : {
@@ -52,9 +52,6 @@
 
     },
     "Check status before sending" : {
-
-    },
-    "CHECKING" : {
 
     },
     "Checking connection…" : {
@@ -138,7 +135,13 @@
     "Face ID did not authorize this action." : {
 
     },
-    "Face ID is unavailable, not enrolled, or locked out. Enable Face ID and a device passcode, or unlock the device in iOS before retrying. No app passcode fallback is offered." : {
+    "Face ID is locked. Unlock your iPhone with the device passcode, then try again." : {
+
+    },
+    "Face ID isn’t available for this action." : {
+
+    },
+    "Face ID isn’t set up. Set up Face ID in Settings, then try again." : {
 
     },
     "Face ID was cancelled or denied. No new share submission was started." : {
@@ -181,9 +184,6 @@
 
     },
     "Keep an independent recovery copy" : {
-
-    },
-    "Keep one Shamir unseal share protected on this iPhone." : {
 
     },
     "Keep setting up" : {
@@ -249,6 +249,9 @@
     "No accessible share was found. Face ID or the device passcode may have changed. Recover from your independent copy." : {
 
     },
+    "One Shamir unseal share stays protected on this iPhone and is sent to your server only after Face ID." : {
+
+    },
     "Only initialized Shamir seals are supported. Initialization, auto-unseal, and seal migration are not supported." : {
 
     },
@@ -277,12 +280,6 @@
 
     },
     "Permanently remove Sealbreak’s local share; independent recovery will be required" : {
-
-    },
-    "Please keep the app open" : {
-
-    },
-    "Progress" : {
 
     },
     "Protect this share for %@" : {
@@ -587,6 +584,12 @@
     "UNKNOWN" : {
 
     },
+    "Unlock OpenBao or Vault with Face ID." : {
+
+    },
+    "Unseal progress" : {
+
+    },
     "Unseal share" : {
 
     },
@@ -597,9 +600,6 @@
 
     },
     "UNSEALED" : {
-
-    },
-    "UNSEALING" : {
 
     },
     "Unsupported Keychain record version." : {
