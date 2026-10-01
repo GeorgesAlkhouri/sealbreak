@@ -2,22 +2,23 @@ import ComposableArchitecture
 import Foundation
 
 @Reducer
-struct ShareSetupFeature {
+package struct ShareSetupFeature {
+    package init() {}
     @ObservableState
-    struct State: Equatable {
-        enum Operation: Equatable {
+    package struct State: Equatable {
+        package enum Operation: Equatable {
             case protecting
 
-            var activity: LocalizedStringResource {
+            package var activity: LocalizedStringResource {
                 "Protecting share…"
             }
         }
 
-        let profile: ServerProfile
-        var operation: Operation?
-        var feedback: AppFeedback
+        package let profile: ServerProfile
+        package var operation: Operation?
+        package var feedback: AppFeedback
 
-        init(
+        package init(
             profile: ServerProfile,
             feedback: AppFeedback = .info("Prototype: use disposable test shares until the security checks in issue #1 have been completed.")
         ) {
@@ -25,17 +26,17 @@ struct ShareSetupFeature {
             self.feedback = feedback
         }
 
-        var isBusy: Bool { operation != nil }
-        var activity: LocalizedStringResource? { operation?.activity }
+        package var isBusy: Bool { operation != nil }
+        package var activity: LocalizedStringResource? { operation?.activity }
     }
 
-    struct ProfileResult: Equatable, Sendable {
-        let profile: ServerProfile
-        let feedback: AppFeedback
+    package struct ProfileResult: Equatable, Sendable {
+        package let profile: ServerProfile
+        package let feedback: AppFeedback
     }
 
-    enum Action: Equatable {
-        enum Delegate: Equatable {
+    package enum Action: Equatable {
+        package enum Delegate: Equatable {
             case profileReady(ServerProfile, feedback: AppFeedback)
             case localResetRequired(feedback: AppFeedback)
         }
@@ -50,7 +51,7 @@ struct ShareSetupFeature {
 
     @Dependency(\.sealbreakClient) private var client
 
-    var body: some ReducerOf<Self> {
+    package var body: some ReducerOf<Self> {
         Reduce { state, action in
             switch action {
             case .saveTapped(let input):
