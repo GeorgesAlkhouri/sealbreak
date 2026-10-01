@@ -1,10 +1,11 @@
+import SealbreakCore
 import ComposableArchitecture
 import Foundation
 import LocalAuthentication
 import UIKit
 
-extension SealbreakClient: DependencyKey {
-    static var liveValue: Self {
+extension SealbreakClient {
+    package static var live: Self {
         Self(
             loadLocalSetupState: {
                 try await LiveSealbreakClientController.shared.loadLocalSetupState()
