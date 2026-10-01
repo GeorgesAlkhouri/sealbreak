@@ -1,16 +1,16 @@
 import Foundation
 import Network
 
-struct DNSSECResolver: Sendable {
+package struct DNSSECResolver: Sendable {
     private let resolveHost: @Sendable (String) async -> DNSSECStatus
 
-    init(
+    package init(
         resolveHost: @escaping @Sendable (String) async -> DNSSECStatus
     ) {
         self.resolveHost = resolveHost
     }
 
-    func status(for host: String) async -> DNSSECStatus {
+    package func status(for host: String) async -> DNSSECStatus {
         let normalized = host
             .trimmingCharacters(in: CharacterSet(charactersIn: "[]"))
             .lowercased()
