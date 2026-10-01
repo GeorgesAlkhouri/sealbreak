@@ -2,19 +2,20 @@ import ComposableArchitecture
 import Foundation
 
 @Reducer
-struct ServerDetailsFeature {
+package struct ServerDetailsFeature {
+    package init() {}
     @ObservableState
-    struct State: Equatable {
-        var profile: ServerProfile
-        var status: SealStatus?
-        var isBusy: Bool
-        var activity: LocalizedStringResource?
-        var shareFragment: ShareComparisonFragment? = nil
-        var isRevealingShare = false
+    package struct State: Equatable {
+        package var profile: ServerProfile
+        package var status: SealStatus?
+        package var isBusy: Bool
+        package var activity: LocalizedStringResource?
+        package var shareFragment: ShareComparisonFragment? = nil
+        package var isRevealingShare = false
     }
 
-    enum Action: Equatable {
-        enum Delegate: Equatable {
+    package enum Action: Equatable {
+        package enum Delegate: Equatable {
             case refreshRequested
             case dismissRequested
         }
@@ -35,7 +36,7 @@ struct ServerDetailsFeature {
     @Dependency(\.continuousClock) private var clock
     @Dependency(\.sealbreakClient) private var client
 
-    var body: some ReducerOf<Self> {
+    package var body: some ReducerOf<Self> {
         Reduce { state, action in
             switch action {
             case .refreshTapped:
