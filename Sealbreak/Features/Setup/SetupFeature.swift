@@ -2,30 +2,31 @@ import ComposableArchitecture
 import Foundation
 
 @Reducer
-struct SetupFeature {
+package struct SetupFeature {
+    package init() {}
     @ObservableState
-    struct State: Equatable {
-        enum Step: Equatable {
+    package struct State: Equatable {
+        package enum Step: Equatable {
             case instance
             case share
         }
 
-        var step: Step = .instance
-        var instance = InstanceSetupFeature.State()
-        var share: ShareSetupFeature.State?
-        var feedback: AppFeedback
+        package var step: Step = .instance
+        package var instance = InstanceSetupFeature.State()
+        package var share: ShareSetupFeature.State?
+        package var feedback: AppFeedback
 
-        init(
+        package init(
             feedback: AppFeedback = .info("Prototype: use disposable test shares until the security checks in issue #1 have been completed.")
         ) {
             self.feedback = feedback
         }
 
-        var isBusy: Bool {
+        package var isBusy: Bool {
             instance.isCheckingConnection || share?.isBusy == true
         }
 
-        var activity: LocalizedStringResource? {
+        package var activity: LocalizedStringResource? {
             if instance.isCheckingConnection {
                 return "Checking connection…"
             }
@@ -35,13 +36,13 @@ struct SetupFeature {
             return nil
         }
 
-        var blocksSetupExit: Bool {
+        package var blocksSetupExit: Bool {
             share?.isBusy == true
         }
     }
 
-    enum Action: Equatable {
-        enum Delegate: Equatable {
+    package enum Action: Equatable {
+        package enum Delegate: Equatable {
             case cancelled
             case profileReady(ServerProfile, feedback: AppFeedback)
             case localResetRequired(feedback: AppFeedback)
@@ -55,7 +56,7 @@ struct SetupFeature {
         case delegate(Delegate)
     }
 
-    var body: some ReducerOf<Self> {
+    package var body: some ReducerOf<Self> {
         Scope(state: \.instance, action: \.instance) {
             InstanceSetupFeature()
         }
