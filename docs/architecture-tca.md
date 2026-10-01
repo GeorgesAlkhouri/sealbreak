@@ -58,9 +58,11 @@ The Home reducer preserves the security ordering:
 
 Privacy interruption cancels the reducer effect, invalidates the active biometric context, clears status, and dismisses sensitive presentation state.
 
-## Dependency version
+## Package boundary
 
-TCA is pinned to **1.26.1**, whose package manifest uses Swift tools 6.1 and supports iOS 16+ / macOS 13+. Pinning keeps dependency resolution reproducible for the repository's Xcode 26 CI environment.
+The repository's root `Package.swift` is the single source of truth for the TCA dependency. It vends `SealbreakCore` for reducers, domain logic, and testable infrastructure, plus `SealbreakAppModule` for the SwiftUI and live iOS layer. The Xcode app target links the local package instead of declaring TCA independently.
+
+TCA is pinned to **1.26.2**. Keeping the remote dependency in one package manifest prevents the Xcode project and the host-test package from drifting to different versions while preserving the existing `swift test` workflow.
 
 ## Views
 
