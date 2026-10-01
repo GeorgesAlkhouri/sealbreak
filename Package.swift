@@ -5,7 +5,7 @@ import PackageDescription
 let package = Package(
     name: "Sealbreak",
     platforms: [
-        .iOS(.v26),
+        .iOS("26.0"),
         .macOS(.v13)
     ],
     products: [
