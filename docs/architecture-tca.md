@@ -27,7 +27,7 @@ The local `Sealbreak` package contains two products with disjoint default source
 - `SealbreakCore` in `Sources/SealbreakCore` owns reducers, domain models, localized feedback and presentation state, plus host-testable network, Keychain, profile-storage and DNSSEC infrastructure.
 - `SealbreakAppModule` in `Sources/SealbreakAppModule` owns SwiftUI views, the Papercut design system, app view helpers and `Infrastructure/Live` iOS adapters. It consumes Core through package access.
 
-The [component model](architecture-modules.puml) records the dependency direction: the Xcode host imports AppModule, AppModule imports Core, and both package targets use the single TCA dependency declared in `Package.swift`. Core has no direct UIKit, SwiftUI or AppModule imports; `scripts/ci/check-architecture.sh` checks its production sources.
+The [component model](architecture-modules.puml) records the dependency direction: the Xcode host imports AppModule, AppModule imports Core, and both package targets use the single TCA dependency declared in `Package.swift`. Core has no direct UIKit, SwiftUI or AppModule imports. CI is responsible for enforcing this boundary against the actual Core production sources.
 
 Reducers depend only on `SealbreakClient` in `Sources/SealbreakCore/Dependencies`. Core owns its `DependencyKey` conformance, with both `liveValue` and `testValue` set to the existing fail-closed `unimplemented` value. An omitted live injection therefore cannot accidentally access network, Keychain or biometrics.
 
