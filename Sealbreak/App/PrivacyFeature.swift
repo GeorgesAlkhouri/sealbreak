@@ -17,6 +17,8 @@ package struct PrivacyFeature {
         package var isConcealed: Bool {
             phase != .active || isCaptured
         }
+
+        package init() {}
     }
 
     package enum Action: Equatable {
