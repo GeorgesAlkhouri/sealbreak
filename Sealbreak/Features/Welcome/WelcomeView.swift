@@ -31,13 +31,23 @@ struct WelcomeView: View {
                             .fixedSize(horizontal: false, vertical: true)
                             .padding(.top, 12)
 
-                        Text("Keep one Shamir unseal share protected on this iPhone.")
-                            .font(.body.weight(.medium))
-                            .foregroundStyle(PapercutPalette.cream.opacity(0.94))
+                        Text("Unlock OpenBao or Vault with Face ID.")
+                            .font(.body.weight(.semibold))
+                            .foregroundStyle(PapercutPalette.cream)
                             .multilineTextAlignment(.center)
                             .fixedSize(horizontal: false, vertical: true)
                             .padding(.top, 16)
                             .frame(maxWidth: 310)
+
+                        Text(
+                            "One Shamir unseal share stays protected on this iPhone and is sent to your server only after Face ID."
+                        )
+                        .font(.subheadline.weight(.medium))
+                        .foregroundStyle(PapercutPalette.cream.opacity(0.86))
+                        .multilineTextAlignment(.center)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .padding(.top, 8)
+                        .frame(maxWidth: 320)
 
                         compatibilityCopy
                             .font(.subheadline.weight(.medium))
@@ -160,10 +170,9 @@ struct WelcomeView: View {
                     Text("Works with")
                     compatibilityProduct(
                         icon: "OpenBaoMark",
-                        name: "OpenBao",
+                        name: "OpenBao,",
                         visibleHeightFraction: openBaoVisibleHeightFraction
                     )
-                    Text("and")
                     compatibilityProduct(icon: "VaultMark", name: "Vault", tint: vaultBrand)
                 }
                 .fixedSize(horizontal: true, vertical: false)
@@ -172,10 +181,9 @@ struct WelcomeView: View {
                     Text("Works with")
                     compatibilityProduct(
                         icon: "OpenBaoMark",
-                        name: "OpenBao",
+                        name: "OpenBao,",
                         visibleHeightFraction: openBaoVisibleHeightFraction
                     )
-                    Text("and")
                     compatibilityProduct(icon: "VaultMark", name: "Vault", tint: vaultBrand)
                 }
             }
