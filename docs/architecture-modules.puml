@@ -11,7 +11,7 @@ package "Local package: Sealbreak" {
   component SealbreakAppModule as AppModule
   component SealbreakCore as Core
   component SealbreakCoreTests as CoreTests
-  component "ComposableArchitecture\nexact 1.26.2 (one declaration)" as TCA
+  component "ComposableArchitecture\nexact requirement in Package.swift" as TCA
 }
 
 Host --> AppModule : retained SealbreakRootView

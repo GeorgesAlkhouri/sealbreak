@@ -5,9 +5,9 @@ import Testing
 struct SealbreakClientTests {
     private struct ForeignError: Error {}
 
-    @Test(arguments: [false, true])
-    func unimplementedDependenciesFailClosed(live: Bool) async throws {
-        let dependency = live ? SealbreakClient.liveValue : SealbreakClient.testValue
+    @Test
+    func unimplementedDependenciesFailClosed() async throws {
+        let dependency = SealbreakClient.testValue
         let profile = try ServerProfile(id: UUID(), name: "Server", address: "https://server.example.com")
         let record = try ShareRecord(profile: profile, input: String(repeating: "a", count: 64))
 

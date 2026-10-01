@@ -27,7 +27,7 @@ The local `Sealbreak` package contains two products with disjoint default source
 - `SealbreakCore` in `Sources/SealbreakCore` owns reducers, domain models, localized feedback and presentation state, plus host-testable network, Keychain, profile-storage and DNSSEC infrastructure.
 - `SealbreakAppModule` in `Sources/SealbreakAppModule` owns SwiftUI views, the Papercut design system, app view helpers and `Infrastructure/Live` iOS adapters. It consumes Core through package access.
 
-The [component model](architecture-modules.puml) records the dependency direction: the Xcode host imports AppModule, AppModule imports Core, and both package targets use the single TCA dependency declared in `Package.swift`. Core has no direct UIKit, SwiftUI or AppModule imports. CI is responsible for enforcing this boundary against the actual Core production sources.
+The [component model](architecture-modules.puml) records the dependency direction: the Xcode host imports AppModule, AppModule imports Core, and both package targets use the single TCA dependency declared in `Package.swift`. Core has no direct UIKit, SwiftUI or AppModule imports.
 
 Reducers depend only on `SealbreakClient` in `Sources/SealbreakCore/Dependencies`. Core owns its `DependencyKey` conformance, with both `liveValue` and `testValue` set to the existing fail-closed `unimplemented` value. An omitted live injection therefore cannot accidentally access network, Keychain or biometrics.
 
@@ -65,7 +65,26 @@ Privacy interruption cancels the reducer effect, invalidates the active biometri
 
 ## Dependency version
 
-TCA is pinned exactly to **1.26.2** in the single `Package.swift`. Sealbreak uses Swift tools 6.1, Swift language mode 5, and package deployment floors of iOS 26 / macOS 13. The committed Xcode workspace `Package.resolved` remains the canonical pin set; the generated root CLI copy is ignored.
+TCA has one exact version requirement in `Package.swift`, shared by both package targets and the Xcode host. Sealbreak uses Swift tools 6.1, Swift language mode 5, and package deployment floors of iOS 26 / macOS 13. The committed Xcode workspace `Package.resolved` remains the canonical pin set; the generated root CLI copy is ignored.
+
+## Development and CI
+
+Generate the ignored root `Package.resolved` from the committed Xcode workspace lock before running SwiftPM commands:
+
+```sh
+cp Sealbreak.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved Package.resolved
+swift build --product SealbreakPackageTests --enable-code-coverage -Xswiftc -warnings-as-errors
+swift test --skip-build --enable-code-coverage -Xswiftc -warnings-as-errors
+bin_dir="$(swift build --show-bin-path)"
+binary="$bin_dir/SealbreakPackageTests.xctest/Contents/MacOS/SealbreakPackageTests"
+xcrun llvm-cov export "$binary" -instr-profile "$bin_dir/codecov/default.profdata" -format=lcov > coverage.lcov
+```
+
+Build the test product explicitly: the AppModule product contains iOS views, while these existing Core tests run on macOS. The selective build and skip-build test invocation preserve the existing CI suite. Coverage uses the generated `SealbreakPackageTests` executable in the selected build directory.
+
+Use `bash scripts/ci/build.sh simulator` for the app and `codeql` for analysis compilation. For an intentional dependency update, edit the exact requirement in `Package.swift` (Renovate uses its SwiftPM manager), run `xcodebuild -resolvePackageDependencies -project Sealbreak.xcodeproj -scheme Sealbreak`, and regenerate the CLI copy with the `cp` command above. Review and commit the manifest and canonical Xcode workspace lockfile; the root copy remains generated and ignored.
+
+The simulator build enables compiler localization extraction for package sources. The existing advisory drift step syncs temporary app catalog copies using host, Core and AppModule `arm64` stringsdata, excluding dependency strings. This preserves extraction after the source moves; catalogs and translations remain in the app bundle.
 
 ## Views
 

@@ -55,10 +55,13 @@ jobs:
           persist-credentials: false
       - name: Run tests with coverage
         run: |
-          swift test --enable-code-coverage -Xswiftc -warnings-as-errors
-          profile="$(find .build -name default.profdata -type f -print -quit)"
-          binary="$(find .build -type f -name 'SealbreakCorePackageTests' -perm -111 -print -quit)"
-          test -n "$profile" && test -n "$binary"
+          cp Sealbreak.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved Package.resolved
+          swift build --product SealbreakPackageTests --enable-code-coverage -Xswiftc -warnings-as-errors
+          swift test --skip-build --enable-code-coverage -Xswiftc -warnings-as-errors
+          bin_dir="$(swift build --show-bin-path)"
+          profile="$bin_dir/codecov/default.profdata"
+          binary="$bin_dir/SealbreakPackageTests.xctest/Contents/MacOS/SealbreakPackageTests"
+          test -f "$profile" && test -x "$binary"
           xcrun llvm-cov export "$binary" -instr-profile "$profile" -format=lcov > coverage.lcov
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
@@ -83,6 +86,28 @@ jobs:
       - name: Check localization catalog drift
         continue-on-error: true
         run: |
+          python3 - <<'PYTHON'
+          import json
+          from pathlib import Path
+          import shutil
+          import subprocess
+          import tempfile
+
+          catalogs = [Path("Sealbreak/Resources") / name for name in ("Localizable.xcstrings", "InfoPlist.xcstrings")]
+          intermediates = Path("build/Simulator/Build/Intermediates.noindex/Sealbreak.build/Debug-iphonesimulator")
+          stringsdata = [path for target in ("Sealbreak", "SealbreakCore", "SealbreakAppModule")
+                         for path in sorted((intermediates / f"{target}.build/Objects-normal/arm64").glob("*.stringsdata"))
+                         if path.name != "ExtractedAppShortcutsMetadata.stringsdata"]
+          with tempfile.TemporaryDirectory(prefix="sealbreak-localization-") as directory:
+              synced = [Path(directory) / path.name for path in catalogs]
+              for source, destination in zip(catalogs, synced):
+                  shutil.copyfile(source, destination)
+              subprocess.run(["xcrun", "xcstringstool", "sync", *map(str, synced),
+                              "--stringsdata", *map(str, stringsdata)], check=True)
+              if any(json.loads(source.read_text()) != json.loads(result.read_text())
+                     for source, result in zip(catalogs, synced)):
+                  raise SystemExit("::warning title=Localization catalogs out of sync::First-party extracted strings differ from the app catalogs. Review catalog changes on the pull request branch.")
+          PYTHON
           if git diff --quiet -- \
             Sealbreak/Resources/Localizable.xcstrings \
             Sealbreak/Resources/InfoPlist.xcstrings; then
