@@ -34,14 +34,14 @@ final class TransportPolicy: NSObject, URLSessionTaskDelegate, @unchecked Sendab
     }
 }
 
-struct SealServerClient: Sendable {
+public struct SealServerClient: Sendable {
     private let configuration: URLSessionConfiguration
 
-    init(configuration: URLSessionConfiguration = SealServerClient.makeConfiguration()) {
+    public init(configuration: URLSessionConfiguration = SealServerClient.makeConfiguration()) {
         self.configuration = configuration
     }
 
-    static func makeConfiguration() -> URLSessionConfiguration {
+    public static func makeConfiguration() -> URLSessionConfiguration {
         let config = URLSessionConfiguration.ephemeral
         config.urlCache = nil
         config.urlCredentialStorage = nil
@@ -56,11 +56,11 @@ struct SealServerClient: Sendable {
         return config
     }
 
-    static func encodeUnsealBody(_ share: String) throws -> Data {
+    package static func encodeUnsealBody(_ share: String) throws -> Data {
         try JSONEncoder().encode(UnsealBody(key: share))
     }
 
-    static func makeRequest(
+    package static func makeRequest(
         _ profile: ServerProfile,
         path: String,
         queryItems: [URLQueryItem] = [],
@@ -109,7 +109,7 @@ struct SealServerClient: Sendable {
         return request
     }
 
-    static func detectProduct(from data: Data) -> ServerProduct {
+    package static func detectProduct(from data: Data) -> ServerProduct {
         guard let response = try? JSONDecoder().decode(HelpResponse.self, from: data),
               let title = response.openapi?.info?.title else {
             return .generic
@@ -125,7 +125,7 @@ struct SealServerClient: Sendable {
         }
     }
 
-    func detectProduct(_ profile: ServerProfile) async throws -> ServerProduct {
+    public func detectProduct(_ profile: ServerProfile) async throws -> ServerProduct {
         let data = try await request(
             profile,
             path: "seal-status",
@@ -135,7 +135,7 @@ struct SealServerClient: Sendable {
         return Self.detectProduct(from: data)
     }
 
-    func status(_ profile: ServerProfile) async throws -> SealStatus {
+    public func status(_ profile: ServerProfile) async throws -> SealStatus {
         let data = try await request(profile, path: "seal-status", body: nil)
         do {
             return try JSONDecoder().decode(SealStatus.self, from: data).validated()
@@ -144,7 +144,7 @@ struct SealServerClient: Sendable {
         }
     }
 
-    func submit(_ record: ShareRecord) async throws {
+    public func submit(_ record: ShareRecord) async throws {
         let record = try record.validated()
         var body = try Self.encodeUnsealBody(record.share)
         defer {
