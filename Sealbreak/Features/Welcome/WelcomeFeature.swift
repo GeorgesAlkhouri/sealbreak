@@ -2,15 +2,16 @@ import ComposableArchitecture
 import Foundation
 
 @Reducer
-struct WelcomeFeature {
+package struct WelcomeFeature {
+    package init() {}
     @ObservableState
-    struct State: Equatable {
-        var feedback: AppFeedback?
-        var requiresLocalReset: Bool
-        var confirmReset = false
-        var isResetting = false
+    package struct State: Equatable {
+        package var feedback: AppFeedback?
+        package var requiresLocalReset: Bool
+        package var confirmReset = false
+        package var isResetting = false
 
-        init(
+        package init(
             feedback: AppFeedback? = nil,
             requiresLocalReset: Bool = false
         ) {
@@ -19,8 +20,8 @@ struct WelcomeFeature {
         }
     }
 
-    enum Action: Equatable {
-        enum Delegate: Equatable {
+    package enum Action: Equatable {
+        package enum Delegate: Equatable {
             case setUp
         }
 
@@ -34,7 +35,7 @@ struct WelcomeFeature {
 
     @Dependency(\.sealbreakClient) private var client
 
-    var body: some ReducerOf<Self> {
+    package var body: some ReducerOf<Self> {
         Reduce { state, action in
             switch action {
             case .setUpTapped:
