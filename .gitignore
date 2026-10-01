@@ -8,3 +8,6 @@ xcuserdata/
 .build/
 .swiftpm/
 .scannerwork/
+
+# The Xcode workspace lockfile is the canonical dependency pin set.
+/Package.resolved

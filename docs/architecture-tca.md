@@ -22,20 +22,25 @@ AppFeature
 
 ## Dependency boundary
 
-Reducers depend only on the lightweight `SealbreakClient` interface in `Sealbreak/Dependencies`. The interface conforms to TCA's `TestDependencyKey` and provides a fail-closed test value, so feature tests never need the live iOS implementation and never fall back to network, Keychain, Face ID, or UIKit behavior accidentally.
+The local `Sealbreak` package contains two products with disjoint default source directories:
 
-The iOS app target separately compiles `Infrastructure/Live/LiveSealbreakClient.swift`. That file adds the `DependencyKey` conformance and `liveValue`, adapting the production infrastructure:
+- `SealbreakCore` in `Sources/SealbreakCore` owns reducers, domain models, localized feedback and presentation state, plus host-testable network, Keychain, profile-storage and DNSSEC infrastructure.
+- `SealbreakAppModule` in `Sources/SealbreakAppModule` owns SwiftUI views, the Papercut design system, app view helpers and `Infrastructure/Live` iOS adapters. It consumes Core through package access.
+
+The [component model](architecture-modules.puml) records the dependency direction: the Xcode host imports AppModule, AppModule imports Core, and both package targets use the single TCA dependency declared in `Package.swift`. Core has no direct UIKit, SwiftUI or AppModule imports; `scripts/ci/check-architecture.sh` checks its production sources.
+
+Reducers depend only on `SealbreakClient` in `Sources/SealbreakCore/Dependencies`. Core owns its `DependencyKey` conformance, with both `liveValue` and `testValue` set to the existing fail-closed `unimplemented` value. An omitted live injection therefore cannot accidentally access network, Keychain or biometrics.
+
+`SealbreakRootView` is the sole public app-facing API. It creates and retains `StoreOf<AppFeature>` and explicitly injects `SealbreakClient.live`, supplied by `Sources/SealbreakAppModule/Infrastructure/Live/LiveSealbreakClient.swift`. The Xcode bootstrap stores this root view once as a property, preserving the original Store lifetime. The live adapters retain the existing controller singleton and adapt:
 
 - `SealServerClient` for bounded HTTPS requests with redirects/cookies/cache disabled.
 - `KeychainStore` for device-only biometric protected Shamir-share storage.
 - `ProfileStore` for non-secret display metadata.
-- `LAContext`, `UIApplication`, and `UIScreen` for biometric authorization and foreground/protected-data/screen-capture checks.
+- `LAContext`, `UIApplication`, and scene-capture traits for biometric authorization and foreground/protected-data/screen-capture checks.
 
-The Swift Package core target explicitly excludes `Infrastructure/Live`. This keeps the iOS live-composition layer out of `SealbreakCoreTests` without conditional-import branches in production source. The core target still compiles testable infrastructure such as `SealServerClient`, `KeychainStore`, and `ProfileStore`; those components are covered directly by unit tests and rely only on APIs available to the macOS test build.
+Assets, localizations, `Info.plist` and the privacy manifest remain owned by the Xcode app bundle under `Sealbreak/`; package code continues using the existing app-bundle lookups. There is no package resource bundle.
 
-Test doubles such as `ClientSpy` live only under `Tests/` and are injected through `TestStore` dependency overrides. New UIKit-dependent composition code belongs under `Infrastructure/Live` so that it cannot leak back into the Swift Package test target.
-
-This follows the Point-Free dependency modularization pattern: the interface owns `TestDependencyKey`; the live implementation adds `DependencyKey`. Low-level infrastructure does not import feature reducers.
+`SealbreakCoreTests` remains under `Tests/SealbreakCoreTests` and uses `@testable import SealbreakCore`. The Xcode integration test target also links and imports Core with `@testable`, rather than compiling duplicate infrastructure sources. Debug testability is enabled; no public Core API is exposed merely for tests. Test doubles such as `ClientSpy` remain under `Tests/` and are injected through `TestStore` overrides. Low-level infrastructure does not import feature reducers.
 
 ## Sensitive drafts
 
@@ -60,7 +65,7 @@ Privacy interruption cancels the reducer effect, invalidates the active biometri
 
 ## Dependency version
 
-TCA is pinned to **1.26.1**, whose package manifest uses Swift tools 6.1 and supports iOS 16+ / macOS 13+. Pinning keeps dependency resolution reproducible for the repository's Xcode 26 CI environment.
+TCA is pinned exactly to **1.26.2** in the single `Package.swift`. Sealbreak uses Swift tools 6.1, Swift language mode 5, and package deployment floors of iOS 26 / macOS 13. The committed Xcode workspace `Package.resolved` remains the canonical pin set; the generated root CLI copy is ignored.
 
 ## Views
 

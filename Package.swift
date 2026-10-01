@@ -3,9 +3,14 @@
 import PackageDescription
 
 let package = Package(
-    name: "SealbreakCore",
+    name: "Sealbreak",
     platforms: [
+        .iOS("26.0"),
         .macOS(.v13)
+    ],
+    products: [
+        .library(name: "SealbreakCore", targets: ["SealbreakCore"]),
+        .library(name: "SealbreakAppModule", targets: ["SealbreakAppModule"])
     ],
     dependencies: [
         .package(
@@ -21,27 +26,16 @@ let package = Package(
                     name: "ComposableArchitecture",
                     package: "swift-composable-architecture"
                 )
-            ],
-            path: "Sealbreak",
-            exclude: [
-                "App/SealbreakApp.swift",
-                "App/AppRootView.swift",
-                "App/PrivacyGate.swift",
-                "App/SensitiveDraftGuard.swift",
-                "Features/Home/HomeView.swift",
-                "Features/Home/Components",
-                "Features/Welcome/WelcomeView.swift",
-                "Features/Setup/SetupView.swift",
-                "Features/Setup/Instance/InstanceSetupView.swift",
-                "Features/Setup/Share/ShareSetupView.swift",
-                "Features/ServerDetails/ServerDetailsView.swift",
-                "Features/ShareManagement/ReplaceShareView.swift",
-                "Features/ShareManagement/Components",
-                "DesignSystem",
-                "Infrastructure/Live",
-                "Resources",
-                "Info.plist",
-                "PrivacyInfo.xcprivacy"
+            ]
+        ),
+        .target(
+            name: "SealbreakAppModule",
+            dependencies: [
+                "SealbreakCore",
+                .product(
+                    name: "ComposableArchitecture",
+                    package: "swift-composable-architecture"
+                )
             ]
         ),
         .testTarget(
