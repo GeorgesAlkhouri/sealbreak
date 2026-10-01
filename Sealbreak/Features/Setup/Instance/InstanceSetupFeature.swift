@@ -2,45 +2,48 @@ import ComposableArchitecture
 import Foundation
 
 @Reducer
-struct InstanceSetupFeature {
+package struct InstanceSetupFeature {
+    package init() {}
     @ObservableState
-    struct State: Equatable {
-        var name = "Server"
-        var address = ""
-        var checkedProfile: ServerProfile?
-        var dnssecStatus: DNSSECStatus?
-        var nameValidationError: LocalizedStringResource?
-        var addressValidationError: LocalizedStringResource?
-        var feedback: AppFeedback?
-        var isCheckingConnection = false
+    package struct State: Equatable {
+        package var name = "Server"
+        package var address = ""
+        package var checkedProfile: ServerProfile?
+        package var dnssecStatus: DNSSECStatus?
+        package var nameValidationError: LocalizedStringResource?
+        package var addressValidationError: LocalizedStringResource?
+        package var feedback: AppFeedback?
+        package var isCheckingConnection = false
 
-        var canCheckConnection: Bool {
+        package var canCheckConnection: Bool {
             !isCheckingConnection
                 && !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
                 && !address.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
         }
 
-        var canContinue: Bool {
+        package var canContinue: Bool {
             checkedProfile != nil && !isCheckingConnection
         }
 
-        var hasDraft: Bool {
+        package var hasDraft: Bool {
             name != "Server"
                 || !address.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
                 || checkedProfile != nil
         }
 
-        mutating func invalidateConnectionCheck() {
+        package mutating func invalidateConnectionCheck() {
             checkedProfile = nil
             dnssecStatus = nil
             nameValidationError = nil
             addressValidationError = nil
             feedback = nil
         }
+
+        package init() {}
     }
 
-    enum Action: Equatable {
-        enum Delegate: Equatable {
+    package enum Action: Equatable {
+        package enum Delegate: Equatable {
             case continueWithProfile(ServerProfile)
         }
 
@@ -62,7 +65,7 @@ struct InstanceSetupFeature {
     @Dependency(\.sealbreakClient) private var client
     @Dependency(\.uuid) private var uuid
 
-    var body: some ReducerOf<Self> {
+    package var body: some ReducerOf<Self> {
         Reduce { state, action in
             switch action {
             case .nameChanged(let name):
