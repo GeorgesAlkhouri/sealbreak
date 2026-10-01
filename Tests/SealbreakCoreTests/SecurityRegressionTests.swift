@@ -25,7 +25,7 @@ struct SecurityRegressionTests {
     }
 
     @Test
-    func homeFailuresDiscardStaleStatusSoTheNoticeRemainsVisible() async throws {
+    func homeFeedbackPreservesKnownStatusBeforeSubmissionAndClearsUncertainState() async throws {
         let profile = try ServerProfile(id: UUID(), name: "Server", address: "https://bao.example.com")
         let status = SealStatus(
             type: "shamir",
@@ -46,16 +46,16 @@ struct SecurityRegressionTests {
         }
         await unsealStore.send(.unsealFailed(failure)) {
             $0.operation = nil
-            $0.status = nil
-            $0.notice = failure.resource
+            $0.feedback = failure.feedback
         }
+        #expect(unsealStore.state.status == status)
         #expect(
             HomeViewState(
                 profile: unsealStore.state.profile,
                 sealStatus: unsealStore.state.status,
                 operation: unsealStore.state.operation,
-                notice: unsealStore.state.notice
-            ).notice == failure.resource
+                feedback: unsealStore.state.feedback
+            ).feedback == failure.feedback
         )
 
         var removeState = HomeFeature.State(profile: profile, status: status)
@@ -66,7 +66,7 @@ struct SecurityRegressionTests {
         await removeStore.send(.removeLocalDataResponse(.failure(failure))) {
             $0.operation = nil
             $0.status = nil
-            $0.notice = failure.resource
+            $0.feedback = failure.feedback
         }
     }
 

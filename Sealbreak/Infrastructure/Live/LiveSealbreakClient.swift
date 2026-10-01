@@ -239,6 +239,38 @@ private final class LiveSealbreakClientController {
         activeContext = nil
     }
 
+    private func faceIDFailure(from error: NSError?) -> AppFailure {
+        guard let error,
+              let code = LAError.Code(rawValue: error.code) else {
+            return AppFailure("Face ID isn’t available for this action.")
+        }
+
+        switch code {
+        case .biometryNotEnrolled:
+            return AppFailure(
+                "Face ID isn’t set up. Set up Face ID in Settings, then try again."
+            )
+        case .biometryLockout:
+            return AppFailure(
+                "Face ID is locked. Unlock your iPhone with the device passcode, then try again."
+            )
+        case .passcodeNotSet:
+            return AppFailure(
+                "A device passcode is required before Face ID can be used."
+            )
+        case .biometryNotAvailable:
+            return AppFailure("Face ID isn’t available for this action.")
+        case .userCancel, .appCancel, .systemCancel:
+            return AppFailure(
+                feedback: .warning(
+                    "Face ID was cancelled or denied. No new share submission was started."
+                )
+            )
+        default:
+            return AppFailure("Face ID did not authorize this action.")
+        }
+    }
+
     private func withAuthorizedContext<Value>(
         reason: LocalizedStringResource,
         operation: (LAContext) throws -> Value
@@ -259,9 +291,7 @@ private final class LiveSealbreakClientController {
         var error: NSError?
         guard context.canEvaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, error: &error),
               context.biometryType == .faceID else {
-            throw AppFailure(
-                "Face ID is unavailable, not enrolled, or locked out. Enable Face ID and a device passcode, or unlock the device in iOS before retrying. No app passcode fallback is offered."
-            )
+            throw faceIDFailure(from: error)
         }
 
         do {
@@ -274,9 +304,7 @@ private final class LiveSealbreakClientController {
         } catch is CancellationError {
             throw CancellationError()
         } catch {
-            throw AppFailure(
-                "Face ID was cancelled or denied. No new share submission was started."
-            )
+            throw faceIDFailure(from: error as NSError)
         }
 
         try await waitForForeground()

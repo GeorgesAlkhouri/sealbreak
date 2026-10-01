@@ -15,14 +15,14 @@ struct ShareSetupFeature {
 
         let profile: ServerProfile
         var operation: Operation?
-        var notice: LocalizedStringResource
+        var feedback: AppFeedback
 
         init(
             profile: ServerProfile,
-            notice: LocalizedStringResource = "Prototype: use disposable test shares until the security checks in issue #1 have been completed."
+            feedback: AppFeedback = .info("Prototype: use disposable test shares until the security checks in issue #1 have been completed.")
         ) {
             self.profile = profile
-            self.notice = notice
+            self.feedback = feedback
         }
 
         var isBusy: Bool { operation != nil }
@@ -31,18 +31,18 @@ struct ShareSetupFeature {
 
     struct ProfileResult: Equatable, Sendable {
         let profile: ServerProfile
-        let notice: LocalizedStringResource
+        let feedback: AppFeedback
     }
 
     enum Action: Equatable {
         enum Delegate: Equatable {
-            case profileReady(ServerProfile, notice: LocalizedStringResource)
-            case localResetRequired(notice: LocalizedStringResource)
+            case profileReady(ServerProfile, feedback: AppFeedback)
+            case localResetRequired(feedback: AppFeedback)
         }
 
         case saveTapped(share: String)
         case importResponse(Result<ProfileResult, AppFailure>)
-        case localResetRequired(LocalizedStringResource)
+        case localResetRequired(AppFeedback)
         case operationCancelled
         case privacyInterrupted
         case delegate(Delegate)
@@ -60,7 +60,7 @@ struct ShareSetupFeature {
                 do {
                     record = try ShareRecord(profile: state.profile, input: input)
                 } catch {
-                    state.notice = normalizedAppFailure(error).resource
+                    state.feedback = normalizedAppFailure(error).feedback
                     return .none
                 }
 
@@ -85,14 +85,14 @@ struct ShareSetupFeature {
                                     .success(
                                         ProfileResult(
                                             profile: profile,
-                                            notice: "Share protected on this iPhone. Check status to begin."
+                                            feedback: .success("Share protected on this iPhone. Check status to begin.")
                                         )
                                     )
                                 )
                             )
 
                         case .recoveryRequired(let notice):
-                            await send(.localResetRequired(notice))
+                            await send(.localResetRequired(.warning(notice)))
                         }
                     } catch is CancellationError {
                         await send(.operationCancelled)
@@ -107,33 +107,33 @@ struct ShareSetupFeature {
 
             case .importResponse(.success(let result)):
                 state.operation = nil
-                state.notice = result.notice
+                state.feedback = result.feedback
                 return .send(
                     .delegate(
                         .profileReady(
                             result.profile,
-                            notice: result.notice
+                            feedback: result.feedback
                         )
                     )
                 )
 
             case .importResponse(.failure(let failure)):
                 state.operation = nil
-                state.notice = failure.resource
+                state.feedback = failure.feedback
                 return .none
 
-            case .localResetRequired(let notice):
+            case .localResetRequired(let feedback):
                 state.operation = nil
-                state.notice = notice
+                state.feedback = feedback
                 return .send(
                     .delegate(
-                        .localResetRequired(notice: notice)
+                        .localResetRequired(feedback: feedback)
                     )
                 )
 
             case .operationCancelled:
                 state.operation = nil
-                state.notice = "Operation cancelled. No new protected share was saved."
+                state.feedback = .warning("Operation cancelled. No new protected share was saved.")
                 return .none
 
             case .privacyInterrupted:

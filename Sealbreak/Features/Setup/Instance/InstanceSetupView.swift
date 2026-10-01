@@ -29,20 +29,22 @@ struct InstanceSetupView: View {
                         title: "Name",
                         prompt: "Server",
                         text: nameBinding,
-                        keyboardType: .default
+                        keyboardType: .default,
+                        error: store.nameValidationError
                     )
 
                     setupField(
                         title: "Server address",
                         prompt: "HTTPS origin with optional port",
                         text: addressBinding,
-                        keyboardType: .URL
+                        keyboardType: .URL,
+                        error: store.addressValidationError
                     )
 
                     if store.isCheckingConnection
                         || store.dnssecStatus != nil
                         || store.checkedProfile != nil
-                        || store.notice != nil {
+                        || store.feedback != nil {
                         Divider()
                             .overlay(PapercutPalette.ring)
 
@@ -112,11 +114,8 @@ struct InstanceSetupView: View {
                 )
             }
 
-            if let notice = store.notice {
-                Text(notice)
-                    .font(.footnote.weight(.medium))
-                    .foregroundStyle(PapercutPalette.cream)
-                    .fixedSize(horizontal: false, vertical: true)
+            if let feedback = store.feedback {
+                PapercutFeedback(feedback: feedback)
                     .padding(.top, 2)
             }
         }
@@ -237,7 +236,8 @@ struct InstanceSetupView: View {
         title: LocalizedStringResource,
         prompt: LocalizedStringResource,
         text: Binding<String>,
-        keyboardType: UIKeyboardType
+        keyboardType: UIKeyboardType,
+        error: LocalizedStringResource? = nil
     ) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             Text(title)
@@ -270,6 +270,17 @@ struct InstanceSetupView: View {
                         RoundedRectangle(cornerRadius: 14, style: .continuous)
                             .stroke(PapercutPalette.ring, lineWidth: 1)
                     }
+            }
+
+            if let error {
+                Label {
+                    Text(error)
+                } icon: {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                }
+                .font(.footnote.weight(.semibold))
+                .foregroundStyle(PapercutPalette.sealed)
+                .fixedSize(horizontal: false, vertical: true)
             }
         }
     }

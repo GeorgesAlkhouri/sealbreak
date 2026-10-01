@@ -56,13 +56,10 @@ struct HomeView: View {
                         .frame(maxWidth: 335)
                         .padding(.horizontal, 29)
 
-                        if let notice = viewState.notice {
-                            Text(notice)
-                                .font(.caption)
-                                .foregroundStyle(PapercutPalette.cream.opacity(0.86))
-                                .multilineTextAlignment(.center)
-                                .fixedSize(horizontal: false, vertical: true)
-                                .padding(.horizontal, 38)
+                        if let feedback = viewState.feedback {
+                            PapercutFeedback(feedback: feedback)
+                                .frame(maxWidth: 335)
+                                .padding(.horizontal, 29)
                                 .padding(.top, 10)
                         }
 
@@ -126,7 +123,7 @@ struct HomeView: View {
             profile: store.profile,
             sealStatus: store.status,
             operation: store.operation,
-            notice: store.notice
+            feedback: store.feedback
         )
     }
 
@@ -183,7 +180,7 @@ struct HomeView: View {
                     initialState: HomeFeature.State(
                         profile: profile,
                         status: status,
-                        notice: ""
+                        feedback: .info("")
                     )
                 ) {
                     HomeFeature()
