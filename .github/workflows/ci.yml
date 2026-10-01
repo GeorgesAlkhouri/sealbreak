@@ -22,7 +22,7 @@ jobs:
     permissions:
       contents: read
     steps:
-      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
           persist-credentials: false
@@ -30,7 +30,7 @@ jobs:
         with:
           python-version: '3.13'
       - name: Restore pre-commit environments
-        uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25 # v5
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
         with:
           path: ~/.cache/pre-commit
           key: pre-commit-${{ runner.os }}-${{ runner.arch }}-py3.13-${{ hashFiles('.pre-commit-config.yaml') }}
@@ -49,7 +49,7 @@ jobs:
       contents: read
       id-token: write
     steps:
-      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
           persist-credentials: false
@@ -74,7 +74,7 @@ jobs:
     permissions:
       contents: read
     steps:
-      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
           persist-credentials: false
@@ -128,7 +128,7 @@ jobs:
       SEALBREAK_IOS_RUNTIME: ${{ matrix.platform.runtime }}
       SEALBREAK_SIMULATOR_DEVICE_TYPE: ${{ matrix.platform.device }}
     steps:
-      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
           persist-credentials: false
@@ -137,7 +137,7 @@ jobs:
           test -d "$DEVELOPER_DIR"
           xcodebuild -version
       - name: Restore Swift package sources
-        uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25 # v5
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
         with:
           path: ${{ runner.temp }}/sealbreak-source-packages
           key: swiftpm-integration-${{ runner.os }}-${{ runner.arch }}-${{ matrix.platform.xcode }}-${{ hashFiles('Sealbreak.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved') }}
@@ -158,7 +158,7 @@ jobs:
         run: |
           echo '::error::Fork build verified without secrets. Review the contribution, then import it to a maintainer-owned branch for Sonar. No pull_request_target shortcut.'
           exit 1
-      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
           fetch-depth: 0
