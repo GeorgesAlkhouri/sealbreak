@@ -55,7 +55,8 @@
 		000000000000000000000260 /* InfoPlist.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000159 /* InfoPlist.xcstrings */; };
 		000000000000000000000249 /* LiveSealbreakClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000149 /* LiveSealbreakClient.swift */; };
 		000000000000000000000258 /* LiveDNSSECResolver.swift in Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000157 /* LiveDNSSECResolver.swift */; };
-		000000000000000000000250 /* ComposableArchitecture in Frameworks */ = {isa = PBXBuildFile; productRef = 000000000000000000000401 /* ComposableArchitecture */; };
+		000000000000000000000263 /* SealbreakAppModule in Frameworks */ = {isa = PBXBuildFile; productRef = 000000000000000000000401 /* SealbreakAppModule */; };
+		000000000000000000000518 /* SealbreakCore in Frameworks */ = {isa = PBXBuildFile; productRef = 000000000000000000000402 /* SealbreakCore */; };
 		000000000000000000000513 /* SealServerIntegrationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000503 /* SealServerIntegrationTests.swift */; };
 		000000000000000000000515 /* AppFailure.swift in Integration Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000150 /* AppFailure.swift */; };
 		000000000000000000000516 /* Models.swift in Integration Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000103 /* Models.swift */; };
@@ -122,7 +123,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				000000000000000000000250 /* ComposableArchitecture in Frameworks */,
+				000000000000000000000263 /* SealbreakAppModule in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -130,6 +131,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				000000000000000000000518 /* SealbreakCore in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -371,7 +373,7 @@
 			);
 			name = Sealbreak;
 			packageProductDependencies = (
-				000000000000000000000401 /* ComposableArchitecture */,
+				000000000000000000000401 /* SealbreakAppModule */,
 			);
 			productName = Sealbreak;
 			productReference = 000000000000000000000006 /* Sealbreak.app */;
@@ -390,6 +392,9 @@
 			dependencies = (
 			);
 			name = SealbreakIntegrationTests;
+			packageProductDependencies = (
+				000000000000000000000402 /* SealbreakCore */,
+			);
 			productName = SealbreakIntegrationTests;
 			productReference = 000000000000000000000501 /* SealbreakIntegrationTests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
@@ -422,7 +427,7 @@
 			);
 			mainGroup = 000000000000000000000003;
 			packageReferences = (
-				000000000000000000000400 /* XCRemoteSwiftPackageReference "swift-composable-architecture" */,
+				000000000000000000000400 /* XCLocalSwiftPackageReference "." */,
 			);
 			productRefGroup = 000000000000000000000005 /* Products */;
 			projectDirPath = "";
@@ -461,49 +466,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				000000000000000000000251 /* AppFailure.swift in Sources */,
-				000000000000000000000203 /* Models.swift in Sources */,
-				000000000000000000000252 /* ShareBinding.swift in Sources */,
-				000000000000000000000204 /* KeychainStore.swift in Sources */,
-				000000000000000000000205 /* SealServerClient.swift in Sources */,
-				000000000000000000000253 /* DNSSECResolver.swift in Sources */,
-				000000000000000000000245 /* SealbreakClient.swift in Sources */,
-				000000000000000000000249 /* LiveSealbreakClient.swift in Sources */,
-				000000000000000000000258 /* LiveDNSSECResolver.swift in Sources */,
 				000000000000000000000210 /* SealbreakApp.swift in Sources */,
-				000000000000000000000211 /* AppRootView.swift in Sources */,
-				000000000000000000000212 /* PrivacyGate.swift in Sources */,
-				000000000000000000000213 /* SensitiveDraftGuard.swift in Sources */,
-				000000000000000000000214 /* AppFeature.swift in Sources */,
-				000000000000000000000215 /* PrivacyFeature.swift in Sources */,
-				000000000000000000000246 /* WelcomeFeature.swift in Sources */,
-				000000000000000000000247 /* WelcomeView.swift in Sources */,
-				000000000000000000000220 /* HomeFeature.swift in Sources */,
-				000000000000000000000221 /* HomeView.swift in Sources */,
-				000000000000000000000222 /* HomeViewState.swift in Sources */,
-				000000000000000000000261 /* SealStatusMotion.swift in Sources */,
-				000000000000000000000224 /* HomeHeader.swift in Sources */,
-				000000000000000000000225 /* HomeMenu.swift in Sources */,
-				000000000000000000000226 /* ServerStatusCard.swift in Sources */,
-				000000000000000000000227 /* SealStatusIndicator.swift in Sources */,
-				000000000000000000000262 /* SealStatusMotionViews.swift in Sources */,
-				000000000000000000000228 /* UnsealButton.swift in Sources */,
-				000000000000000000000234 /* SetupFeature.swift in Sources */,
-				000000000000000000000230 /* SetupView.swift in Sources */,
-				000000000000000000000254 /* InstanceSetupFeature.swift in Sources */,
-				000000000000000000000255 /* InstanceSetupView.swift in Sources */,
-				000000000000000000000256 /* ShareSetupFeature.swift in Sources */,
-				000000000000000000000257 /* ShareSetupView.swift in Sources */,
-				000000000000000000000235 /* ServerDetailsFeature.swift in Sources */,
-				000000000000000000000231 /* ServerDetailsView.swift in Sources */,
-				000000000000000000000236 /* ReplaceShareFeature.swift in Sources */,
-				000000000000000000000232 /* ReplaceShareView.swift in Sources */,
-				000000000000000000000233 /* ShareEditor.swift in Sources */,
-				000000000000000000000240 /* PapercutPalette.swift in Sources */,
-				000000000000000000000241 /* PapercutCard.swift in Sources */,
-				000000000000000000000242 /* PapercutBackground.swift in Sources */,
-				000000000000000000000243 /* PapercutLandscape.swift in Sources */,
-				000000000000000000000244 /* PapercutShapes.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -512,9 +475,6 @@
 			buildActionMask = 2147483647;
 			files = (
 				000000000000000000000513 /* SealServerIntegrationTests.swift in Sources */,
-				000000000000000000000515 /* AppFailure.swift in Integration Sources */,
-				000000000000000000000516 /* Models.swift in Integration Sources */,
-				000000000000000000000517 /* SealServerClient.swift in Integration Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -742,22 +702,23 @@
 		};
 /* End XCConfigurationList section */
 
-/* Begin XCRemoteSwiftPackageReference section */
-		000000000000000000000400 /* XCRemoteSwiftPackageReference "swift-composable-architecture" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/pointfreeco/swift-composable-architecture";
-			requirement = {
-				kind = exactVersion;
-				version = 1.26.2;
-			};
+/* Begin XCLocalSwiftPackageReference section */
+		000000000000000000000400 /* XCLocalSwiftPackageReference "." */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = ".";
 		};
-/* End XCRemoteSwiftPackageReference section */
+/* End XCLocalSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
-		000000000000000000000401 /* ComposableArchitecture */ = {
+		000000000000000000000401 /* SealbreakAppModule */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = 000000000000000000000400 /* XCRemoteSwiftPackageReference "swift-composable-architecture" */;
-			productName = ComposableArchitecture;
+			package = 000000000000000000000400 /* XCLocalSwiftPackageReference "." */;
+			productName = SealbreakAppModule;
+		};
+		000000000000000000000402 /* SealbreakCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 000000000000000000000400 /* XCLocalSwiftPackageReference "." */;
+			productName = SealbreakCore;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};
