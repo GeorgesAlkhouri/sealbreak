@@ -1,18 +1,19 @@
 import ComposableArchitecture
 
 @Reducer
-struct AppFeature {
+package struct AppFeature {
+    package init() {}
     @ObservableState
-    struct State: Equatable {
-        var privacy = PrivacyFeature.State()
-        var welcome: WelcomeFeature.State?
-        var home: HomeFeature.State?
-        var setup: SetupFeature.State?
-        var isLoading = true
-        var didLoad = false
+    package struct State: Equatable {
+        package var privacy = PrivacyFeature.State()
+        package var welcome: WelcomeFeature.State?
+        package var home: HomeFeature.State?
+        package var setup: SetupFeature.State?
+        package var isLoading = true
+        package var didLoad = false
     }
 
-    enum Action: Equatable {
+    package enum Action: Equatable {
         case task
         case localSetupStateLoaded(Result<LocalSetupState, AppFailure>)
         case privacy(PrivacyFeature.Action)
@@ -23,7 +24,7 @@ struct AppFeature {
 
     @Dependency(\.sealbreakClient) private var client
 
-    var body: some ReducerOf<Self> {
+    package var body: some ReducerOf<Self> {
         Scope(state: \.privacy, action: \.privacy) {
             PrivacyFeature()
         }
