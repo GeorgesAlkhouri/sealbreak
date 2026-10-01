@@ -25,8 +25,8 @@ package struct SealStatusMotion: Equatable {
     private(set) var phase: Phase
     private(set) var generation = 0
     private(set) var effect: Effect = .none
-    private(set) var unsealRevealProgress: Double
-    private(set) var resultScale = 1.0
+    package private(set) var unsealRevealProgress: Double
+    package private(set) var resultScale = 1.0
 
     package init(phase: Phase) {
         self.phase = phase
