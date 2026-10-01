@@ -44,7 +44,7 @@ jobs:
           echo "::error::TestFlight releases must be created from main."
           exit 1
 
-      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           persist-credentials: false
 
@@ -59,9 +59,9 @@ jobs:
           test -n "$MATCH_GIT_BASIC_AUTHORIZATION"
 
       - name: Set up Ruby
-        uses: ruby/setup-ruby@14594264cd68ce8a2345dd349bc3d138a4ef85c8 # v1
+        uses: ruby/setup-ruby@14594264cd68ce8a2345dd349bc3d138a4ef85c8 # v1.327.0
         with:
-          ruby-version: '3.4'
+          ruby-version: '4.0'
           bundler-cache: true
 
       - name: Verify Xcode 26.6

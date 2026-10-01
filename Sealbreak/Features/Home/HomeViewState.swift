@@ -93,14 +93,14 @@ struct HomeViewState: Equatable {
     let origin: String
     let status: Status
     let primaryAction: PrimaryAction
-    let notice: LocalizedStringResource?
+    let feedback: AppFeedback?
     let isBusy: Bool
 
     init(
         profile: ServerProfile,
         sealStatus: SealStatus?,
         operation: HomeFeature.State.Operation?,
-        notice: LocalizedStringResource
+        feedback: AppFeedback
     ) {
         serverName = profile.name
         origin = Self.displayOrigin(profile.origin)
@@ -122,20 +122,25 @@ struct HomeViewState: Equatable {
 
         if let operation {
             primaryAction = .working(title: operation.activity)
-            self.notice = nil
+            self.feedback = nil
             return
         }
 
         guard let sealStatus else {
             primaryAction = .checkStatus(enabled: true)
-            self.notice = notice
+            self.feedback = feedback
             return
         }
 
         primaryAction = sealStatus.sealed
             ? .unseal(enabled: sealStatus.supportsUnseal)
             : .checkStatus(enabled: true)
-        self.notice = nil
+        switch feedback.level {
+        case .warning, .error:
+            self.feedback = feedback
+        case .info, .success:
+            self.feedback = nil
+        }
     }
 
     private static func displayOrigin(_ origin: String) -> String {

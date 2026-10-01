@@ -5,16 +5,16 @@ import Foundation
 struct WelcomeFeature {
     @ObservableState
     struct State: Equatable {
-        var notice: LocalizedStringResource?
+        var feedback: AppFeedback?
         var requiresLocalReset: Bool
         var confirmReset = false
         var isResetting = false
 
         init(
-            notice: LocalizedStringResource? = nil,
+            feedback: AppFeedback? = nil,
             requiresLocalReset: Bool = false
         ) {
-            self.notice = notice
+            self.feedback = feedback
             self.requiresLocalReset = requiresLocalReset
         }
     }
@@ -77,12 +77,12 @@ struct WelcomeFeature {
             case .resetResponse(.success):
                 state.isResetting = false
                 state.requiresLocalReset = false
-                state.notice = "Local Sealbreak data was reset. Set up again using your independent share copy."
+                state.feedback = .success("Local Sealbreak data was reset. Set up again using your independent share copy.")
                 return .none
 
             case .resetResponse(.failure(let failure)):
                 state.isResetting = false
-                state.notice = failure.resource
+                state.feedback = failure.feedback
                 return .none
 
             case .delegate:

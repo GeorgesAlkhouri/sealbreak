@@ -13,12 +13,12 @@ struct SetupFeature {
         var step: Step = .instance
         var instance = InstanceSetupFeature.State()
         var share: ShareSetupFeature.State?
-        var notice: LocalizedStringResource
+        var feedback: AppFeedback
 
         init(
-            notice: LocalizedStringResource = "Prototype: use disposable test shares until the security checks in issue #1 have been completed."
+            feedback: AppFeedback = .info("Prototype: use disposable test shares until the security checks in issue #1 have been completed.")
         ) {
-            self.notice = notice
+            self.feedback = feedback
         }
 
         var isBusy: Bool {
@@ -43,8 +43,8 @@ struct SetupFeature {
     enum Action: Equatable {
         enum Delegate: Equatable {
             case cancelled
-            case profileReady(ServerProfile, notice: LocalizedStringResource)
-            case localResetRequired(notice: LocalizedStringResource)
+            case profileReady(ServerProfile, feedback: AppFeedback)
+            case localResetRequired(feedback: AppFeedback)
         }
 
         case instance(InstanceSetupFeature.Action)
@@ -66,17 +66,17 @@ struct SetupFeature {
                 state.step = .share
                 state.share = ShareSetupFeature.State(
                     profile: profile,
-                    notice: state.notice
+                    feedback: state.feedback
                 )
                 return .none
 
-            case .share(.delegate(.profileReady(let profile, let notice))):
-                state.notice = notice
-                return .send(.delegate(.profileReady(profile, notice: notice)))
+            case .share(.delegate(.profileReady(let profile, let feedback))):
+                state.feedback = feedback
+                return .send(.delegate(.profileReady(profile, feedback: feedback)))
 
-            case .share(.delegate(.localResetRequired(let notice))):
-                state.notice = notice
-                return .send(.delegate(.localResetRequired(notice: notice)))
+            case .share(.delegate(.localResetRequired(let feedback))):
+                state.feedback = feedback
+                return .send(.delegate(.localResetRequired(feedback: feedback)))
 
             case .backTapped:
                 guard !state.blocksSetupExit else { return .none }

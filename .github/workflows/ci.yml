@@ -22,7 +22,7 @@ jobs:
     permissions:
       contents: read
     steps:
-      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
           persist-credentials: false
@@ -30,7 +30,7 @@ jobs:
         with:
           python-version: '3.13'
       - name: Restore pre-commit environments
-        uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25 # v5
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
         with:
           path: ~/.cache/pre-commit
           key: pre-commit-${{ runner.os }}-${{ runner.arch }}-py3.13-${{ hashFiles('.pre-commit-config.yaml') }}
@@ -49,7 +49,7 @@ jobs:
       contents: read
       id-token: write
     steps:
-      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
           persist-credentials: false
@@ -61,7 +61,7 @@ jobs:
           test -n "$profile" && test -n "$binary"
           xcrun llvm-cov export "$binary" -instr-profile "$profile" -format=lcov > coverage.lcov
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@0b35c9ecc4f0529d0eb674914510c22f85b196b4 # v7.0.0
+        uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
         with:
           files: coverage.lcov
           fail_ci_if_error: true
@@ -74,7 +74,7 @@ jobs:
     permissions:
       contents: read
     steps:
-      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
           persist-credentials: false
@@ -128,7 +128,7 @@ jobs:
       SEALBREAK_IOS_RUNTIME: ${{ matrix.platform.runtime }}
       SEALBREAK_SIMULATOR_DEVICE_TYPE: ${{ matrix.platform.device }}
     steps:
-      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
           persist-credentials: false
@@ -137,7 +137,7 @@ jobs:
           test -d "$DEVELOPER_DIR"
           xcodebuild -version
       - name: Restore Swift package sources
-        uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25 # v5
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
         with:
           path: ${{ runner.temp }}/sealbreak-source-packages
           key: swiftpm-integration-${{ runner.os }}-${{ runner.arch }}-${{ matrix.platform.xcode }}-${{ hashFiles('Sealbreak.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved') }}
@@ -150,7 +150,7 @@ jobs:
 
   sonar:
     name: CI / sonar
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     timeout-minutes: 20
     steps:
       - name: Reject Sonar analysis for fork PRs
@@ -158,13 +158,13 @@ jobs:
         run: |
           echo '::error::Fork build verified without secrets. Review the contribution, then import it to a maintainer-owned branch for Sonar. No pull_request_target shortcut.'
           exit 1
-      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
           fetch-depth: 0
           persist-credentials: false
       - name: SonarQube Cloud and quality gate
-        uses: SonarSource/sonarqube-scan-action@22918119ff8e1ca75a623e15c8296b6ea4fbe28f # v8.2.1
+        uses: SonarSource/sonarqube-scan-action@ba9859eae8dd6bd29e412f25ddbbef3d032000f4 # v8.2.2
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
 
@@ -172,7 +172,7 @@ jobs:
     name: CI / ready
     if: ${{ always() }}
     needs: [quality, tests, build, integration, sonar]
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     timeout-minutes: 5
     steps:
       - name: Require actual success from every gate

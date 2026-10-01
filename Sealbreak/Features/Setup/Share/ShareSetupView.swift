@@ -170,11 +170,7 @@ struct ShareSetupView: View {
                 }
             }
         } else {
-            Text(store.notice)
-                .font(.footnote)
-                .foregroundStyle(PapercutPalette.secondaryText)
-                .multilineTextAlignment(.center)
-                .fixedSize(horizontal: false, vertical: true)
+            PapercutFeedback(feedback: store.feedback)
         }
     }
 

@@ -39,9 +39,25 @@ struct SetupCoverageTests {
 
         await store.send(.addressChanged("http://not-https.example.com"))
         await store.send(.checkConnectionTapped)
-        #expect(store.state.notice.map { String(localized: $0) }?.contains("HTTPS origin") == true)
+        #expect(
+            store.state.addressValidationError.map {
+                String(localized: $0).contains("HTTPS origin")
+            } == true
+        )
+        #expect(store.state.feedback == nil)
         #expect(!store.state.isCheckingConnection)
         #expect(store.state.checkedProfile == nil)
+
+        await store.send(.addressChanged(origin))
+        await store.send(.nameChanged(String(repeating: "a", count: 41)))
+        await store.send(.checkConnectionTapped)
+        #expect(
+            store.state.nameValidationError.map {
+                String(localized: $0).contains("1–40 characters")
+            } == true
+        )
+        #expect(store.state.addressValidationError == nil)
+        #expect(store.state.feedback == nil)
     }
 
     @Test
@@ -56,7 +72,7 @@ struct SetupCoverageTests {
         await store.send(.checkConnectionTapped).finish()
         await store.skipReceivedActions()
 
-        #expect(store.state.notice == "dnssec failed")
+        #expect(store.state.feedback == .error("dnssec failed"))
         #expect(!store.state.isCheckingConnection)
         #expect(store.state.checkedProfile == nil)
     }
@@ -73,7 +89,7 @@ struct SetupCoverageTests {
         await store.send(.checkConnectionTapped).finish()
         await store.skipReceivedActions()
 
-        #expect(store.state.notice == "Connection check cancelled.")
+        #expect(store.state.feedback == .error("Connection check cancelled."))
         #expect(!store.state.isCheckingConnection)
     }
 
@@ -93,7 +109,7 @@ struct SetupCoverageTests {
         await store.send(.checkConnectionTapped).finish()
         await store.skipReceivedActions()
 
-        #expect(store.state.notice == "server unavailable")
+        #expect(store.state.feedback == .error("server unavailable"))
         #expect(store.state.checkedProfile == nil)
         #expect(!store.state.canContinue)
     }
@@ -104,7 +120,7 @@ struct SetupCoverageTests {
         state.address = origin
         state.checkedProfile = try profile()
         state.dnssecStatus = .secure
-        state.notice = "old"
+        state.feedback = .info("old")
         state.isCheckingConnection = true
 
         let store = TestStore(initialState: state) {
@@ -115,10 +131,10 @@ struct SetupCoverageTests {
         await store.send(.privacyInterrupted)
         #expect(!store.state.isCheckingConnection)
         #expect(store.state.checkedProfile == nil)
-        #expect(store.state.notice == "Connection check interrupted. Try again.")
+        #expect(store.state.feedback == .warning("Connection check interrupted. Try again."))
 
         await store.send(.privacyInterrupted)
-        #expect(store.state.notice == "Connection check interrupted. Try again.")
+        #expect(store.state.feedback == .warning("Connection check interrupted. Try again."))
 
         var cancelState = InstanceSetupFeature.State()
         cancelState.isCheckingConnection = true
@@ -141,7 +157,7 @@ struct SetupCoverageTests {
         state.address = origin
         state.checkedProfile = try profile()
         state.dnssecStatus = .secure
-        state.notice = "checked"
+        state.feedback = .success("checked")
 
         let store = TestStore(initialState: state) {
             InstanceSetupFeature()
@@ -154,7 +170,9 @@ struct SetupCoverageTests {
         await store.send(.nameChanged("Renamed"))
         #expect(store.state.checkedProfile == nil)
         #expect(store.state.dnssecStatus == nil)
-        #expect(store.state.notice == nil)
+        #expect(store.state.nameValidationError == nil)
+        #expect(store.state.addressValidationError == nil)
+        #expect(store.state.feedback == nil)
     }
 
     @Test
@@ -214,20 +232,20 @@ struct SetupCoverageTests {
         state.share = ShareSetupFeature.State(profile: target)
 
         let store = setupStore(state, dependency: .testValue)
-        let notice: LocalizedStringResource = "saved"
+        let feedback = AppFeedback.success("saved")
 
         await store.send(
-            .share(.delegate(.profileReady(target, notice: notice)))
+            .share(.delegate(.profileReady(target, feedback: feedback)))
         )
-        await store.receive(.delegate(.profileReady(target, notice: notice)))
-        #expect(store.state.notice == notice)
+        await store.receive(.delegate(.profileReady(target, feedback: feedback)))
+        #expect(store.state.feedback == feedback)
 
-        let recovery: LocalizedStringResource = "reset required"
+        let recovery = AppFeedback.warning("reset required")
         await store.send(
-            .share(.delegate(.localResetRequired(notice: recovery)))
+            .share(.delegate(.localResetRequired(feedback: recovery)))
         )
-        await store.receive(.delegate(.localResetRequired(notice: recovery)))
-        #expect(store.state.notice == recovery)
+        await store.receive(.delegate(.localResetRequired(feedback: recovery)))
+        #expect(store.state.feedback == recovery)
     }
 
     @Test
@@ -241,7 +259,7 @@ struct SetupCoverageTests {
         await instanceStore.send(.privacyInterrupted).finish()
         await instanceStore.skipReceivedActions()
         #expect(!instanceStore.state.instance.isCheckingConnection)
-        #expect(instanceStore.state.instance.notice == "Connection check interrupted. Try again.")
+        #expect(instanceStore.state.instance.feedback == .warning("Connection check interrupted. Try again."))
 
         let counter = CallCounter()
         var dependency = SealbreakClient.testValue

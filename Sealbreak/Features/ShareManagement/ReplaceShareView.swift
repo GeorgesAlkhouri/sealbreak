@@ -25,14 +25,13 @@ struct ReplaceShareView: View {
                         .foregroundStyle(.secondary)
                 }
 
-                if store.isBusy || store.notice != nil {
+                if store.isBusy || store.feedback != nil {
                     Section("Result") {
                         if store.isBusy, let activity = store.activity {
                             ProgressView(activity)
                         }
-                        if let notice = store.notice {
-                            Text(notice)
-                                .font(.callout)
+                        if let feedback = store.feedback {
+                            PapercutFeedback(feedback: feedback)
                         }
                     }
                 }

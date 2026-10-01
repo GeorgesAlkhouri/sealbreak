@@ -4,11 +4,8 @@
     "config:best-practices",
     ":semanticCommits"
   ],
-  "timezone": "Europe/Berlin",
-  "schedule": [
-    "* 0-3 * * *"
-  ],
-  "prConcurrentLimit": 3,
+  "prConcurrentLimit": 0,
+  "prHourlyLimit": 0,
   "automerge": false,
   "platformAutomerge": false,
   "pre-commit": {
@@ -34,17 +31,15 @@
       "internalChecksFilter": "strict"
     },
     {
-      "description": "Group non-major GitHub Actions updates",
+      "description": "Group GitHub Action updates",
       "matchManagers": [
         "github-actions"
       ],
-      "matchUpdateTypes": [
-        "minor",
-        "patch",
-        "digest",
-        "pinDigest"
+      "groupName": "GitHub Actions",
+      "matchDepTypes": [
+        "action"
       ],
-      "groupName": "GitHub Actions"
+      "separateMajorMinor": false
     },
     {
       "description": "Group non-major pre-commit hook updates",

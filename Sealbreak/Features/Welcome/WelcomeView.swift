@@ -61,23 +61,9 @@ struct WelcomeView: View {
                                 "Works with OpenBao, Vault, and compatible Shamir seal servers."
                             )
 
-                        if let notice = store.notice {
-                            Text(notice)
-                                .font(.footnote.weight(.medium))
-                                .foregroundStyle(PapercutPalette.cream)
-                                .multilineTextAlignment(.center)
-                                .fixedSize(horizontal: false, vertical: true)
-                                .padding(.horizontal, 16)
-                                .padding(.vertical, 12)
+                        if let feedback = store.feedback {
+                            PapercutFeedback(feedback: feedback)
                                 .frame(maxWidth: 330)
-                                .background {
-                                    RoundedRectangle(cornerRadius: 18, style: .continuous)
-                                        .fill(PapercutPalette.card.opacity(0.92))
-                                        .overlay {
-                                            RoundedRectangle(cornerRadius: 18, style: .continuous)
-                                                .stroke(PapercutPalette.ring, lineWidth: 1)
-                                        }
-                                }
                                 .padding(.top, 18)
                         }
 
