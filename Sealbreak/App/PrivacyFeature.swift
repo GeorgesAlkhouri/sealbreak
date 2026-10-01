@@ -1,25 +1,26 @@
 import ComposableArchitecture
 
 @Reducer
-struct PrivacyFeature {
+package struct PrivacyFeature {
+    package init() {}
     @ObservableState
-    struct State: Equatable {
-        enum Phase: Equatable {
+    package struct State: Equatable {
+        package enum Phase: Equatable {
             case active
             case inactive
             case background
         }
 
-        var phase: Phase = .inactive
-        var isCaptured = false
+        package var phase: Phase = .inactive
+        package var isCaptured = false
 
-        var isConcealed: Bool {
+        package var isConcealed: Bool {
             phase != .active || isCaptured
         }
     }
 
-    enum Action: Equatable {
-        enum Delegate: Equatable {
+    package enum Action: Equatable {
+        package enum Delegate: Equatable {
             case becameActive
             case interrupted
         }
@@ -29,7 +30,7 @@ struct PrivacyFeature {
         case delegate(Delegate)
     }
 
-    var body: some ReducerOf<Self> {
+    package var body: some ReducerOf<Self> {
         Reduce { state, action in
             switch action {
             case .phaseChanged(let phase):
