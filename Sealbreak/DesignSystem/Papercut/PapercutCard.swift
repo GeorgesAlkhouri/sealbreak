@@ -1,3 +1,4 @@
+import SealbreakCore
 import SwiftUI
 
 struct PapercutCard<Content: View>: View {
