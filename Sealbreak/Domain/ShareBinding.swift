@@ -1,9 +1,9 @@
-func applySharePaste(_ candidate: String?, to draft: inout String) throws {
+package func applySharePaste(_ candidate: String?, to draft: inout String) throws {
     draft.removeAll(keepingCapacity: false)
     draft = try ShareRecord.validateShare(candidate ?? "")
 }
 
-func replaceShareIfBound(
+package func replaceShareIfBound(
     expectedProfile: ServerProfile,
     replacement: ShareRecord,
     readExisting: () throws -> ShareRecord,
