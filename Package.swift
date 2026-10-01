@@ -10,7 +10,7 @@ let package = Package(
     dependencies: [
         .package(
             url: "https://github.com/pointfreeco/swift-composable-architecture",
-            exact: "1.26.1"
+            exact: "1.26.2"
         )
     ],
     targets: [
