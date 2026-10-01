@@ -1,3 +1,4 @@
+import SealbreakCore
 import ComposableArchitecture
 import Foundation
 import SwiftUI
