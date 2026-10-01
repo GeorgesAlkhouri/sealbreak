@@ -1,25 +1,25 @@
 import Foundation
 
-struct SealStatusMotion: Equatable {
-    enum Phase: Equatable {
+package struct SealStatusMotion: Equatable {
+    package enum Phase: Equatable {
         case unknown
         case sealed
         case unsealed
 
-        var isResolved: Bool {
+        package var isResolved: Bool {
             self != .unknown
         }
     }
 
-    enum Effect: Equatable {
+    package enum Effect: Equatable {
         case none
         case unsealReveal
         case result
     }
 
-    struct AnimationID: Equatable {
-        let generation: Int
-        let effect: Effect
+    package struct AnimationID: Equatable {
+        package let generation: Int
+        package let effect: Effect
     }
 
     private(set) var phase: Phase
@@ -28,19 +28,19 @@ struct SealStatusMotion: Equatable {
     private(set) var unsealRevealProgress: Double
     private(set) var resultScale = 1.0
 
-    init(phase: Phase) {
+    package init(phase: Phase) {
         self.phase = phase
         unsealRevealProgress = phase == .unsealed ? 1 : 0
     }
 
-    var animationID: AnimationID {
+    package var animationID: AnimationID {
         AnimationID(
             generation: generation,
             effect: effect
         )
     }
 
-    mutating func transition(to newPhase: Phase) {
+    package mutating func transition(to newPhase: Phase) {
         guard newPhase != phase else { return }
 
         let oldPhase = phase
@@ -70,7 +70,7 @@ struct SealStatusMotion: Equatable {
     }
 
     @discardableResult
-    mutating func setUnsealRevealProgress(
+    package mutating func setUnsealRevealProgress(
         _ progress: Double,
         for animationID: AnimationID
     ) -> Bool {
@@ -86,7 +86,7 @@ struct SealStatusMotion: Equatable {
     }
 
     @discardableResult
-    mutating func completeUnsealReveal(
+    package mutating func completeUnsealReveal(
         for animationID: AnimationID
     ) -> Bool {
         guard animationID == self.animationID,
@@ -101,7 +101,7 @@ struct SealStatusMotion: Equatable {
     }
 
     @discardableResult
-    mutating func setResultScale(
+    package mutating func setResultScale(
         _ scale: Double,
         for animationID: AnimationID
     ) -> Bool {
