@@ -1,3 +1,4 @@
+import SealbreakCore
 import dnssd
 
 extension DNSSECResolver {
