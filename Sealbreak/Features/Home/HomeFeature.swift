@@ -2,10 +2,11 @@ import ComposableArchitecture
 import Foundation
 
 @Reducer
-struct HomeFeature {
+package struct HomeFeature {
+    package init() {}
     @ObservableState
-    struct State: Equatable {
-        enum Operation: Equatable {
+    package struct State: Equatable {
+        package enum Operation: Equatable {
             case checkingStatus
             case checkingTarget
             case waitingForFaceID
@@ -13,7 +14,7 @@ struct HomeFeature {
             case verifyingStatus
             case removingLocalData
 
-            var activity: LocalizedStringResource {
+            package var activity: LocalizedStringResource {
                 switch self {
                 case .checkingStatus:
                     return "Checking seal status…"
@@ -31,20 +32,20 @@ struct HomeFeature {
             }
         }
 
-        enum Confirmation: Equatable {
+        package enum Confirmation: Equatable {
             case unseal
             case removeLocalData
         }
 
-        var profile: ServerProfile
-        var status: SealStatus?
-        var operation: Operation?
-        var feedback: AppFeedback
-        var confirmation: Confirmation?
-        @Presents var serverDetails: ServerDetailsFeature.State?
-        @Presents var replaceShare: ReplaceShareFeature.State?
+        package var profile: ServerProfile
+        package var status: SealStatus?
+        package var operation: Operation?
+        package var feedback: AppFeedback
+        package var confirmation: Confirmation?
+        @Presents package var serverDetails: ServerDetailsFeature.State?
+        @Presents package var replaceShare: ReplaceShareFeature.State?
 
-        init(
+        package init(
             profile: ServerProfile,
             status: SealStatus? = nil,
             feedback: AppFeedback = .info("Prototype: use disposable test shares until the security checks in issue #1 have been completed.")
@@ -54,15 +55,15 @@ struct HomeFeature {
             self.feedback = feedback
         }
 
-        var isBusy: Bool { operation != nil }
-        var activity: LocalizedStringResource? { operation?.activity }
-        var canUnseal: Bool {
+        package var isBusy: Bool { operation != nil }
+        package var activity: LocalizedStringResource? { operation?.activity }
+        package var canUnseal: Bool {
             !isBusy && status?.supportsUnseal == true && status?.sealed == true
         }
     }
 
-    enum Action: Equatable {
-        enum Delegate: Equatable {
+    package enum Action: Equatable {
+        package enum Delegate: Equatable {
             case localDataRemoved(feedback: AppFeedback, requiresLocalReset: Bool)
         }
 
@@ -97,7 +98,7 @@ struct HomeFeature {
 
     @Dependency(\.sealbreakClient) private var client
 
-    var body: some ReducerOf<Self> {
+    package var body: some ReducerOf<Self> {
         Reduce { state, action in
             switch action {
             case .refreshTapped, .refreshRequested:
