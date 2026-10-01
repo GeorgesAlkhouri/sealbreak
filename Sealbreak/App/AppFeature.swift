@@ -11,6 +11,8 @@ package struct AppFeature {
         package var setup: SetupFeature.State?
         package var isLoading = true
         package var didLoad = false
+
+        package init() {}
     }
 
     package enum Action: Equatable {
