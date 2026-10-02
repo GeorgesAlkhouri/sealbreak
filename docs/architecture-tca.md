@@ -73,8 +73,8 @@ Generate the ignored root `Package.resolved` from the committed Xcode workspace 
 
 ```sh
 cp Sealbreak.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved Package.resolved
-swift build --product SealbreakPackageTests --enable-code-coverage -Xswiftc -warnings-as-errors
-swift test --skip-build --enable-code-coverage -Xswiftc -warnings-as-errors
+swift build --force-resolved-versions --product SealbreakPackageTests --enable-code-coverage -Xswiftc -warnings-as-errors
+swift test --force-resolved-versions --skip-build --enable-code-coverage -Xswiftc -warnings-as-errors
 bin_dir="$(swift build --show-bin-path)"
 binary="$bin_dir/SealbreakPackageTests.xctest/Contents/MacOS/SealbreakPackageTests"
 xcrun llvm-cov export "$binary" -instr-profile "$bin_dir/codecov/default.profdata" -format=lcov > coverage.lcov
