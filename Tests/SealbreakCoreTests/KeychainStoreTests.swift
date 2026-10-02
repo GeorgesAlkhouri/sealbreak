@@ -9,6 +9,17 @@ struct KeychainStoreTests {
     private let syntheticShare = String(repeating: "a", count: 64)
 
     @Test
+    func defaultStoreFailsClosedForUnknownProfileWithoutAuthentication() {
+        let store = KeychainStore()
+        let context = LAContext()
+        context.interactionNotAllowed = true
+
+        #expect(throws: AppFailure.self) {
+            try store.read(profileID: UUID(), context: context)
+        }
+    }
+
+    @Test
     func readReturnsValidatedRecordAndBuildsProfileScopedQuery() throws {
         let stub = KeychainStub()
         let record = try makeRecord()

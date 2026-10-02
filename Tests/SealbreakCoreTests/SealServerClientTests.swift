@@ -8,6 +8,20 @@ struct SealServerClientTests {
     private let syntheticShare = String(repeating: "a", count: 64)
 
     @Test
+    func defaultClientPreservesCancellationBeforeSendingARequest() async throws {
+        let client = SealServerClient()
+        let target = try profile()
+        let task = Task {
+            withUnsafeCurrentTask { $0?.cancel() }
+            return try await client.status(target)
+        }
+
+        await #expect(throws: CancellationError.self) {
+            try await task.value
+        }
+    }
+
+    @Test
     func defaultConfigurationKeepsTransportEphemeralAndStrict() {
         let config = SealServerClient.makeConfiguration()
 
