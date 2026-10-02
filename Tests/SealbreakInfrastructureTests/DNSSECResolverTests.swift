@@ -1,5 +1,6 @@
 import Testing
 @testable import SealbreakCore
+@testable import SealbreakInfrastructure
 
 struct DNSSECResolverTests {
     @Test

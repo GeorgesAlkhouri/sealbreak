@@ -1,4 +1,5 @@
 import Foundation
+import SealbreakCore
 import Security
 
 final class TransportPolicy: NSObject, URLSessionTaskDelegate, @unchecked Sendable {

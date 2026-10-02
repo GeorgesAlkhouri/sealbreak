@@ -16,6 +16,7 @@
 		000000000000000000000250 /* SealbreakAppModule in Frameworks */ = {isa = PBXBuildFile; productRef = 000000000000000000000401 /* SealbreakAppModule */; };
 		000000000000000000000513 /* SealServerIntegrationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000503 /* SealServerIntegrationTests.swift */; };
 		000000000000000000000514 /* SealbreakCore in Frameworks */ = {isa = PBXBuildFile; productRef = 000000000000000000000402 /* SealbreakCore */; };
+		000000000000000000000515 /* SealbreakInfrastructure in Frameworks */ = {isa = PBXBuildFile; productRef = 000000000000000000000403 /* SealbreakInfrastructure */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -45,6 +46,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				000000000000000000000514 /* SealbreakCore in Frameworks */,
+				000000000000000000000515 /* SealbreakInfrastructure in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -137,6 +139,7 @@
 			name = SealbreakIntegrationTests;
 			packageProductDependencies = (
 				000000000000000000000402 /* SealbreakCore */,
+				000000000000000000000403 /* SealbreakInfrastructure */,
 			);
 			productName = SealbreakIntegrationTests;
 			productReference = 000000000000000000000501 /* SealbreakIntegrationTests.xctest */;
@@ -462,6 +465,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 000000000000000000000400 /* XCLocalSwiftPackageReference "." */;
 			productName = SealbreakCore;
+		};
+		000000000000000000000403 /* SealbreakInfrastructure */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 000000000000000000000400 /* XCLocalSwiftPackageReference "." */;
+			productName = SealbreakInfrastructure;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

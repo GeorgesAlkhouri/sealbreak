@@ -1,4 +1,5 @@
 import Foundation
+import SealbreakCore
 import Network
 
 package struct DNSSECResolver: Sendable {

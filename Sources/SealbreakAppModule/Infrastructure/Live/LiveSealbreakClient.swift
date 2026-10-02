@@ -1,6 +1,7 @@
 import Foundation
 import LocalAuthentication
 import SealbreakCore
+import SealbreakInfrastructure
 import UIKit
 
 extension SealbreakClient {

@@ -2,7 +2,7 @@ import SealbreakCore
 import dnssd
 
 extension DNSSECResolver {
-    static let live = Self { host in
+    package static let live = Self { host in
         await Task.detached(priority: .userInitiated) {
             LiveDNSSECResolver.resolve(host: host)
         }.value

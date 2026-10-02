@@ -10,6 +10,7 @@ let package = Package(
     ],
     products: [
         .library(name: "SealbreakCore", targets: ["SealbreakCore"]),
+        .library(name: "SealbreakInfrastructure", targets: ["SealbreakInfrastructure"]),
         .library(name: "SealbreakAppModule", targets: ["SealbreakAppModule"])
     ],
     dependencies: [
@@ -29,9 +30,14 @@ let package = Package(
             ]
         ),
         .target(
+            name: "SealbreakInfrastructure",
+            dependencies: ["SealbreakCore"]
+        ),
+        .target(
             name: "SealbreakAppModule",
             dependencies: [
                 "SealbreakCore",
+                "SealbreakInfrastructure",
                 .product(
                     name: "ComposableArchitecture",
                     package: "swift-composable-architecture"
@@ -48,6 +54,11 @@ let package = Package(
                 )
             ],
             path: "Tests/SealbreakCoreTests"
+        ),
+        .testTarget(
+            name: "SealbreakInfrastructureTests",
+            dependencies: ["SealbreakCore", "SealbreakInfrastructure"],
+            path: "Tests/SealbreakInfrastructureTests"
         )
     ],
     swiftLanguageModes: [.v5]

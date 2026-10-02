@@ -2,37 +2,20 @@
 left to right direction
 skinparam componentStyle rectangle
 
-package "Xcode host" {
-  component "Sealbreak app bootstrap" as Host
-  artifact "App bundle resources\nAssets / localizations / Info.plist\nPrivacyInfo.xcprivacy" as Resources
-  component "SealbreakIntegrationTests" as IntegrationTests
-}
-package "Local package: Sealbreak" {
-  component SealbreakAppModule as AppModule
-  component SealbreakCore as Core
-  component SealbreakCoreTests as CoreTests
-  component "ComposableArchitecture\nexact requirement in Package.swift" as TCA
+component "App host" as Host
+
+package "Sealbreak package" {
+  component "Core" as Core
+  component "Infrastructure" as Infrastructure
+  component "AppModule" as AppModule
 }
 
-Host --> AppModule : retained SealbreakRootView
-Host .. Resources : owns
-AppModule --> Core : package API
-AppModule --> TCA
+component "The Composable Architecture" as TCA
+
+Host --> AppModule
+Infrastructure --> Core
+AppModule --> Core
+AppModule --> Infrastructure
 Core --> TCA
-CoreTests --> Core : @testable
-IntegrationTests --> Core : @testable
-AppModule .. Resources : app-bundle lookups
-
-note bottom of Core
-  Reducers, domain, fail-closed DependencyKey,
-  host-testable infrastructure and presentation state.
-  liveValue and testValue = unimplemented.
-  No direct UIKit / SwiftUI / AppModule imports.
-end note
-note bottom of AppModule
-  SwiftUI views, design system and iOS live adapters.
-  SealbreakRootView retains StoreOf<AppFeature>
-  and explicitly injects SealbreakClient.live.
-  Live controller singleton and cancellation preserved.
-end note
+AppModule --> TCA
 @enduml

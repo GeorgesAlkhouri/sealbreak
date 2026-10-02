@@ -1,17 +1,17 @@
 import Foundation
 
 // Readers and writers must agree on the size of the complete encoded payload.
-enum StorageLimits {
-    static let maxRecordBytes = 4_096
-    static let maxProfileCatalogBytes = 262_144
+package enum StorageLimits {
+    package static let maxRecordBytes = 4_096
+    package static let maxProfileCatalogBytes = 262_144
 
-    static func validateEncodedSize(_ data: Data) throws {
+    package static func validateEncodedSize(_ data: Data) throws {
         guard data.count <= maxRecordBytes else {
             throw AppFailure("The record exceeds the \(maxRecordBytes)-byte storage limit. Shorten the server name; nothing was saved.")
         }
     }
 
-    static func validateProfileCatalogSize(_ data: Data) throws {
+    package static func validateProfileCatalogSize(_ data: Data) throws {
         guard data.count <= maxProfileCatalogBytes else {
             throw AppFailure("The profile catalog exceeds the supported local storage limit. Nothing was saved.")
         }
@@ -49,14 +49,14 @@ package struct ServerProfile: Codable, Equatable, Identifiable, Sendable {
         self.product = product
     }
 
-    func validated() throws -> Self {
+    package func validated() throws -> Self {
         guard try ServerProfile(id: id, name: name, address: origin, product: product) == self else {
             throw AppFailure("The server profile is invalid. Set up this server profile again.")
         }
         return self
     }
 
-    func endpoint(_ path: String) throws -> URL {
+    package func endpoint(_ path: String) throws -> URL {
         _ = try validated()
         return try Self.url(fromCanonicalOrigin: origin)
             .appendingPathComponent("v1/sys/\(path)")
@@ -109,7 +109,7 @@ package struct ServerProfile: Codable, Equatable, Identifiable, Sendable {
 
 package struct ShareRecord: Codable, Equatable, Sendable {
     let version: Int
-    let profileID: UUID
+    package let profileID: UUID
     let boundOrigin: String
     package var share: String
 
@@ -121,7 +121,7 @@ package struct ShareRecord: Codable, Equatable, Sendable {
         self.share = try Self.validateShare(input)
     }
 
-    func validated() throws -> Self {
+    package func validated() throws -> Self {
         guard version == 1 else {
             throw AppFailure("Unsupported Keychain record version.")
         }
@@ -132,7 +132,7 @@ package struct ShareRecord: Codable, Equatable, Sendable {
         return self
     }
 
-    func endpoint(_ path: String) throws -> URL {
+    package func endpoint(_ path: String) throws -> URL {
         _ = try validated()
         return try ServerProfile.url(fromCanonicalOrigin: boundOrigin)
             .appendingPathComponent("v1/sys/\(path)")
@@ -205,7 +205,7 @@ package struct SealStatus: Decodable, Equatable, Sendable {
         initialized && type == "shamir" && migration != true && recoverySeal != true
     }
 
-    func validated() throws -> Self {
+    package func validated() throws -> Self {
         guard !type.isEmpty,
               type.count <= 40,
               (0...255).contains(n),

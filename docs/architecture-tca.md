@@ -22,12 +22,13 @@ AppFeature
 
 ## Dependency boundary
 
-The local `Sealbreak` package contains two products with disjoint default source directories:
+The local `Sealbreak` package contains three library products with disjoint default source directories:
 
-- `SealbreakCore` in `Sources/SealbreakCore` owns reducers, domain models, localized feedback and presentation state, plus host-testable network, Keychain, profile-storage and DNSSEC infrastructure.
-- `SealbreakAppModule` in `Sources/SealbreakAppModule` owns SwiftUI views, the Papercut design system, app view helpers and `Infrastructure/Live` iOS adapters. It consumes Core through package access.
+- `SealbreakCore` in `Sources/SealbreakCore` owns reducers, domain models, localized feedback, the fail-closed client port, shared stored-profile state, and pure setup/removal/reset transactions. Presentation models remain here until the next refactor task moves them to AppModule.
+- `SealbreakInfrastructure` in `Sources/SealbreakInfrastructure` owns the concrete Keychain, profile-catalog file storage, HTTPS client, and DNSSEC adapters, including the live DNS resolver. It depends on Core.
+- `SealbreakAppModule` in `Sources/SealbreakAppModule` owns SwiftUI views, the Papercut design system, app view helpers, and the iOS live client controller. It depends on Core and Infrastructure through package access.
 
-The [component model](architecture-modules.puml) records the dependency direction: the Xcode host imports AppModule, AppModule imports Core, and both package targets use the single TCA dependency declared in `Package.swift`. Core has no direct UIKit, SwiftUI or AppModule imports.
+The [component model](architecture-modules.puml) records the dependency direction: the Xcode app host consumes AppModule, Infrastructure uses Core, and AppModule uses Core and Infrastructure. Core and AppModule share the single TCA requirement declared in `Package.swift`. Core has no dependency on either outer target and no direct UIKit, SwiftUI, Keychain, network, or filesystem adapter imports.
 
 Reducers depend only on `SealbreakClient` in `Sources/SealbreakCore/Dependencies`. Core owns its `DependencyKey` conformance, with both `liveValue` and `testValue` set to the existing fail-closed `unimplemented` value. An omitted live injection therefore cannot accidentally access network, Keychain or biometrics.
 
@@ -40,7 +41,9 @@ Reducers depend only on `SealbreakClient` in `Sources/SealbreakCore/Dependencies
 
 Assets, localizations, `Info.plist` and the privacy manifest remain owned by the Xcode app bundle under `Sealbreak/`; package code continues using the existing app-bundle lookups. There is no package resource bundle.
 
-`SealbreakCoreTests` remains under `Tests/SealbreakCoreTests` and uses `@testable import SealbreakCore`. The Xcode integration test target also links and imports Core with `@testable`, rather than compiling duplicate infrastructure sources. Debug testability is enabled; no public Core API is exposed merely for tests. Test doubles such as `ClientSpy` remain under `Tests/` and are injected through `TestStore` overrides. Low-level infrastructure does not import feature reducers.
+`SealbreakCoreTests` remains under `Tests/SealbreakCoreTests` and covers reducers, domain validation, and pure transaction/setup/recovery behavior through `@testable import SealbreakCore`. `SealbreakInfrastructureTests` under `Tests/SealbreakInfrastructureTests` covers the concrete Keychain, profile storage, HTTPS, and DNSSEC adapters and depends on both Core and Infrastructure. SwiftPM includes both targets in the existing generated `SealbreakPackageTests` product. Presentation tests remain in Core until the next refactor task.
+
+The existing Xcode integration test target links and imports both Core and Infrastructure with `@testable`, preserving its one server integration scenario. Debug testability is enabled; no public API is exposed merely for tests. Test doubles such as `ClientSpy` remain under `Tests/` and are injected through `TestStore` overrides. Infrastructure does not import feature reducers.
 
 ## Sensitive drafts
 
@@ -65,7 +68,7 @@ Privacy interruption cancels the reducer effect, invalidates the active biometri
 
 ## Dependency version
 
-TCA has one exact version requirement in `Package.swift`, shared by both package targets and the Xcode host. Sealbreak uses Swift tools 6.1, Swift language mode 5, and package deployment floors of iOS 26 / macOS 13. The committed Xcode workspace `Package.resolved` remains the canonical pin set; the generated root CLI copy is ignored.
+TCA has one exact version requirement, `1.26.2`, in `Package.swift`, shared by Core and AppModule and resolved by the Xcode host. Sealbreak uses Swift tools 6.1, Swift language mode 5, and package deployment floors of iOS 26 / macOS 13. The committed Xcode workspace `Package.resolved` remains the canonical pin set; the generated root CLI copy is ignored.
 
 ## Development and CI
 
@@ -80,11 +83,11 @@ binary="$bin_dir/SealbreakPackageTests.xctest/Contents/MacOS/SealbreakPackageTes
 xcrun llvm-cov export "$binary" -instr-profile "$bin_dir/codecov/default.profdata" -format=lcov > coverage.lcov
 ```
 
-Build the test product explicitly: the AppModule product contains iOS views, while these existing Core tests run on macOS. The selective build and skip-build test invocation preserve the existing CI suite. Coverage uses the generated `SealbreakPackageTests` executable in the selected build directory.
+Build the test product explicitly: the AppModule product contains iOS views, while the existing Core and Infrastructure tests run on macOS. The selective build and skip-build test invocation preserve the existing CI suite. Coverage uses the generated `SealbreakPackageTests` executable in the selected build directory.
 
 Use `bash scripts/ci/build.sh simulator` for the app and `codeql` for analysis compilation. For an intentional dependency update, edit the exact requirement in `Package.swift` (Renovate uses its SwiftPM manager), run `xcodebuild -resolvePackageDependencies -project Sealbreak.xcodeproj -scheme Sealbreak`, and regenerate the CLI copy with the `cp` command above. Review and commit the manifest and canonical Xcode workspace lockfile; the root copy remains generated and ignored.
 
-The simulator build enables compiler localization extraction for package sources. The existing advisory drift step syncs temporary app catalog copies using host, Core and AppModule `arm64` stringsdata, excluding dependency strings. This preserves extraction after the source moves; catalogs and translations remain in the app bundle.
+The simulator build enables compiler localization extraction for package sources. The existing advisory drift step currently syncs temporary app catalog copies using host, Core and AppModule `arm64` stringsdata, excluding dependency strings. The next refactor task will add Infrastructure to this build-job extraction configuration alongside the presentation move. Catalogs and translations remain in the app bundle.
 
 ## Views
 
