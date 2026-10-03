@@ -55,9 +55,11 @@ jobs:
           persist-credentials: false
       - name: Run tests with coverage
         run: |
-          swift test --enable-code-coverage -Xswiftc -warnings-as-errors
+          cp Sealbreak.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved Package.resolved
+          swift build --force-resolved-versions --product SealbreakPackageTests --enable-code-coverage -Xswiftc -warnings-as-errors
+          swift test --force-resolved-versions --skip-build --enable-code-coverage -Xswiftc -warnings-as-errors
           profile="$(find .build -name default.profdata -type f -print -quit)"
-          binary="$(find .build -type f -name 'SealbreakCorePackageTests' -perm -111 -print -quit)"
+          binary="$(find .build -type f -name 'SealbreakPackageTests' -perm -111 -print -quit)"
           test -n "$profile" && test -n "$binary"
           xcrun llvm-cov export "$binary" -instr-profile "$profile" -format=lcov > coverage.lcov
       - name: Upload coverage to Codecov
@@ -80,18 +82,51 @@ jobs:
           persist-credentials: false
       - name: Compile complete iOS app for Simulator
         run: bash scripts/ci/build.sh simulator
-      - name: Check localization catalog drift
-        continue-on-error: true
+      - name: Run AppModule presentation tests
+        env:
+          DEVELOPER_DIR: /Applications/Xcode_26.6.app/Contents/Developer
         run: |
+          xcodebuild test -project Sealbreak.xcodeproj -scheme Sealbreak \
+            -configuration Debug -destination 'platform=iOS Simulator,name=iPhone 17,OS=26.5' \
+            -derivedDataPath build/Simulator -only-testing:SealbreakAppModuleTests \
+            -skipMacroValidation CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO \
+            DEVELOPMENT_TEAM= COMPILER_INDEX_STORE_ENABLE=NO
+      - name: Check localization catalog drift
+        run: |
+          python3 - <<'PYTHON'
+          import json
+          from pathlib import Path
+          import shutil
+          import subprocess
+          import tempfile
+
+          catalogs = {target: Path("Sources") / target / "Resources/Localizable.xcstrings"
+                      for target in ("SealbreakCore", "SealbreakInfrastructure", "SealbreakAppModule")}
+          # InfoPlist keys come from plist metadata; its catalog is checked below.
+          intermediates = Path("build/Simulator/Build/Intermediates.noindex/Sealbreak.build/Debug-iphonesimulator")
+          with tempfile.TemporaryDirectory(prefix="sealbreak-localization-") as directory:
+              for target, catalog in catalogs.items():
+                  stringsdata = [path for path in sorted((intermediates / f"{target}.build/Objects-normal/arm64").glob("*.stringsdata"))
+                                 if path.name != "ExtractedAppShortcutsMetadata.stringsdata"]
+                  if not stringsdata:
+                      raise SystemExit(f"::error title=Missing localization extraction::No source strings were extracted for {target}.")
+                  synced = Path(directory) / target / catalog.name
+                  synced.parent.mkdir()
+                  shutil.copyfile(catalog, synced)
+                  subprocess.run(["xcrun", "xcstringstool", "sync", str(synced),
+                                  "--stringsdata", *map(str, stringsdata)], check=True)
+                  if json.loads(catalog.read_text()) != json.loads(synced.read_text()):
+                      raise SystemExit(f"::error title=Localization catalogs out of sync::Extracted strings differ from {catalog}. Review catalog changes on the pull request branch.")
+          PYTHON
           if git diff --quiet -- \
-            Sealbreak/Resources/Localizable.xcstrings \
-            Sealbreak/Resources/InfoPlist.xcstrings; then
+            Sealbreak/Resources/InfoPlist.xcstrings \
+            'Sources/*/Resources/Localizable.xcstrings'; then
             exit 0
           fi
-          echo '::warning title=Localization catalogs out of sync::The Xcode build changed String Catalogs. Commit the generated catalog changes on the pull request branch.'
+          echo '::error title=Localization catalogs out of sync::The Xcode build changed String Catalogs. Commit the generated catalog changes on the pull request branch.'
           git diff -- \
-            Sealbreak/Resources/Localizable.xcstrings \
-            Sealbreak/Resources/InfoPlist.xcstrings
+            Sealbreak/Resources/InfoPlist.xcstrings \
+            'Sources/*/Resources/Localizable.xcstrings'
           exit 1
 
   integration:

@@ -10,6 +10,7 @@ case "${1:-}" in
     xcodebuild "${common[@]}" -configuration Debug \
       -destination 'generic/platform=iOS Simulator' \
       -derivedDataPath build/Simulator \
+      SWIFT_EMIT_LOC_STRINGS=YES \
       build
     ;;
   codeql)

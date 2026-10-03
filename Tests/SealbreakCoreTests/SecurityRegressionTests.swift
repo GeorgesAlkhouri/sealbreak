@@ -49,14 +49,6 @@ struct SecurityRegressionTests {
             $0.feedback = failure.feedback
         }
         #expect(unsealStore.state.status == status)
-        #expect(
-            HomeViewState(
-                profile: unsealStore.state.profile,
-                sealStatus: unsealStore.state.status,
-                operation: unsealStore.state.operation,
-                feedback: unsealStore.state.feedback
-            ).feedback == failure.feedback
-        )
 
         var removeState = HomeFeature.State(profile: profile, status: status)
         removeState.operation = .removingLocalData

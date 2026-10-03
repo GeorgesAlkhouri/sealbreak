@@ -3,9 +3,16 @@
 import PackageDescription
 
 let package = Package(
-    name: "SealbreakCore",
+    name: "Sealbreak",
+    defaultLocalization: "en",
     platforms: [
+        .iOS("26.0"),
         .macOS(.v13)
+    ],
+    products: [
+        .library(name: "SealbreakCore", targets: ["SealbreakCore"]),
+        .library(name: "SealbreakInfrastructure", targets: ["SealbreakInfrastructure"]),
+        .library(name: "SealbreakAppModule", targets: ["SealbreakAppModule"])
     ],
     dependencies: [
         .package(
@@ -22,27 +29,24 @@ let package = Package(
                     package: "swift-composable-architecture"
                 )
             ],
-            path: "Sealbreak",
-            exclude: [
-                "App/SealbreakApp.swift",
-                "App/AppRootView.swift",
-                "App/PrivacyGate.swift",
-                "App/SensitiveDraftGuard.swift",
-                "Features/Home/HomeView.swift",
-                "Features/Home/Components",
-                "Features/Welcome/WelcomeView.swift",
-                "Features/Setup/SetupView.swift",
-                "Features/Setup/Instance/InstanceSetupView.swift",
-                "Features/Setup/Share/ShareSetupView.swift",
-                "Features/ServerDetails/ServerDetailsView.swift",
-                "Features/ShareManagement/ReplaceShareView.swift",
-                "Features/ShareManagement/Components",
-                "DesignSystem",
-                "Infrastructure/Live",
-                "Resources",
-                "Info.plist",
-                "PrivacyInfo.xcprivacy"
-            ]
+            resources: [.process("Resources")]
+        ),
+        .target(
+            name: "SealbreakInfrastructure",
+            dependencies: ["SealbreakCore"],
+            resources: [.process("Resources")]
+        ),
+        .target(
+            name: "SealbreakAppModule",
+            dependencies: [
+                "SealbreakCore",
+                "SealbreakInfrastructure",
+                .product(
+                    name: "ComposableArchitecture",
+                    package: "swift-composable-architecture"
+                )
+            ],
+            resources: [.process("Resources")]
         ),
         .testTarget(
             name: "SealbreakCoreTests",
@@ -54,6 +58,11 @@ let package = Package(
                 )
             ],
             path: "Tests/SealbreakCoreTests"
+        ),
+        .testTarget(
+            name: "SealbreakInfrastructureTests",
+            dependencies: ["SealbreakCore", "SealbreakInfrastructure"],
+            path: "Tests/SealbreakInfrastructureTests"
         )
     ],
     swiftLanguageModes: [.v5]
