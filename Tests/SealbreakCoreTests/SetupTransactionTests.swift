@@ -178,6 +178,161 @@ struct SetupTransactionTests {
         #expect(store.state.welcome?.requiresLocalReset == true)
         #expect(store.state.welcome?.feedback.map { String(localized: $0.text) }?.contains("did not finish cleanly") == true)
     }
+
+    @Test
+    func createLocalProfileTransactionDoesNotRunLaterStepsAfterBeginFailure() {
+        var events: [String] = []
+
+        let outcome = createLocalProfileTransaction(
+            beginProfile: {
+                events.append("begin")
+                throw AppFailure("begin failed")
+            },
+            insertShare: {
+                events.append("share")
+            },
+            commitProfile: {
+                events.append("commit")
+            }
+        )
+
+        guard case .recoveryRequired = outcome else {
+            Issue.record("Failed begin must require recovery.")
+            return
+        }
+        #expect(events == ["begin"])
+    }
+
+    @Test
+    func createLocalProfileTransactionDoesNotCommitAfterShareFailure() {
+        var events: [String] = []
+
+        let outcome = createLocalProfileTransaction(
+            beginProfile: {
+                events.append("begin")
+            },
+            insertShare: {
+                events.append("share")
+                throw AppFailure("share failed")
+            },
+            commitProfile: {
+                events.append("commit")
+            }
+        )
+
+        guard case .recoveryRequired = outcome else {
+            Issue.record("Failed share write must require recovery.")
+            return
+        }
+        #expect(events == ["begin", "share"])
+    }
+
+    @Test
+    func removeLocalProfileTransactionDoesNotDeleteBeforeRemovingMarker() {
+        var events: [String] = []
+
+        let outcome = removeLocalProfileTransaction(
+            beginRemoval: {
+                events.append("mark")
+                throw AppFailure("mark failed")
+            },
+            deleteShare: {
+                events.append("share")
+            },
+            deleteProfile: {
+                events.append("profile")
+            }
+        )
+
+        guard case .recoveryRequired = outcome else {
+            Issue.record("Failed removal marker must require recovery.")
+            return
+        }
+        #expect(events == ["mark"])
+    }
+
+    @Test
+    func removeLocalProfileTransactionLeavesProfileWhenShareDeleteFails() {
+        var events: [String] = []
+
+        let outcome = removeLocalProfileTransaction(
+            beginRemoval: {
+                events.append("mark")
+            },
+            deleteShare: {
+                events.append("share")
+                throw AppFailure("share failed")
+            },
+            deleteProfile: {
+                events.append("profile")
+            }
+        )
+
+        guard case .recoveryRequired = outcome else {
+            Issue.record("Failed share deletion must require recovery.")
+            return
+        }
+        #expect(events == ["mark", "share"])
+    }
+
+    @Test
+    func removeLocalProfileTransactionReportsProfileDeleteFailure() {
+        var events: [String] = []
+
+        let outcome = removeLocalProfileTransaction(
+            beginRemoval: {
+                events.append("mark")
+            },
+            deleteShare: {
+                events.append("share")
+            },
+            deleteProfile: {
+                events.append("profile")
+                throw AppFailure("profile failed")
+            }
+        )
+
+        guard case .recoveryRequired = outcome else {
+            Issue.record("Failed profile deletion must require recovery.")
+            return
+        }
+        #expect(events == ["mark", "share", "profile"])
+    }
+
+    @Test
+    func localResetPreparesBeforeDeletingShares() throws {
+        var events: [String] = []
+
+        try resetLocalStorage(
+            prepareReset: {
+                events.append("prepare")
+            },
+            deleteShares: {
+                events.append("shares")
+            },
+            resetProfiles: {
+                events.append("profiles")
+            }
+        )
+        #expect(events == ["prepare", "shares", "profiles"])
+
+        events = []
+        #expect(throws: AppFailure.self) {
+            try resetLocalStorage(
+                prepareReset: {
+                    events.append("prepare")
+                    throw AppFailure("prepare failed")
+                },
+                deleteShares: {
+                    events.append("shares")
+                },
+                resetProfiles: {
+                    events.append("profiles")
+                }
+            )
+        }
+        #expect(events == ["prepare"])
+    }
 }
 
 private actor ProtectionGate {

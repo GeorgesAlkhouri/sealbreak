@@ -305,7 +305,7 @@ struct FeatureTests {
         #expect(store.state.setup == nil)
         #expect(store.state.home?.profile == target)
         #expect(store.state.home?.status == checked)
-        #expect(store.state.home?.feedback == .success("Status checked. Nothing is sent automatically."))
+        #expect(store.state.home?.feedback == .success(LocalizedStringResource("Status checked. Nothing is sent automatically.", bundle: .module)))
     }
 
     @Test
@@ -534,13 +534,6 @@ struct FeatureTests {
         #expect(store.state.feedback == .error("status failed"))
         #expect(store.state.operation == nil)
 
-        let viewState = HomeViewState(
-            profile: store.state.profile,
-            sealStatus: store.state.status,
-            operation: store.state.operation,
-            feedback: store.state.feedback
-        )
-        #expect(viewState.primaryAction == .checkStatus(enabled: true))
         #expect(await spy.readShareCallCount == 0)
         #expect(await spy.submittedCount == 0)
         #expect(await spy.statusCallCount == 1)
@@ -558,8 +551,17 @@ struct FeatureTests {
 
         await store.send(.unsealTapped)
         #expect(store.state.confirmation == .unseal)
-        await store.send(.confirmUnsealTapped).finish()
-        await store.skipReceivedActions()
+        await store.send(.confirmUnsealTapped)
+        #expect(store.state.activity == LocalizedStringResource("Checking target…", bundle: .module))
+        await store.receive(.unsealPreflightStatus(before))
+        await store.receive(.operationActivity(.waitingForFaceID))
+        #expect(store.state.activity == LocalizedStringResource("Waiting for Face ID…", bundle: .module))
+        await store.receive(.operationActivity(.submittingShare))
+        #expect(store.state.activity == LocalizedStringResource("Submitting one share…", bundle: .module))
+        await store.receive(.operationActivity(.verifyingStatus))
+        #expect(store.state.activity == LocalizedStringResource("Verifying seal status…", bundle: .module))
+        await store.receive(.unsealCompleted(after))
+        await store.finish()
 
         #expect(store.state.status == after)
         #expect(store.state.operation == nil)
@@ -623,7 +625,7 @@ struct FeatureTests {
         await store.skipReceivedActions()
 
         #expect(store.state.status?.sealed == false)
-        #expect(store.state.feedback == .info("Already unsealed. No share was read or sent."))
+        #expect(store.state.feedback == .info(LocalizedStringResource("Already unsealed. No share was read or sent.", bundle: .module)))
         let submittedCount = await spy.submittedCount
         #expect(submittedCount == 0)
     }
@@ -643,7 +645,7 @@ struct FeatureTests {
         store.exhaustivity = .off(showSkippedAssertions: false)
 
         await store.send(.saveTapped(share: share)).finish()
-        let savedFeedback = AppFeedback.success("Share protected on this iPhone. Check status to begin.")
+        let savedFeedback = AppFeedback.success(LocalizedStringResource("Share protected on this iPhone. Check status to begin.", bundle: .module))
         await store.receive(.importResponse(.success(.init(profile: target, feedback: savedFeedback))))
         await store.receive(.delegate(.profileReady(target, feedback: savedFeedback)))
 
@@ -979,7 +981,7 @@ struct FeatureTests {
         await store.send(.replaceShare(.presented(.delegate(.saved))))
         #expect(store.state.replaceShare == nil)
         #expect(store.state.status == refreshed)
-        #expect(store.state.feedback == .success("Status checked. Nothing is sent automatically."))
+        #expect(store.state.feedback == .success(LocalizedStringResource("Status checked. Nothing is sent automatically.", bundle: .module)))
 
         await store.send(.replaceShareTapped)
         await store.send(.replaceShare(.presented(.delegate(.dismissRequested))))
@@ -1307,7 +1309,7 @@ struct FeatureTests {
         await store.skipReceivedActions()
 
         #expect(store.state.operation == nil)
-        #expect(store.state.feedback == .error("This target does not support manual Shamir unseal."))
+        #expect(store.state.feedback == .error(LocalizedStringResource("This target does not support manual Shamir unseal.", bundle: .module)))
         #expect(await spy.submittedCount == 0)
     }
 
@@ -1561,6 +1563,26 @@ struct FeatureTests {
 
         await store.send(.shareFragmentTapped)
         #expect(store.state.shareFragment == nil)
+    }
+
+    @Test
+    func serverDetailsRoutesUserIntentThroughDelegates() async throws {
+        let profile = try ServerProfile(id: UUID(), name: "Server", address: "https://bao.example.com")
+        let store = TestStore(
+            initialState: ServerDetailsFeature.State(
+                profile: profile,
+                status: nil,
+                isBusy: false,
+                activity: nil
+            )
+        ) {
+            ServerDetailsFeature()
+        }
+
+        await store.send(.refreshTapped)
+        await store.receive(.delegate(.refreshRequested))
+        await store.send(.doneTapped)
+        await store.receive(.delegate(.dismissRequested))
     }
 
     @Test

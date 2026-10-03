@@ -1,6 +1,7 @@
 # Small correctness-oriented set. SwiftFormat owns whitespace.
 included:
   - Sealbreak
+  - Sources
   - Tests
 only_rules:
   - force_cast

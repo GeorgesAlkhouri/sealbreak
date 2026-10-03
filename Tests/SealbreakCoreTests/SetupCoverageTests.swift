@@ -89,7 +89,7 @@ struct SetupCoverageTests {
         await store.send(.checkConnectionTapped).finish()
         await store.skipReceivedActions()
 
-        #expect(store.state.feedback == .error("Connection check cancelled."))
+        #expect(store.state.feedback == .error(LocalizedStringResource("Connection check cancelled.", bundle: .module)))
         #expect(!store.state.isCheckingConnection)
     }
 
@@ -131,10 +131,10 @@ struct SetupCoverageTests {
         await store.send(.privacyInterrupted)
         #expect(!store.state.isCheckingConnection)
         #expect(store.state.checkedProfile == nil)
-        #expect(store.state.feedback == .warning("Connection check interrupted. Try again."))
+        #expect(store.state.feedback == .warning(LocalizedStringResource("Connection check interrupted. Try again.", bundle: .module)))
 
         await store.send(.privacyInterrupted)
-        #expect(store.state.feedback == .warning("Connection check interrupted. Try again."))
+        #expect(store.state.feedback == .warning(LocalizedStringResource("Connection check interrupted. Try again.", bundle: .module)))
 
         var cancelState = InstanceSetupFeature.State()
         cancelState.isCheckingConnection = true
@@ -259,7 +259,7 @@ struct SetupCoverageTests {
         await instanceStore.send(.privacyInterrupted).finish()
         await instanceStore.skipReceivedActions()
         #expect(!instanceStore.state.instance.isCheckingConnection)
-        #expect(instanceStore.state.instance.feedback == .warning("Connection check interrupted. Try again."))
+        #expect(instanceStore.state.instance.feedback == .warning(LocalizedStringResource("Connection check interrupted. Try again.", bundle: .module)))
 
         let counter = CallCounter()
         var dependency = SealbreakClient.testValue
@@ -299,7 +299,7 @@ struct SetupCoverageTests {
         var state = SetupFeature.State()
 
         state.instance.isCheckingConnection = true
-        #expect(state.activity == "Checking connection…")
+        #expect(state.activity == LocalizedStringResource("Checking connection…", bundle: .module))
         #expect(state.isBusy)
         #expect(!state.blocksSetupExit)
 
@@ -307,7 +307,7 @@ struct SetupCoverageTests {
         state.step = .share
         state.share = ShareSetupFeature.State(profile: try profile())
         state.share?.operation = .protecting
-        #expect(state.activity == "Protecting share…")
+        #expect(state.activity == LocalizedStringResource("Protecting share…", bundle: .module))
         #expect(state.isBusy)
         #expect(state.blocksSetupExit)
 

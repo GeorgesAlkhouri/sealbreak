@@ -1,5 +1,7 @@
 import Foundation
 import Testing
+@testable import SealbreakCore
+@testable import SealbreakInfrastructure
 
 @Suite(
     .serialized,
