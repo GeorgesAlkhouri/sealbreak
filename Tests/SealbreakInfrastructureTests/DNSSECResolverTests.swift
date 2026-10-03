@@ -21,6 +21,14 @@ struct DNSSECResolverTests {
     }
 
     @Test
+    func liveResolverFailsClosedForOverlongDNSLabel() async {
+        // A DNS label can contain at most 63 bytes.
+        let invalidHost = String(repeating: "a", count: 64) + ".invalid"
+
+        #expect(await DNSSECResolver.live.status(for: invalidHost) == .unavailable)
+    }
+
+    @Test
     func normalHostIsNormalizedAndForwardedToResolver() async {
         let recorder = HostRecorder()
         let resolver = DNSSECResolver { host in
