@@ -24,9 +24,9 @@ AppFeature
 
 The local `Sealbreak` package contains three library products with disjoint default source directories:
 
-- `SealbreakCore` in `Sources/SealbreakCore` owns reducers, domain models, localized feedback, the fail-closed client port, shared stored-profile state, and pure setup/removal/reset transactions. Presentation models remain here until the next refactor task moves them to AppModule.
+- `SealbreakCore` in `Sources/SealbreakCore` owns reducers, domain models, localized feedback, the fail-closed client port, shared stored-profile state, and pure setup/removal/reset transactions.
 - `SealbreakInfrastructure` in `Sources/SealbreakInfrastructure` owns the concrete Keychain, profile-catalog file storage, HTTPS client, and DNSSEC adapters, including the live DNS resolver. It depends on Core.
-- `SealbreakAppModule` in `Sources/SealbreakAppModule` owns SwiftUI views, the Papercut design system, app view helpers, and the iOS live client controller. It depends on Core and Infrastructure through package access.
+- `SealbreakAppModule` in `Sources/SealbreakAppModule` owns SwiftUI views, presentation models (`HomeViewState` and `SealStatusMotion`), the Papercut design system, app view helpers, and the iOS live client controller. It depends on Core and Infrastructure through package access.
 
 The [component model](architecture-modules.puml) records the dependency direction: the Xcode app host consumes AppModule, Infrastructure uses Core, and AppModule uses Core and Infrastructure. Core and AppModule share the single TCA requirement declared in `Package.swift`. Core has no dependency on either outer target and no direct UIKit, SwiftUI, Keychain, network, or filesystem adapter imports.
 
@@ -41,9 +41,11 @@ Reducers depend only on `SealbreakClient` in `Sources/SealbreakCore/Dependencies
 
 Assets, localizations, `Info.plist` and the privacy manifest remain owned by the Xcode app bundle under `Sealbreak/`; package code continues using the existing app-bundle lookups. There is no package resource bundle.
 
-`SealbreakCoreTests` remains under `Tests/SealbreakCoreTests` and covers reducers, domain validation, and pure transaction/setup/recovery behavior through `@testable import SealbreakCore`. `SealbreakInfrastructureTests` under `Tests/SealbreakInfrastructureTests` covers the concrete Keychain, profile storage, HTTPS, and DNSSEC adapters and depends on both Core and Infrastructure. SwiftPM includes both targets in the existing generated `SealbreakPackageTests` product. Presentation tests remain in Core until the next refactor task.
+`SealbreakCoreTests` remains under `Tests/SealbreakCoreTests` and covers reducers, domain validation, and pure transaction/setup/recovery behavior through `@testable import SealbreakCore`. `SealbreakInfrastructureTests` under `Tests/SealbreakInfrastructureTests` covers the concrete Keychain, profile storage, HTTPS, and DNSSEC adapters and depends on both Core and Infrastructure. SwiftPM includes both targets in the existing generated `SealbreakPackageTests` product.
 
-The existing Xcode integration test target links and imports both Core and Infrastructure with `@testable`, preserving its one server integration scenario. Debug testability is enabled; no public API is exposed merely for tests. Test doubles such as `ClientSpy` remain under `Tests/` and are injected through `TestStore` overrides. Infrastructure does not import feature reducers.
+The unhosted Xcode `SealbreakAppModuleTests` target under `Tests/SealbreakAppModuleTests` covers the presentation mapping and motion state through `@testable` imports of the production AppModule and Core products. Mixed reducer/presentation scenarios are split across Core and AppModule tests; authorization, availability guards, and reducer transitions stay in Core. The server-details delegate scenario also remains in Core.
+
+The existing unhosted Xcode integration test target links and imports both Core and Infrastructure with `@testable`, preserving its one server integration scenario. Debug testability is enabled; no public API is exposed merely for tests. Test doubles such as `ClientSpy` remain under `Tests/` and are injected through `TestStore` overrides. Infrastructure does not import feature reducers.
 
 ## Sensitive drafts
 
@@ -85,10 +87,20 @@ xcrun llvm-cov export "$binary" -instr-profile "$bin_dir/codecov/default.profdat
 
 Build the test product explicitly: the AppModule product contains iOS views, while the existing Core and Infrastructure tests run on macOS. The selective build and skip-build test invocation preserve the existing CI suite. Coverage uses the generated `SealbreakPackageTests` executable in the selected build directory.
 
-Use `bash scripts/ci/build.sh simulator` for the app and `codeql` for analysis compilation. For an intentional dependency update, edit the exact requirement in `Package.swift` (Renovate uses its SwiftPM manager), run `xcodebuild -resolvePackageDependencies -project Sealbreak.xcodeproj -scheme Sealbreak`, and regenerate the CLI copy with the `cp` command above. Review and commit the manifest and canonical Xcode workspace lockfile; the root copy remains generated and ignored.
+Build the complete simulator app with `bash scripts/ci/build.sh simulator` and run the iOS presentation tests on the existing Xcode 26.6 / iOS 26.5 / iPhone 17 baseline:
 
-The simulator build enables compiler localization extraction for package sources. The existing advisory drift step currently syncs temporary app catalog copies using host, Core and AppModule `arm64` stringsdata, excluding dependency strings. The next refactor task will add Infrastructure to this build-job extraction configuration alongside the presentation move. Catalogs and translations remain in the app bundle.
+```sh
+xcodebuild test -project Sealbreak.xcodeproj -scheme Sealbreak \
+  -configuration Debug -destination 'platform=iOS Simulator,name=iPhone 17,OS=26.5' \
+  -derivedDataPath build/Simulator -only-testing:SealbreakAppModuleTests \
+  -skipMacroValidation CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO \
+  DEVELOPMENT_TEAM= COMPILER_INDEX_STORE_ENABLE=NO
+```
+
+The existing CI build job runs this unhosted test target; `scripts/ci/integration.sh` continues to run only the one real server integration scenario. Use `bash scripts/ci/build.sh codeql` for analysis compilation. For an intentional dependency update, edit the exact requirement in `Package.swift` (Renovate uses its SwiftPM manager), run `xcodebuild -resolvePackageDependencies -project Sealbreak.xcodeproj -scheme Sealbreak`, and regenerate the CLI copy with the `cp` command above. Review and commit the manifest and canonical Xcode workspace lockfile; the root copy remains generated and ignored.
+
+The simulator build enables compiler localization extraction for package sources. The existing advisory drift step syncs temporary app catalog copies using host, Core, Infrastructure and AppModule `arm64` stringsdata, excluding dependency strings. Catalogs and translations remain in the app bundle.
 
 ## Views
 
-SwiftUI views render scoped stores and send actions. They do not call the configured seal server, Keychain, Face ID, or persistence APIs directly. Reusable visual components and the Papercut design system remain framework-independent SwiftUI views.
+SwiftUI views render scoped stores and send actions. `HomeViewState` maps the existing Core state into labels, progress, feedback and primary-action presentation; `SealStatusMotion` owns visual transition bookkeeping. Neither model changes reducer authorization or transitions. They do not call the configured seal server, Keychain, Face ID, or persistence APIs directly. Reusable visual components and the Papercut design system remain framework-independent SwiftUI views.

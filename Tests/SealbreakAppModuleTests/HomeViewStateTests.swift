@@ -1,6 +1,6 @@
 import Foundation
-import ComposableArchitecture
 import Testing
+@testable import SealbreakAppModule
 @testable import SealbreakCore
 
 @MainActor
@@ -155,23 +155,31 @@ struct HomeViewStateTests {
     }
 
     @Test
-    func serverDetailsRoutesUserIntentThroughDelegates() async throws {
+    func unsealPreflightFailureClearsStaleStatusBeforeShareAccess() throws {
         let profile = try ServerProfile(id: UUID(), name: "Server", address: "https://bao.example.com")
-        let store = TestStore(
-            initialState: ServerDetailsFeature.State(
-                profile: profile,
-                status: nil,
-                isBusy: false,
-                activity: nil
-            )
-        ) {
-            ServerDetailsFeature()
-        }
+        let viewState = HomeViewState(
+            profile: profile,
+            sealStatus: nil,
+            operation: nil,
+            feedback: .error("status failed")
+        )
+        #expect(viewState.primaryAction == .checkStatus(enabled: true))
+    }
 
-        await store.send(.refreshTapped)
-        await store.receive(.delegate(.refreshRequested))
-        await store.send(.doneTapped)
-        await store.receive(.delegate(.dismissRequested))
+    @Test
+    func homeFeedbackPreservesKnownStatusBeforeSubmissionAndClearsUncertainState() throws {
+        let profile = try ServerProfile(id: UUID(), name: "Server", address: "https://bao.example.com")
+        let status = sealStatus(sealed: true, supportsUnseal: true)
+        let failure = AppFailure("Protected share could not be read.")
+
+        #expect(
+            HomeViewState(
+                profile: profile,
+                sealStatus: status,
+                operation: nil,
+                feedback: failure.feedback
+            ).feedback == failure.feedback
+        )
     }
 
     private func sealStatus(sealed: Bool, supportsUnseal: Bool) -> SealStatus {

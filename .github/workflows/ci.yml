@@ -83,6 +83,15 @@ jobs:
           persist-credentials: false
       - name: Compile complete iOS app for Simulator
         run: bash scripts/ci/build.sh simulator
+      - name: Run AppModule presentation tests
+        env:
+          DEVELOPER_DIR: /Applications/Xcode_26.6.app/Contents/Developer
+        run: |
+          xcodebuild test -project Sealbreak.xcodeproj -scheme Sealbreak \
+            -configuration Debug -destination 'platform=iOS Simulator,name=iPhone 17,OS=26.5' \
+            -derivedDataPath build/Simulator -only-testing:SealbreakAppModuleTests \
+            -skipMacroValidation CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO \
+            DEVELOPMENT_TEAM= COMPILER_INDEX_STORE_ENABLE=NO
       - name: Check localization catalog drift
         continue-on-error: true
         run: |
@@ -95,7 +104,7 @@ jobs:
 
           catalogs = [Path("Sealbreak/Resources") / name for name in ("Localizable.xcstrings", "InfoPlist.xcstrings")]
           intermediates = Path("build/Simulator/Build/Intermediates.noindex/Sealbreak.build/Debug-iphonesimulator")
-          stringsdata = [path for target in ("Sealbreak", "SealbreakCore", "SealbreakAppModule")
+          stringsdata = [path for target in ("Sealbreak", "SealbreakCore", "SealbreakInfrastructure", "SealbreakAppModule")
                          for path in sorted((intermediates / f"{target}.build/Objects-normal/arm64").glob("*.stringsdata"))
                          if path.name != "ExtractedAppShortcutsMetadata.stringsdata"]
           with tempfile.TemporaryDirectory(prefix="sealbreak-localization-") as directory:

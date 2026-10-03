@@ -201,7 +201,7 @@ package struct SealStatus: Decodable, Equatable, Sendable {
         case recoverySeal = "recovery_seal"
     }
 
-    var supportsUnseal: Bool {
+    package var supportsUnseal: Bool {
         initialized && type == "shamir" && migration != true && recoverySeal != true
     }
 

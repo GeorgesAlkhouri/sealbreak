@@ -15,7 +15,7 @@ package struct HomeFeature {
             case verifyingStatus
             case removingLocalData
 
-            var activity: LocalizedStringResource {
+            package var activity: LocalizedStringResource {
                 switch self {
                 case .checkingStatus:
                     return "Checking seal status…"

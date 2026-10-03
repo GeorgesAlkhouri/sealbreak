@@ -534,13 +534,6 @@ struct FeatureTests {
         #expect(store.state.feedback == .error("status failed"))
         #expect(store.state.operation == nil)
 
-        let viewState = HomeViewState(
-            profile: store.state.profile,
-            sealStatus: store.state.status,
-            operation: store.state.operation,
-            feedback: store.state.feedback
-        )
-        #expect(viewState.primaryAction == .checkStatus(enabled: true))
         #expect(await spy.readShareCallCount == 0)
         #expect(await spy.submittedCount == 0)
         #expect(await spy.statusCallCount == 1)
@@ -1561,6 +1554,26 @@ struct FeatureTests {
 
         await store.send(.shareFragmentTapped)
         #expect(store.state.shareFragment == nil)
+    }
+
+    @Test
+    func serverDetailsRoutesUserIntentThroughDelegates() async throws {
+        let profile = try ServerProfile(id: UUID(), name: "Server", address: "https://bao.example.com")
+        let store = TestStore(
+            initialState: ServerDetailsFeature.State(
+                profile: profile,
+                status: nil,
+                isBusy: false,
+                activity: nil
+            )
+        ) {
+            ServerDetailsFeature()
+        }
+
+        await store.send(.refreshTapped)
+        await store.receive(.delegate(.refreshRequested))
+        await store.send(.doneTapped)
+        await store.receive(.delegate(.dismissRequested))
     }
 
     @Test

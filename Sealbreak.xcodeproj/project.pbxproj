@@ -17,6 +17,10 @@
 		000000000000000000000513 /* SealServerIntegrationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000503 /* SealServerIntegrationTests.swift */; };
 		000000000000000000000514 /* SealbreakCore in Frameworks */ = {isa = PBXBuildFile; productRef = 000000000000000000000402 /* SealbreakCore */; };
 		000000000000000000000515 /* SealbreakInfrastructure in Frameworks */ = {isa = PBXBuildFile; productRef = 000000000000000000000403 /* SealbreakInfrastructure */; };
+		000000000000000000000613 /* HomeViewStateTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000603 /* HomeViewStateTests.swift */; };
+		000000000000000000000614 /* SealStatusMotionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000604 /* SealStatusMotionTests.swift */; };
+		000000000000000000000615 /* SealbreakCore in Frameworks */ = {isa = PBXBuildFile; productRef = 000000000000000000000402 /* SealbreakCore */; };
+		000000000000000000000616 /* SealbreakAppModule in Frameworks */ = {isa = PBXBuildFile; productRef = 000000000000000000000401 /* SealbreakAppModule */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -30,6 +34,9 @@
 		000000000000000000000159 /* InfoPlist.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Resources/InfoPlist.xcstrings; sourceTree = "<group>"; };
 		000000000000000000000501 /* SealbreakIntegrationTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = SealbreakIntegrationTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		000000000000000000000503 /* SealServerIntegrationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SealServerIntegrationTests.swift; sourceTree = "<group>"; };
+		000000000000000000000601 /* SealbreakAppModuleTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = SealbreakAppModuleTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		000000000000000000000603 /* HomeViewStateTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeViewStateTests.swift; sourceTree = "<group>"; };
+		000000000000000000000604 /* SealStatusMotionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SealStatusMotionTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -50,6 +57,15 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		000000000000000000000606 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				000000000000000000000615 /* SealbreakCore in Frameworks */,
+				000000000000000000000616 /* SealbreakAppModule in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -58,6 +74,7 @@
 			children = (
 				000000000000000000000004 /* Sealbreak */,
 				000000000000000000000502 /* SealbreakIntegrationTests */,
+				000000000000000000000602 /* SealbreakAppModuleTests */,
 				000000000000000000000005 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -81,6 +98,7 @@
 			children = (
 				000000000000000000000006 /* Sealbreak.app */,
 				000000000000000000000501 /* SealbreakIntegrationTests.xctest */,
+				000000000000000000000601 /* SealbreakAppModuleTests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -99,6 +117,15 @@
 				000000000000000000000503 /* SealServerIntegrationTests.swift */,
 			);
 			path = Tests/SealbreakIntegrationTests;
+			sourceTree = "<group>";
+		};
+		000000000000000000000602 /* SealbreakAppModuleTests */ = {
+			isa = PBXGroup;
+			children = (
+				000000000000000000000603 /* HomeViewStateTests.swift */,
+				000000000000000000000604 /* SealStatusMotionTests.swift */,
+			);
+			path = Tests/SealbreakAppModuleTests;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -145,6 +172,27 @@
 			productReference = 000000000000000000000501 /* SealbreakIntegrationTests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
 		};
+		000000000000000000000600 /* SealbreakAppModuleTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 000000000000000000000610 /* Build configuration list for PBXNativeTarget "SealbreakAppModuleTests" */;
+			buildPhases = (
+				000000000000000000000605 /* Sources */,
+				000000000000000000000606 /* Frameworks */,
+				000000000000000000000607 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = SealbreakAppModuleTests;
+			packageProductDependencies = (
+				000000000000000000000402 /* SealbreakCore */,
+				000000000000000000000401 /* SealbreakAppModule */,
+			);
+			productName = SealbreakAppModuleTests;
+			productReference = 000000000000000000000601 /* SealbreakAppModuleTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -160,6 +208,9 @@
 					};
 					000000000000000000000500 = {
 						CreatedOnToolsVersion = 26.0;
+					};
+					000000000000000000000600 = {
+						CreatedOnToolsVersion = 26.6;
 					};
 				};
 			};
@@ -181,6 +232,7 @@
 			targets = (
 				000000000000000000000002 /* Sealbreak */,
 				000000000000000000000500 /* SealbreakIntegrationTests */,
+				000000000000000000000600 /* SealbreakAppModuleTests */,
 			);
 		};
 /* End PBXProject section */
@@ -205,6 +257,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		000000000000000000000607 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
@@ -221,6 +280,15 @@
 			buildActionMask = 2147483647;
 			files = (
 				000000000000000000000513 /* SealServerIntegrationTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		000000000000000000000605 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				000000000000000000000613 /* HomeViewStateTests.swift in Sources */,
+				000000000000000000000614 /* SealStatusMotionTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -416,6 +484,52 @@
 			};
 			name = Release;
 		};
+		000000000000000000000611 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.georgesalkhouri.sealbreak.appmoduletests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SWIFT_TREAT_WARNINGS_AS_ERRORS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Debug;
+		};
+		000000000000000000000612 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.georgesalkhouri.sealbreak.appmoduletests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SWIFT_TREAT_WARNINGS_AS_ERRORS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -442,6 +556,15 @@
 			buildConfigurations = (
 				000000000000000000000511 /* Debug */,
 				000000000000000000000512 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		000000000000000000000610 /* Build configuration list for PBXNativeTarget "SealbreakAppModuleTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				000000000000000000000611 /* Debug */,
+				000000000000000000000612 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

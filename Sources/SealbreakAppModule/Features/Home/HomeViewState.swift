@@ -1,12 +1,13 @@
 import Foundation
+import SealbreakCore
 
-package struct HomeViewState: Equatable {
-    package enum Status: Equatable {
+struct HomeViewState: Equatable {
+    enum Status: Equatable {
         case unknown
         case sealed(progress: Int, threshold: Int, supportsUnseal: Bool)
         case unsealed
 
-        package var title: LocalizedStringResource {
+        var title: LocalizedStringResource {
             switch self {
             case .unknown:
                 return "UNKNOWN"
@@ -17,7 +18,7 @@ package struct HomeViewState: Equatable {
             }
         }
 
-        package var primaryDetail: LocalizedStringResource {
+        var primaryDetail: LocalizedStringResource {
             switch self {
             case .unknown:
                 return "Status unknown"
@@ -28,7 +29,7 @@ package struct HomeViewState: Equatable {
             }
         }
 
-        package var secondaryDetail: LocalizedStringResource {
+        var secondaryDetail: LocalizedStringResource {
             switch self {
             case .unknown:
                 return "Check status before sending"
@@ -39,7 +40,7 @@ package struct HomeViewState: Equatable {
             }
         }
 
-        package var progressFraction: Double {
+        var progressFraction: Double {
             switch self {
             case .unknown:
                 return 0
@@ -52,12 +53,12 @@ package struct HomeViewState: Equatable {
         }
     }
 
-    package enum PrimaryAction: Equatable {
+    enum PrimaryAction: Equatable {
         case checkStatus(enabled: Bool)
         case unseal(enabled: Bool)
         case working(title: LocalizedStringResource)
 
-        package var title: LocalizedStringResource {
+        var title: LocalizedStringResource {
             switch self {
             case .checkStatus:
                 return "Check status"
@@ -68,7 +69,7 @@ package struct HomeViewState: Equatable {
             }
         }
 
-        package var systemImage: String {
+        var systemImage: String {
             switch self {
             case .checkStatus:
                 return "arrow.clockwise"
@@ -79,7 +80,7 @@ package struct HomeViewState: Equatable {
             }
         }
 
-        package var enabled: Bool {
+        var enabled: Bool {
             switch self {
             case .checkStatus(let enabled), .unseal(let enabled):
                 return enabled
@@ -89,14 +90,14 @@ package struct HomeViewState: Equatable {
         }
     }
 
-    package let serverName: String
-    package let origin: String
-    package let status: Status
-    package let primaryAction: PrimaryAction
-    package let feedback: AppFeedback?
-    package let isBusy: Bool
+    let serverName: String
+    let origin: String
+    let status: Status
+    let primaryAction: PrimaryAction
+    let feedback: AppFeedback?
+    let isBusy: Bool
 
-    package init(
+    init(
         profile: ServerProfile,
         sealStatus: SealStatus?,
         operation: HomeFeature.State.Operation?,

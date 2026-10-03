@@ -1,5 +1,5 @@
 import Testing
-@testable import SealbreakCore
+@testable import SealbreakAppModule
 
 struct SealStatusMotionTests {
     @Test
