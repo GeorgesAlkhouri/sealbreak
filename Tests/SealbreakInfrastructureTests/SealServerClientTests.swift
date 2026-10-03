@@ -200,6 +200,42 @@ struct SealServerClientTests {
         }
     }
 
+    @Test(arguments: [65_536, 65_537])
+    func requestEnforcesResponseSizeLimitWithoutContentLength(byteCount: Int) async throws {
+        let statusData = Self.statusData()
+        let data = statusData + Data(repeating: 0x20, count: byteCount - statusData.count)
+        let client = makeClient { request in
+            (Self.response(for: request), data)
+        }
+
+        if byteCount == 65_536 {
+            let status = try await client.status(try profile())
+            #expect(status.sealed)
+            #expect(status.progress == 1)
+        } else {
+            let message = await failureMessage {
+                _ = try await client.status(try profile())
+            }
+            #expect(message == "Server response too large.")
+        }
+    }
+
+    @Test
+    func requestMapsUnexpectedTransportErrorsWithoutExposingDiagnostics() async throws {
+        let client = makeClient { _ in
+            throw NSError(
+                domain: "SealbreakTests.Transport",
+                code: 1,
+                userInfo: [NSLocalizedDescriptionKey: "Sensitive transport diagnostics"]
+            )
+        }
+
+        let message = await failureMessage {
+            _ = try await client.status(try profile())
+        }
+        #expect(message == "The request failed. No automatic retry is made.")
+    }
+
     @Test
     func requestMapsTLSErrorsAndOrdinaryNetworkFailures() async throws {
         let cases: [(URLError.Code, String)] = [
