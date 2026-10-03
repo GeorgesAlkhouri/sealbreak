@@ -50,7 +50,7 @@ struct HomeHeader: View {
                 .foregroundStyle(PapercutPalette.cream)
                 .fixedSize(horizontal: false, vertical: true)
 
-            Text("SECURE ACCESS", bundle: .module)
+            Text("UNSEAL COMPANION", bundle: .module)
                 .font(.caption2.weight(.medium))
                 .tracking(2)
                 .foregroundStyle(PapercutPalette.secondaryText)
