@@ -1,0 +1,33 @@
+@startuml
+!pragma layout smetana
+top to bottom direction
+skinparam componentStyle uml2
+skinparam shadowing false
+skinparam backgroundColor white
+skinparam defaultFontName Helvetica
+skinparam defaultFontSize 16
+skinparam ArrowColor #374151
+skinparam component {
+  BackgroundColor #F8FAFC
+  BorderColor #374151
+  FontColor #111827
+}
+skinparam package {
+  BackgroundColor white
+  BorderColor #64748B
+  FontColor #111827
+}
+component "Sealbreak\n(iOS app)" as App
+package "Sealbreak (Swift package)" {
+  component "SealbreakAppModule" as AppModule
+  component "SealbreakInfrastructure" as Infrastructure
+  component "SealbreakCore" as Core
+  AppModule ..> Infrastructure
+  AppModule ..> Core
+  Infrastructure .right.> Core
+}
+component "ComposableArchitecture" as TCA
+App ..> AppModule
+AppModule ..> TCA
+Core ..> TCA
+@enduml
