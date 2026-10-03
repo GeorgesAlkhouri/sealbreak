@@ -58,10 +58,9 @@ jobs:
           cp Sealbreak.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved Package.resolved
           swift build --force-resolved-versions --product SealbreakPackageTests --enable-code-coverage -Xswiftc -warnings-as-errors
           swift test --force-resolved-versions --skip-build --enable-code-coverage -Xswiftc -warnings-as-errors
-          bin_dir="$(swift build --show-bin-path)"
-          profile="$bin_dir/codecov/default.profdata"
-          binary="$bin_dir/SealbreakPackageTests.xctest/Contents/MacOS/SealbreakPackageTests"
-          test -f "$profile" && test -x "$binary"
+          profile="$(find .build -name default.profdata -type f -print -quit)"
+          binary="$(find .build -type f -name 'SealbreakPackageTests' -perm -111 -print -quit)"
+          test -n "$profile" && test -n "$binary"
           xcrun llvm-cov export "$binary" -instr-profile "$profile" -format=lcov > coverage.lcov
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
