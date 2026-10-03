@@ -18,7 +18,7 @@ package struct SetupFeature {
         var feedback: AppFeedback
 
         package init(
-            feedback: AppFeedback = .info("Prototype: use disposable test shares until the security checks in issue #1 have been completed.")
+            feedback: AppFeedback = .info(LocalizedStringResource("Prototype: use disposable test shares until the security checks in issue #1 have been completed.", bundle: .module))
         ) {
             self.feedback = feedback
         }
@@ -29,7 +29,7 @@ package struct SetupFeature {
 
         var activity: LocalizedStringResource? {
             if instance.isCheckingConnection {
-                return "Checking connection…"
+                return LocalizedStringResource("Checking connection…", bundle: .module)
             }
             if let share, share.isBusy {
                 return share.activity

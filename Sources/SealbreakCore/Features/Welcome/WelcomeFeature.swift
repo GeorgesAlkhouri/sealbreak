@@ -79,7 +79,7 @@ package struct WelcomeFeature {
             case .resetResponse(.success):
                 state.isResetting = false
                 state.requiresLocalReset = false
-                state.feedback = .success("Local Sealbreak data was reset. Set up again using your independent share copy.")
+                state.feedback = .success(LocalizedStringResource("Local Sealbreak data was reset. Set up again using your independent share copy.", bundle: .module))
                 return .none
 
             case .resetResponse(.failure(let failure)):

@@ -38,7 +38,7 @@ package struct ReplaceShareFeature {
             case .saveTapped(let input, let recoveryConfirmed):
                 guard !state.isBusy else { return .none }
                 guard recoveryConfirmed else {
-                    state.feedback = .warning("Confirm recovery for the replacement share before saving.")
+                    state.feedback = .warning(LocalizedStringResource("Confirm recovery for the replacement share before saving.", bundle: .module))
                     return .none
                 }
 
@@ -51,7 +51,7 @@ package struct ReplaceShareFeature {
                 }
 
                 state.isBusy = true
-                state.activity = "Waiting for Face ID…"
+                state.activity = LocalizedStringResource("Waiting for Face ID…", bundle: .module)
                 let profile = state.profile
                 let client = self.client
                 return .run { send in
@@ -62,7 +62,7 @@ package struct ReplaceShareFeature {
                         try await client.replaceShare(
                             profile,
                             replacement,
-                            "Replace the local share for \(profile.origin)"
+                            LocalizedStringResource("Replace the local share for \(profile.origin)", bundle: .module)
                         )
                         await send(.saveSucceeded)
                     } catch is CancellationError {
@@ -88,7 +88,7 @@ package struct ReplaceShareFeature {
             case .operationCancelled:
                 state.isBusy = false
                 state.activity = nil
-                state.feedback = .warning("Operation cancelled. Refresh status before retrying; a submitted request may already have been processed.")
+                state.feedback = .warning(LocalizedStringResource("Operation cancelled. Refresh status before retrying; a submitted request may already have been processed.", bundle: .module))
                 return .none
 
             case .cancelTapped:
@@ -100,7 +100,7 @@ package struct ReplaceShareFeature {
                 state.isBusy = false
                 state.activity = nil
                 if wasBusy {
-                    state.feedback = .warning("Operation interrupted. Check status on return; an already submitted request cannot be recalled.")
+                    state.feedback = .warning(LocalizedStringResource("Operation interrupted. Check status on return; an already submitted request cannot be recalled.", bundle: .module))
                 }
                 let client = self.client
                 return .merge(

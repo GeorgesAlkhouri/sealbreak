@@ -11,13 +11,13 @@ struct ShareSetupView: View {
     var body: some View {
         VStack(spacing: 24) {
             VStack(spacing: 10) {
-                Text("Protect your share")
+                Text("Protect your share", bundle: .module)
                     .font(.system(.title, design: .rounded, weight: .bold))
                     .foregroundStyle(PapercutPalette.cream)
                     .multilineTextAlignment(.center)
                     .fixedSize(horizontal: false, vertical: true)
 
-                Text("Store one Shamir share on this iPhone.")
+                Text("Store one Shamir share on this iPhone.", bundle: .module)
                     .font(.callout.weight(.medium))
                     .foregroundStyle(PapercutPalette.secondaryText)
                     .multilineTextAlignment(.center)
@@ -28,7 +28,7 @@ struct ShareSetupView: View {
 
             PapercutCard {
                 VStack(alignment: .leading, spacing: 16) {
-                    Text("Unseal share")
+                    Text("Unseal share", bundle: .module)
                         .font(.subheadline.weight(.bold))
                         .foregroundStyle(PapercutPalette.secondaryText)
                         .fixedSize(horizontal: false, vertical: true)
@@ -43,14 +43,14 @@ struct ShareSetupView: View {
 
                     securityNote(
                         icon: "lock.iphone",
-                        title: "Stored only on this iPhone",
-                        detail: "Protected by Face ID and the device-bound Keychain. It is not synchronized through iCloud."
+                        title: LocalizedStringResource("Stored only on this iPhone", bundle: .module),
+                        detail: LocalizedStringResource("Protected by Face ID and the device-bound Keychain. It is not synchronized through iCloud.", bundle: .module)
                     )
 
                     securityNote(
                         icon: "externaldrive.badge.checkmark",
-                        title: "Keep an independent recovery copy",
-                        detail: "You will need it if this iPhone is lost or Face ID is re-enrolled."
+                        title: LocalizedStringResource("Keep an independent recovery copy", bundle: .module),
+                        detail: LocalizedStringResource("You will need it if this iPhone is lost or Face ID is re-enrolled.", bundle: .module)
                     )
                 }
                 .padding(24)
@@ -90,7 +90,7 @@ struct ShareSetupView: View {
                         .foregroundStyle(PapercutPalette.cream)
                         .fixedSize(horizontal: false, vertical: true)
 
-                    Text("\(Text(productLabel(store.profile.product))) · \(hostLabel)")
+                    Text("\(Text(productLabel(store.profile.product))) · \(hostLabel)", bundle: .module)
                         .font(.caption.weight(.medium))
                         .foregroundStyle(PapercutPalette.secondaryText)
                         .fixedSize(horizontal: false, vertical: true)
@@ -176,7 +176,7 @@ struct ShareSetupView: View {
     }
 
     private var protectButtonTitle: LocalizedStringResource {
-        store.isBusy ? "Protecting…" : "Protect with Face ID"
+        store.isBusy ? LocalizedStringResource("Protecting…", bundle: .module) : LocalizedStringResource("Protect with Face ID", bundle: .module)
     }
 
     private var isShareLocallyValid: Bool {
@@ -190,11 +190,11 @@ struct ShareSetupView: View {
     private func productLabel(_ product: ServerProduct) -> LocalizedStringResource {
         switch product {
         case .openBao:
-            return "OpenBao"
+            return LocalizedStringResource("OpenBao", bundle: .module)
         case .vault:
-            return "Vault"
+            return LocalizedStringResource("Vault", bundle: .module)
         case .generic:
-            return "Compatible server"
+            return LocalizedStringResource("Compatible server", bundle: .module)
         }
     }
 

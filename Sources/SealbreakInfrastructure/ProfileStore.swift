@@ -48,7 +48,7 @@ package struct ProfileStore {
         let data = try handle.read(upToCount: StorageLimits.maxProfileCatalogBytes + 1) ?? Data()
         guard data.count <= StorageLimits.maxProfileCatalogBytes else {
             throw AppFailure(
-                "Invalid profile catalog. Reset local Sealbreak data before setting up again using your independent share copies."
+                LocalizedStringResource("Invalid profile catalog. Reset local Sealbreak data before setting up again using your independent share copies.", bundle: .module)
             )
         }
 
@@ -57,17 +57,17 @@ package struct ProfileStore {
             catalog = try JSONDecoder().decode(ProfileCatalog.self, from: data)
         } catch {
             throw AppFailure(
-                "Invalid profile catalog. Reset local Sealbreak data before setting up again using your independent share copies."
+                LocalizedStringResource("Invalid profile catalog. Reset local Sealbreak data before setting up again using your independent share copies.", bundle: .module)
             )
         }
         guard catalog.version == ProfileCatalog.currentVersion else {
             throw AppFailure(
-                "Unsupported profile catalog version. Reset local Sealbreak data before setting up again using your independent share copies."
+                LocalizedStringResource("Unsupported profile catalog version. Reset local Sealbreak data before setting up again using your independent share copies.", bundle: .module)
             )
         }
         guard catalog.state == .active else {
             throw AppFailure(
-                "Local Sealbreak reset did not finish. Reset local data to continue."
+                LocalizedStringResource("Local Sealbreak reset did not finish. Reset local data to continue.", bundle: .module)
             )
         }
 
@@ -80,10 +80,10 @@ package struct ProfileStore {
             let profile = try entry.profile.validated()
             try StorageLimits.validateEncodedSize(JSONEncoder().encode(profile))
             guard ids.insert(profile.id).inserted else {
-                throw AppFailure("The profile catalog contains a duplicate profile identifier.")
+                throw AppFailure(LocalizedStringResource("The profile catalog contains a duplicate profile identifier.", bundle: .module))
             }
             guard origins.insert(profile.origin).inserted else {
-                throw AppFailure("The profile catalog contains the same server origin more than once.")
+                throw AppFailure(LocalizedStringResource("The profile catalog contains the same server origin more than once.", bundle: .module))
             }
             validated.append(
                 StoredProfile(
@@ -103,7 +103,7 @@ package struct ProfileStore {
         var entries = try loadAll()
         guard entries.isEmpty else {
             throw AppFailure(
-                "Local profile data already exists. Reset local Sealbreak data before continuing."
+                LocalizedStringResource("Local profile data already exists. Reset local Sealbreak data before continuing.", bundle: .module)
             )
         }
         entries.append(
@@ -121,7 +121,7 @@ package struct ProfileStore {
               entries[0].profile.id == id,
               entries[0].state == .creating else {
             throw AppFailure(
-                "Local setup state cannot be committed. Reset local Sealbreak data before continuing."
+                LocalizedStringResource("Local setup state cannot be committed. Reset local Sealbreak data before continuing.", bundle: .module)
             )
         }
 
@@ -135,7 +135,7 @@ package struct ProfileStore {
               entries[0].profile.id == id,
               entries[0].state == .ready else {
             throw AppFailure(
-                "Local removal state cannot be started. Reset local Sealbreak data before continuing."
+                LocalizedStringResource("Local removal state cannot be started. Reset local Sealbreak data before continuing.", bundle: .module)
             )
         }
 

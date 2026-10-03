@@ -1,9 +1,11 @@
+import Foundation
+
 package func resolveLocalSetupState(
     profiles: [StoredProfile]
 ) -> LocalSetupState {
     guard profiles.count <= 1 else {
         return .recoveryRequired(
-            "Local Sealbreak data contains multiple server profiles, but this app version supports one. Reset local data to continue."
+            LocalizedStringResource("Local Sealbreak data contains multiple server profiles, but this app version supports one. Reset local data to continue.", bundle: .module)
         )
     }
 
@@ -14,7 +16,7 @@ package func resolveLocalSetupState(
     switch entry.state {
     case .creating:
         return .recoveryRequired(
-            "Local Sealbreak setup did not finish cleanly. Reset local data to continue, then set up again using your independent share copy."
+            LocalizedStringResource("Local Sealbreak setup did not finish cleanly. Reset local data to continue, then set up again using your independent share copy.", bundle: .module)
         )
 
     case .ready:
@@ -22,7 +24,7 @@ package func resolveLocalSetupState(
 
     case .removing:
         return .recoveryRequired(
-            "Local Sealbreak removal did not finish cleanly. Reset local data to continue."
+            LocalizedStringResource("Local Sealbreak removal did not finish cleanly. Reset local data to continue.", bundle: .module)
         )
     }
 }
@@ -39,7 +41,7 @@ package func createLocalProfileTransaction(
         return .completed
     } catch {
         return .recoveryRequired(
-            "Local setup could not be completed safely. Reset local Sealbreak data before continuing."
+            LocalizedStringResource("Local setup could not be completed safely. Reset local Sealbreak data before continuing.", bundle: .module)
         )
     }
 }
@@ -56,7 +58,7 @@ package func removeLocalProfileTransaction(
         return .completed
     } catch {
         return .recoveryRequired(
-            "Local removal could not be completed safely. Reset local Sealbreak data before continuing."
+            LocalizedStringResource("Local removal could not be completed safely. Reset local Sealbreak data before continuing.", bundle: .module)
         )
     }
 }

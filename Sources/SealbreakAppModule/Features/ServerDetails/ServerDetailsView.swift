@@ -9,13 +9,13 @@ struct ServerDetailsView: View {
     var body: some View {
         NavigationStack {
             Form {
-                Section("Target") {
-                    LabeledContent("Name", value: store.profile.name)
-                    LabeledContent("Origin", value: store.profile.origin)
+                Section(LocalizedStringResource("Target", bundle: .module)) {
+                    LabeledContent(LocalizedStringResource("Name", bundle: .module), value: store.profile.name)
+                    LabeledContent(LocalizedStringResource("Origin", bundle: .module), value: store.profile.origin)
                 }
 
-                Section("Stored share") {
-                    LabeledContent("Share") {
+                Section(LocalizedStringResource("Stored share", bundle: .module)) {
+                    LabeledContent(LocalizedStringResource("Share", bundle: .module)) {
                         Button {
                             store.send(.shareFragmentTapped)
                         } label: {
@@ -28,7 +28,7 @@ struct ServerDetailsView: View {
                                         Text(verbatim: fragment.displayValue)
                                             .font(.body.monospaced())
                                     } else {
-                                        Text("Hidden")
+                                        Text("Hidden", bundle: .module)
                                             .foregroundStyle(.secondary)
                                     }
 
@@ -48,40 +48,40 @@ struct ServerDetailsView: View {
                         )
                         .accessibilityLabel(
                             store.shareFragment == nil
-                                ? Text("Show stored share fragment")
-                                : Text("Hide stored share fragment")
+                                ? Text("Show stored share fragment", bundle: .module)
+                                : Text("Hide stored share fragment", bundle: .module)
                         )
                         .accessibilityValue(
                             store.shareFragment.map {
                                 Text(verbatim: $0.displayValue)
-                            } ?? Text("Hidden")
+                            } ?? Text("Hidden", bundle: .module)
                         )
                     }
                 }
 
-                Section("Seal status") {
+                Section(LocalizedStringResource("Seal status", bundle: .module)) {
                     if let status = store.status {
-                        LabeledContent("Initialized") {
+                        LabeledContent(LocalizedStringResource("Initialized", bundle: .module)) {
                             Text(booleanLabel(status.initialized))
                         }
-                        LabeledContent("Seal") {
+                        LabeledContent(LocalizedStringResource("Seal", bundle: .module)) {
                             Text(sealLabel(status.sealed))
                         }
-                        LabeledContent("Type", value: status.type)
-                        LabeledContent("Threshold / shares", value: "\(status.t) / \(status.n)")
+                        LabeledContent(LocalizedStringResource("Type", bundle: .module), value: status.type)
+                        LabeledContent(LocalizedStringResource("Threshold / shares", bundle: .module), value: String(localized: "\(status.t) / \(status.n)", bundle: .module))
                         if status.sealed {
-                            LabeledContent("Unseal progress", value: "\(status.progress) / \(status.t)")
+                            LabeledContent(LocalizedStringResource("Unseal progress", bundle: .module), value: String(localized: "\(status.progress) / \(status.t)", bundle: .module))
                         }
                     } else {
-                        Text("Status unknown — check before sending.")
+                        Text("Status unknown — check before sending.", bundle: .module)
                             .foregroundStyle(.secondary)
                     }
                 }
             }
-            .navigationTitle("Server details")
+            .navigationTitle(LocalizedStringResource("Server details", bundle: .module))
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Done") {
+                    Button(LocalizedStringResource("Done", bundle: .module)) {
                         store.send(.doneTapped)
                     }
                     .disabled(store.isRevealingShare)
@@ -91,10 +91,10 @@ struct ServerDetailsView: View {
     }
 
     private func booleanLabel(_ value: Bool) -> LocalizedStringResource {
-        value ? "Yes" : "No"
+        value ? LocalizedStringResource("Yes", bundle: .module) : LocalizedStringResource("No", bundle: .module)
     }
 
     private func sealLabel(_ sealed: Bool) -> LocalizedStringResource {
-        sealed ? "Sealed" : "Unsealed"
+        sealed ? LocalizedStringResource("Sealed", bundle: .module) : LocalizedStringResource("Unsealed", bundle: .module)
     }
 }

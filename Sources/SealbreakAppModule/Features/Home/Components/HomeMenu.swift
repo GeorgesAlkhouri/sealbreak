@@ -1,3 +1,4 @@
+import Foundation
 import SwiftUI
 
 struct HomeMenu: View {
@@ -6,23 +7,23 @@ struct HomeMenu: View {
 
     var body: some View {
         Menu {
-            Button("Check status", systemImage: "arrow.clockwise") {
+            Button(LocalizedStringResource("Check status", bundle: .module), systemImage: "arrow.clockwise") {
                 onAction(.refresh)
             }
             .disabled(isBusy)
 
-            Button("Server details", systemImage: "info.circle") {
+            Button(LocalizedStringResource("Server details", bundle: .module), systemImage: "info.circle") {
                 onAction(.serverDetails)
             }
 
-            Button("Replace local share", systemImage: "key.horizontal") {
+            Button(LocalizedStringResource("Replace local share", bundle: .module), systemImage: "key.horizontal") {
                 onAction(.replaceShare)
             }
             .disabled(isBusy)
 
             Divider()
 
-            Button("Remove local data", systemImage: "trash", role: .destructive) {
+            Button(LocalizedStringResource("Remove local data", bundle: .module), systemImage: "trash", role: .destructive) {
                 onAction(.removeLocalData)
             }
             .disabled(isBusy)
@@ -35,6 +36,6 @@ struct HomeMenu: View {
                 .clipShape(Circle())
                 .shadow(color: .black.opacity(0.30), radius: 9, y: 8)
         }
-        .accessibilityLabel("More options")
+        .accessibilityLabel(LocalizedStringResource("More options", bundle: .module))
     }
 }

@@ -61,7 +61,7 @@ package struct ServerDetailsFeature {
                     do {
                         let fragment = try await client.readShareFragment(
                             profileID,
-                            "Show stored share fragment"
+                            LocalizedStringResource("Show stored share fragment", bundle: .module)
                         )
                         await send(.shareFragmentLoaded(fragment))
                     } catch {

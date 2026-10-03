@@ -201,17 +201,17 @@ private final class LiveSealbreakClientController {
         try Task.checkCancellation()
         guard UIApplication.shared.applicationState == .active else {
             throw AppFailure(
-                "Sealbreak is not the active app. Return to it after the system dialog closes, then retry."
+                LocalizedStringResource("Sealbreak is not the active app. Return to it after the system dialog closes, then retry.", bundle: .module)
             )
         }
         guard UIApplication.shared.isProtectedDataAvailable else {
             throw AppFailure(
-                "Protected iPhone data is unavailable. Unlock the device and retry in Sealbreak."
+                LocalizedStringResource("Protected iPhone data is unavailable. Unlock the device and retry in Sealbreak.", bundle: .module)
             )
         }
         guard !isForegroundSceneCaptured else {
             throw AppFailure(
-                "iPhone screen capture or mirroring is active. Stop it and retry directly on the unlocked device."
+                LocalizedStringResource("iPhone screen capture or mirroring is active. Stop it and retry directly on the unlocked device.", bundle: .module)
             )
         }
     }
@@ -243,32 +243,32 @@ private final class LiveSealbreakClientController {
     private func faceIDFailure(from error: NSError?) -> AppFailure {
         guard let error,
               let code = LAError.Code(rawValue: error.code) else {
-            return AppFailure("Face ID isn’t available for this action.")
+            return AppFailure(LocalizedStringResource("Face ID isn’t available for this action.", bundle: .module))
         }
 
         switch code {
         case .biometryNotEnrolled:
             return AppFailure(
-                "Face ID isn’t set up. Set up Face ID in Settings, then try again."
+                LocalizedStringResource("Face ID isn’t set up. Set up Face ID in Settings, then try again.", bundle: .module)
             )
         case .biometryLockout:
             return AppFailure(
-                "Face ID is locked. Unlock your iPhone with the device passcode, then try again."
+                LocalizedStringResource("Face ID is locked. Unlock your iPhone with the device passcode, then try again.", bundle: .module)
             )
         case .passcodeNotSet:
             return AppFailure(
-                "A device passcode is required before Face ID can be used."
+                LocalizedStringResource("A device passcode is required before Face ID can be used.", bundle: .module)
             )
         case .biometryNotAvailable:
-            return AppFailure("Face ID isn’t available for this action.")
+            return AppFailure(LocalizedStringResource("Face ID isn’t available for this action.", bundle: .module))
         case .userCancel, .appCancel, .systemCancel:
             return AppFailure(
                 feedback: .warning(
-                    "Face ID was cancelled or denied. No new share submission was started."
+                    LocalizedStringResource("Face ID was cancelled or denied. No new share submission was started.", bundle: .module)
                 )
             )
         default:
-            return AppFailure("Face ID did not authorize this action.")
+            return AppFailure(LocalizedStringResource("Face ID did not authorize this action.", bundle: .module))
         }
     }
 
@@ -300,7 +300,7 @@ private final class LiveSealbreakClientController {
                 .deviceOwnerAuthenticationWithBiometrics,
                 localizedReason: String(localized: reason)
             ) else {
-                throw AppFailure("Face ID did not authorize this action.")
+                throw AppFailure(LocalizedStringResource("Face ID did not authorize this action.", bundle: .module))
             }
         } catch is CancellationError {
             throw CancellationError()

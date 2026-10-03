@@ -93,7 +93,6 @@ jobs:
             -skipMacroValidation CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO \
             DEVELOPMENT_TEAM= COMPILER_INDEX_STORE_ENABLE=NO
       - name: Check localization catalog drift
-        continue-on-error: true
         run: |
           python3 - <<'PYTHON'
           import json
@@ -102,30 +101,33 @@ jobs:
           import subprocess
           import tempfile
 
-          catalogs = [Path("Sealbreak/Resources") / name for name in ("Localizable.xcstrings", "InfoPlist.xcstrings")]
+          catalogs = {target: Path("Sources") / target / "Resources/Localizable.xcstrings"
+                      for target in ("SealbreakCore", "SealbreakInfrastructure", "SealbreakAppModule")}
+          # InfoPlist keys come from plist metadata; its catalog is checked below.
           intermediates = Path("build/Simulator/Build/Intermediates.noindex/Sealbreak.build/Debug-iphonesimulator")
-          stringsdata = [path for target in ("Sealbreak", "SealbreakCore", "SealbreakInfrastructure", "SealbreakAppModule")
-                         for path in sorted((intermediates / f"{target}.build/Objects-normal/arm64").glob("*.stringsdata"))
-                         if path.name != "ExtractedAppShortcutsMetadata.stringsdata"]
           with tempfile.TemporaryDirectory(prefix="sealbreak-localization-") as directory:
-              synced = [Path(directory) / path.name for path in catalogs]
-              for source, destination in zip(catalogs, synced):
-                  shutil.copyfile(source, destination)
-              subprocess.run(["xcrun", "xcstringstool", "sync", *map(str, synced),
-                              "--stringsdata", *map(str, stringsdata)], check=True)
-              if any(json.loads(source.read_text()) != json.loads(result.read_text())
-                     for source, result in zip(catalogs, synced)):
-                  raise SystemExit("::warning title=Localization catalogs out of sync::First-party extracted strings differ from the app catalogs. Review catalog changes on the pull request branch.")
+              for target, catalog in catalogs.items():
+                  stringsdata = [path for path in sorted((intermediates / f"{target}.build/Objects-normal/arm64").glob("*.stringsdata"))
+                                 if path.name != "ExtractedAppShortcutsMetadata.stringsdata"]
+                  if not stringsdata:
+                      raise SystemExit(f"::error title=Missing localization extraction::No source strings were extracted for {target}.")
+                  synced = Path(directory) / target / catalog.name
+                  synced.parent.mkdir()
+                  shutil.copyfile(catalog, synced)
+                  subprocess.run(["xcrun", "xcstringstool", "sync", str(synced),
+                                  "--stringsdata", *map(str, stringsdata)], check=True)
+                  if json.loads(catalog.read_text()) != json.loads(synced.read_text()):
+                      raise SystemExit(f"::error title=Localization catalogs out of sync::Extracted strings differ from {catalog}. Review catalog changes on the pull request branch.")
           PYTHON
           if git diff --quiet -- \
-            Sealbreak/Resources/Localizable.xcstrings \
-            Sealbreak/Resources/InfoPlist.xcstrings; then
+            Sealbreak/Resources/InfoPlist.xcstrings \
+            'Sources/*/Resources/Localizable.xcstrings'; then
             exit 0
           fi
-          echo '::warning title=Localization catalogs out of sync::The Xcode build changed String Catalogs. Commit the generated catalog changes on the pull request branch.'
+          echo '::error title=Localization catalogs out of sync::The Xcode build changed String Catalogs. Commit the generated catalog changes on the pull request branch.'
           git diff -- \
-            Sealbreak/Resources/Localizable.xcstrings \
-            Sealbreak/Resources/InfoPlist.xcstrings
+            Sealbreak/Resources/InfoPlist.xcstrings \
+            'Sources/*/Resources/Localizable.xcstrings'
           exit 1
 
   integration:

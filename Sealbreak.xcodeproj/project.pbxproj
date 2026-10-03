@@ -11,7 +11,6 @@
 		000000000000000000000210 /* SealbreakApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000110 /* SealbreakApp.swift */; };
 		000000000000000000000248 /* Brand.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000148 /* Brand.xcassets */; };
 		DA9922F8306BBD960003AF6F /* AppIcon.icon in Resources */ = {isa = PBXBuildFile; fileRef = DA9922F2306BBD960003AF6F /* AppIcon.icon */; };
-		000000000000000000000259 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000158 /* Localizable.xcstrings */; };
 		000000000000000000000260 /* InfoPlist.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000159 /* InfoPlist.xcstrings */; };
 		000000000000000000000250 /* SealbreakAppModule in Frameworks */ = {isa = PBXBuildFile; productRef = 000000000000000000000401 /* SealbreakAppModule */; };
 		000000000000000000000513 /* SealServerIntegrationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000503 /* SealServerIntegrationTests.swift */; };
@@ -30,7 +29,6 @@
 		000000000000000000000110 /* SealbreakApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SealbreakApp.swift; sourceTree = "<group>"; };
 		000000000000000000000148 /* Brand.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Resources/Brand.xcassets; sourceTree = "<group>"; };
 		DA9922F2306BBD960003AF6F /* AppIcon.icon */ = {isa = PBXFileReference; lastKnownFileType = folder.iconcomposer.icon; path = Resources/AppIcon.icon; sourceTree = "<group>"; };
-		000000000000000000000158 /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Resources/Localizable.xcstrings; sourceTree = "<group>"; };
 		000000000000000000000159 /* InfoPlist.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Resources/InfoPlist.xcstrings; sourceTree = "<group>"; };
 		000000000000000000000501 /* SealbreakIntegrationTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = SealbreakIntegrationTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		000000000000000000000503 /* SealServerIntegrationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SealServerIntegrationTests.swift; sourceTree = "<group>"; };
@@ -85,7 +83,6 @@
 				000000000000000000000300 /* App */,
 				000000000000000000000148 /* Brand.xcassets */,
 				DA9922F2306BBD960003AF6F /* AppIcon.icon */,
-				000000000000000000000158 /* Localizable.xcstrings */,
 				000000000000000000000159 /* InfoPlist.xcstrings */,
 				000000000000000000000106 /* Info.plist */,
 				000000000000000000000107 /* PrivacyInfo.xcprivacy */,
@@ -245,7 +242,6 @@
 				000000000000000000000206 /* PrivacyInfo.xcprivacy in Resources */,
 				000000000000000000000248 /* Brand.xcassets in Resources */,
 				DA9922F8306BBD960003AF6F /* AppIcon.icon in Resources */,
-				000000000000000000000259 /* Localizable.xcstrings in Resources */,
 				000000000000000000000260 /* InfoPlist.xcstrings in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

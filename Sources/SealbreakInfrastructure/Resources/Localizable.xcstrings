@@ -1,0 +1,32 @@
+{
+  "sourceLanguage": "en",
+  "strings": {
+    "A protected share already exists for this server profile.": {},
+    "Connection failed or timed out. Check the network, VPN, DNS, and the configured server endpoint.": {},
+    "Could not create biometric Keychain protection. A device passcode and Face ID are required.": {},
+    "Expected a JSON response from the server.": {},
+    "Invalid profile catalog. Reset local Sealbreak data before setting up again using your independent share copies.": {},
+    "Invalid seal-status response. Check the actual server state again.": {},
+    "Keychain access was denied. No passcode fallback is used. Try fresh Face ID; otherwise use independent recovery.": {},
+    "Local Sealbreak reset did not finish. Reset local data to continue.": {},
+    "Local profile data already exists. Reset local Sealbreak data before continuing.": {},
+    "Local removal state cannot be started. Reset local Sealbreak data before continuing.": {},
+    "Local setup state cannot be committed. Reset local Sealbreak data before continuing.": {},
+    "No accessible share was found. Face ID or the device passcode may have changed. Recover from your independent copy.": {},
+    "Redirect blocked. Configure the direct HTTPS origin of one server node.": {},
+    "Server response too large.": {},
+    "Server returned HTTP %lld. A share or request may have been rejected; no automatic retry is made.": {},
+    "TLS validation failed. Fix the server certificate/trust configuration; verification cannot be disabled.": {},
+    "The Keychain operation failed (status %@). Existing data was not deliberately deleted.": {},
+    "The profile catalog contains a duplicate profile identifier.": {},
+    "The profile catalog contains the same server origin more than once.": {},
+    "The protected profile binding does not match this Keychain entry. Use independent recovery.": {},
+    "The protected record is larger than expected. Use independent recovery.": {},
+    "The protected record is unreadable. Use independent recovery; do not overwrite your only copy.": {},
+    "The request failed. No automatic retry is made.": {},
+    "Unable to build server request.": {},
+    "Unexpected server response or response target.": {},
+    "Unsupported profile catalog version. Reset local Sealbreak data before setting up again using your independent share copies.": {}
+  },
+  "version": "1.0"
+}

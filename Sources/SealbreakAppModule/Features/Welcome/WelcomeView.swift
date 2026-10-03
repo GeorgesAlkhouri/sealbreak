@@ -25,14 +25,14 @@ struct WelcomeView: View {
                             .frame(width: 64, height: 76)
                             .accessibilityHidden(true)
 
-                        Text("Sealbreak")
+                        Text("Sealbreak", bundle: .module)
                             .font(.system(.largeTitle, design: .rounded, weight: .bold))
                             .foregroundStyle(PapercutPalette.cream)
                             .multilineTextAlignment(.center)
                             .fixedSize(horizontal: false, vertical: true)
                             .padding(.top, 12)
 
-                        Text("Unlock OpenBao or Vault with Face ID.")
+                        Text("Unlock OpenBao or Vault with Face ID.", bundle: .module)
                             .font(.body.weight(.semibold))
                             .foregroundStyle(PapercutPalette.cream)
                             .multilineTextAlignment(.center)
@@ -41,7 +41,7 @@ struct WelcomeView: View {
                             .frame(maxWidth: 310)
 
                         Text(
-                            "One Shamir unseal share stays protected on this iPhone and is sent to your server only after Face ID."
+                            "One Shamir unseal share stays protected on this iPhone and is sent to your server only after Face ID.", bundle: .module
                         )
                         .font(.subheadline.weight(.medium))
                         .foregroundStyle(PapercutPalette.cream.opacity(0.86))
@@ -59,7 +59,7 @@ struct WelcomeView: View {
                             .frame(maxWidth: 320)
                             .accessibilityElement(children: .ignore)
                             .accessibilityLabel(
-                                "Works with OpenBao, Vault, and compatible Shamir seal servers."
+                                LocalizedStringResource("Works with OpenBao, Vault, and compatible Shamir seal servers.", bundle: .module)
                             )
 
                         if let feedback = store.feedback {
@@ -77,8 +77,8 @@ struct WelcomeView: View {
                                 primaryActionLabel(
                                     icon: "trash.fill",
                                     title: store.isResetting
-                                        ? "Resetting…"
-                                        : "Reset local Sealbreak data"
+                                        ? LocalizedStringResource("Resetting…", bundle: .module)
+                                        : LocalizedStringResource("Reset local Sealbreak data", bundle: .module)
                                 )
                             }
                             .buttonStyle(.plain)
@@ -90,7 +90,7 @@ struct WelcomeView: View {
                             } label: {
                                 primaryActionLabel(
                                     icon: "plus.circle.fill",
-                                    title: "Set up Sealbreak"
+                                    title: LocalizedStringResource("Set up Sealbreak", bundle: .module)
                                 )
                             }
                             .buttonStyle(.plain)
@@ -111,7 +111,7 @@ struct WelcomeView: View {
         .background(PapercutPalette.sky)
         .toolbar(.hidden, for: .navigationBar)
         .confirmationDialog(
-            "Reset local Sealbreak data?",
+            LocalizedStringResource("Reset local Sealbreak data?", bundle: .module),
             isPresented: Binding(
                 get: { store.confirmReset },
                 set: { isPresented in
@@ -122,16 +122,16 @@ struct WelcomeView: View {
             ),
             titleVisibility: .visible
         ) {
-            Button("Reset local data", role: .destructive) {
+            Button(LocalizedStringResource("Reset local data", bundle: .module), role: .destructive) {
                 store.send(.confirmResetLocalDataTapped)
             }
 
-            Button("Cancel", role: .cancel) {
+            Button(LocalizedStringResource("Cancel", bundle: .module), role: .cancel) {
                 // The cancel role dismisses the confirmation without deleting data.
             }
         } message: {
             Text(
-                "This removes every protected share stored by Sealbreak on this iPhone and all local Sealbreak configuration. You need an independent share copy to set up again."
+                "This removes every protected share stored by Sealbreak on this iPhone and all local Sealbreak configuration. You need an independent share copy to set up again.", bundle: .module
             )
         }
     }
@@ -168,7 +168,7 @@ struct WelcomeView: View {
         VStack(spacing: 4) {
             ViewThatFits(in: .horizontal) {
                 HStack(spacing: 6) {
-                    Text("Works with")
+                    Text("Works with", bundle: .module)
                     compatibilityProduct(
                         icon: "OpenBaoMark",
                         name: "OpenBao,",
@@ -179,7 +179,7 @@ struct WelcomeView: View {
                 .fixedSize(horizontal: true, vertical: false)
 
                 VStack(spacing: 6) {
-                    Text("Works with")
+                    Text("Works with", bundle: .module)
                     compatibilityProduct(
                         icon: "OpenBaoMark",
                         name: "OpenBao,",
@@ -189,7 +189,7 @@ struct WelcomeView: View {
                 }
             }
 
-            Text("and compatible Shamir seal servers.")
+            Text("and compatible Shamir seal servers.", bundle: .module)
         }
         .foregroundStyle(PapercutPalette.secondaryText)
     }

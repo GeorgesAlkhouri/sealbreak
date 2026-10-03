@@ -20,11 +20,11 @@ struct SharePasteControl: View {
                 .font(.footnote.weight(.semibold))
                 .foregroundStyle(PapercutPalette.sealed)
             } else if share.isEmpty {
-                Text("Paste Shamir share")
+                Text("Paste Shamir share", bundle: .module)
                     .font(.footnote.weight(.semibold))
                     .foregroundStyle(PapercutPalette.secondaryText)
             } else {
-                Label("Shamir share added", systemImage: "checkmark.circle.fill")
+                Label(LocalizedStringResource("Shamir share added", bundle: .module), systemImage: "checkmark.circle.fill")
                     .font(.footnote.weight(.semibold))
                     .foregroundStyle(PapercutPalette.unsealed)
             }
@@ -67,7 +67,7 @@ struct ShareEditor: View {
             disabled: busy
         )
 
-        Toggle("I have an independent recovery copy", isOn: $recoveryConfirmed)
+        Toggle(LocalizedStringResource("I have an independent recovery copy", bundle: .module), isOn: $recoveryConfirmed)
 
         Button(saveTitle, action: onSave)
             .disabled(busy || share.isEmpty || !recoveryConfirmed)

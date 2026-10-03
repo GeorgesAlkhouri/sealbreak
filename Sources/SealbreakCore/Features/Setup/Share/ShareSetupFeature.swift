@@ -9,7 +9,7 @@ package struct ShareSetupFeature {
             case protecting
 
             var activity: LocalizedStringResource {
-                "Protecting share…"
+                LocalizedStringResource("Protecting share…", bundle: .module)
             }
         }
 
@@ -19,7 +19,7 @@ package struct ShareSetupFeature {
 
         package init(
             profile: ServerProfile,
-            feedback: AppFeedback = .info("Prototype: use disposable test shares until the security checks in issue #1 have been completed.")
+            feedback: AppFeedback = .info(LocalizedStringResource("Prototype: use disposable test shares until the security checks in issue #1 have been completed.", bundle: .module))
         ) {
             self.profile = profile
             self.feedback = feedback
@@ -75,7 +75,7 @@ package struct ShareSetupFeature {
                         let outcome = try await client.protectNewProfile(
                             profile,
                             record,
-                            "Protect this share for \(record.boundOrigin)"
+                            LocalizedStringResource("Protect this share for \(record.boundOrigin)", bundle: .module)
                         )
 
                         switch outcome {
@@ -85,7 +85,7 @@ package struct ShareSetupFeature {
                                     .success(
                                         ProfileResult(
                                             profile: profile,
-                                            feedback: .success("Share protected on this iPhone. Check status to begin.")
+                                            feedback: .success(LocalizedStringResource("Share protected on this iPhone. Check status to begin.", bundle: .module))
                                         )
                                     )
                                 )
@@ -133,7 +133,7 @@ package struct ShareSetupFeature {
 
             case .operationCancelled:
                 state.operation = nil
-                state.feedback = .warning("Operation cancelled. No new protected share was saved.")
+                state.feedback = .warning(LocalizedStringResource("Operation cancelled. No new protected share was saved.", bundle: .module))
                 return .none
 
             case .privacyInterrupted:

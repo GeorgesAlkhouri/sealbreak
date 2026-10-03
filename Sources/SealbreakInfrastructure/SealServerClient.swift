@@ -93,11 +93,11 @@ package struct SealServerClient: Sendable {
         var url = initialURL
         if !queryItems.isEmpty {
             guard var components = componentsForURL(url) else {
-                throw AppFailure("Unable to build server request.")
+                throw AppFailure(LocalizedStringResource("Unable to build server request.", bundle: .module))
             }
             components.queryItems = queryItems
             guard let queriedURL = components.url else {
-                throw AppFailure("Unable to build server request.")
+                throw AppFailure(LocalizedStringResource("Unable to build server request.", bundle: .module))
             }
             url = queriedURL
         }
@@ -145,7 +145,7 @@ package struct SealServerClient: Sendable {
         do {
             return try JSONDecoder().decode(SealStatus.self, from: data).validated()
         } catch {
-            throw AppFailure("Invalid seal-status response. Check the actual server state again.")
+            throw AppFailure(LocalizedStringResource("Invalid seal-status response. Check the actual server state again.", bundle: .module))
         }
     }
 
@@ -213,26 +213,26 @@ package struct SealServerClient: Sendable {
             let (bytes, response) = try await session.bytes(for: request)
             guard let response = response as? HTTPURLResponse,
                   response.url == request.url else {
-                throw AppFailure("Unexpected server response or response target.")
+                throw AppFailure(LocalizedStringResource("Unexpected server response or response target.", bundle: .module))
             }
             guard response.statusCode == 200 else {
                 if (300...399).contains(response.statusCode) {
-                    throw AppFailure("Redirect blocked. Configure the direct HTTPS origin of one server node.")
+                    throw AppFailure(LocalizedStringResource("Redirect blocked. Configure the direct HTTPS origin of one server node.", bundle: .module))
                 }
-                throw AppFailure("Server returned HTTP \(response.statusCode). A share or request may have been rejected; no automatic retry is made.")
+                throw AppFailure(LocalizedStringResource("Server returned HTTP \(response.statusCode). A share or request may have been rejected; no automatic retry is made.", bundle: .module))
             }
             guard response.mimeType == "application/json" else {
-                throw AppFailure("Expected a JSON response from the server.")
+                throw AppFailure(LocalizedStringResource("Expected a JSON response from the server.", bundle: .module))
             }
             guard response.expectedContentLength <= 65_536 else {
-                throw AppFailure("Server response too large.")
+                throw AppFailure(LocalizedStringResource("Server response too large.", bundle: .module))
             }
 
             var data = Data()
             for try await byte in bytes {
                 try Task.checkCancellation()
                 guard data.count < 65_536 else {
-                    throw AppFailure("Server response too large.")
+                    throw AppFailure(LocalizedStringResource("Server response too large.", bundle: .module))
                 }
                 data.append(byte)
             }
@@ -253,12 +253,12 @@ package struct SealServerClient: Sendable {
                  .secureConnectionFailed,
                  .clientCertificateRejected,
                  .clientCertificateRequired:
-                throw AppFailure("TLS validation failed. Fix the server certificate/trust configuration; verification cannot be disabled.")
+                throw AppFailure(LocalizedStringResource("TLS validation failed. Fix the server certificate/trust configuration; verification cannot be disabled.", bundle: .module))
             default:
-                throw AppFailure("Connection failed or timed out. Check the network, VPN, DNS, and the configured server endpoint.")
+                throw AppFailure(LocalizedStringResource("Connection failed or timed out. Check the network, VPN, DNS, and the configured server endpoint.", bundle: .module))
             }
         } catch {
-            throw AppFailure("The request failed. No automatic retry is made.")
+            throw AppFailure(LocalizedStringResource("The request failed. No automatic retry is made.", bundle: .module))
         }
     }
 }

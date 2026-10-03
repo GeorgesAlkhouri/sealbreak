@@ -97,11 +97,11 @@ struct HomeView: View {
         ) {
             switch store.confirmation {
             case .unseal:
-                Button("Send one share", role: .destructive) {
+                Button(LocalizedStringResource("Send one share", bundle: .module), role: .destructive) {
                     store.send(.confirmUnsealTapped)
                 }
             case .removeLocalData:
-                Button("Remove local data", role: .destructive) {
+                Button(LocalizedStringResource("Remove local data", bundle: .module), role: .destructive) {
                     store.send(.confirmRemoveLocalDataTapped)
                 }
             case nil:
@@ -110,9 +110,9 @@ struct HomeView: View {
         } message: {
             switch store.confirmation {
             case .unseal:
-                Text("Face ID will be required. Sealbreak will re-check the target before sending anything.")
+                Text("Face ID will be required. Sealbreak will re-check the target before sending anything.", bundle: .module)
             case .removeLocalData:
-                Text("This removes the local Keychain share and display profile. Independent recovery will be required to restore access.")
+                Text("This removes the local Keychain share and display profile. Independent recovery will be required to restore access.", bundle: .module)
             case nil:
                 EmptyView()
             }
@@ -142,11 +142,11 @@ struct HomeView: View {
     private var confirmationTitle: LocalizedStringResource {
         switch store.confirmation {
         case .unseal:
-            return "Send one Shamir share?"
+            return LocalizedStringResource("Send one Shamir share?", bundle: .module)
         case .removeLocalData:
-            return "Remove local data?"
+            return LocalizedStringResource("Remove local data?", bundle: .module)
         case nil:
-            return "Confirm"
+            return LocalizedStringResource("Confirm", bundle: .module)
         }
     }
 }
@@ -194,6 +194,6 @@ struct HomeView: View {
             )
         }
     } else {
-        Text("Preview fixture unavailable")
+        Text(verbatim: "Preview fixture unavailable")
     }
 }

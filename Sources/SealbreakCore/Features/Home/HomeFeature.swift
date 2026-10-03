@@ -18,17 +18,17 @@ package struct HomeFeature {
             package var activity: LocalizedStringResource {
                 switch self {
                 case .checkingStatus:
-                    return "Checking seal status…"
+                    return LocalizedStringResource("Checking seal status…", bundle: .module)
                 case .checkingTarget:
-                    return "Checking target…"
+                    return LocalizedStringResource("Checking target…", bundle: .module)
                 case .waitingForFaceID:
-                    return "Waiting for Face ID…"
+                    return LocalizedStringResource("Waiting for Face ID…", bundle: .module)
                 case .submittingShare:
-                    return "Submitting one share…"
+                    return LocalizedStringResource("Submitting one share…", bundle: .module)
                 case .verifyingStatus:
-                    return "Verifying seal status…"
+                    return LocalizedStringResource("Verifying seal status…", bundle: .module)
                 case .removingLocalData:
-                    return "Removing local data…"
+                    return LocalizedStringResource("Removing local data…", bundle: .module)
                 }
             }
         }
@@ -49,7 +49,7 @@ package struct HomeFeature {
         package init(
             profile: ServerProfile,
             status: SealStatus? = nil,
-            feedback: AppFeedback = .info("Prototype: use disposable test shares until the security checks in issue #1 have been completed.")
+            feedback: AppFeedback = .info(LocalizedStringResource("Prototype: use disposable test shares until the security checks in issue #1 have been completed.", bundle: .module))
         ) {
             self.profile = profile
             self.status = status
@@ -125,8 +125,8 @@ package struct HomeFeature {
                 state.operation = nil
                 state.status = status
                 state.feedback = status.supportsUnseal
-                    ? .success("Status checked. Nothing is sent automatically.")
-                    : .warning("Only initialized Shamir seals are supported. Initialization, auto-unseal, and seal migration are not supported.")
+                    ? .success(LocalizedStringResource("Status checked. Nothing is sent automatically.", bundle: .module))
+                    : .warning(LocalizedStringResource("Only initialized Shamir seals are supported. Initialization, auto-unseal, and seal migration are not supported.", bundle: .module))
                 synchronizeServerDetails(&state)
                 return .none
 
@@ -156,7 +156,7 @@ package struct HomeFeature {
                         await send(.unsealPreflightStatus(before))
 
                         guard before.supportsUnseal else {
-                            throw AppFailure("This target does not support manual Shamir unseal.")
+                            throw AppFailure(LocalizedStringResource("This target does not support manual Shamir unseal.", bundle: .module))
                         }
                         guard before.sealed else {
                             await send(.unsealAlreadyUnsealed(before))
@@ -166,12 +166,12 @@ package struct HomeFeature {
                         await send(.operationActivity(.waitingForFaceID))
                         var record = try await client.readShare(
                             target.id,
-                            "Send one Shamir share to \(target.origin)"
+                            LocalizedStringResource("Send one Shamir share to \(target.origin)", bundle: .module)
                         )
                         defer { record.share.removeAll(keepingCapacity: false) }
                         guard record.profileID == target.id,
                               record.boundOrigin == target.origin else {
-                            throw AppFailure("Target binding mismatch. Nothing was sent. Reconfigure the local share for this server before retrying.")
+                            throw AppFailure(LocalizedStringResource("Target binding mismatch. Nothing was sent. Reconfigure the local share for this server before retrying.", bundle: .module))
                         }
 
                         try await client.requireForeground()
@@ -183,7 +183,7 @@ package struct HomeFeature {
                         await send(.operationActivity(.verifyingStatus))
                         let after = try await client.status(target)
                         guard after.supportsUnseal else {
-                            throw AppFailure("Unexpected seal configuration after submission.")
+                            throw AppFailure(LocalizedStringResource("Unexpected seal configuration after submission.", bundle: .module))
                         }
                         await send(.unsealCompleted(after))
                     } catch is CancellationError {
@@ -191,12 +191,12 @@ package struct HomeFeature {
                     } catch {
                         if submissionStarted {
                             let detailResource: LocalizedStringResource =
-                                (error as? AppFailure)?.feedback.text ?? "Request failed."
+                                (error as? AppFailure)?.feedback.text ?? LocalizedStringResource("Request failed.", bundle: .module)
                             let detail = String(localized: detailResource)
                             await send(
                                 .unsealOutcomeUnknown(
                                     .warning(
-                                        "\(detail) The final outcome is unknown. Check status before another attempt; a request already received cannot be undone."
+                                        LocalizedStringResource("\(detail) The final outcome is unknown. Check status before another attempt; a request already received cannot be undone.", bundle: .module)
                                     )
                                 )
                             )
@@ -222,7 +222,7 @@ package struct HomeFeature {
             case .unsealAlreadyUnsealed(let status):
                 state.operation = nil
                 state.status = status
-                state.feedback = .info("Already unsealed. No share was read or sent.")
+                state.feedback = .info(LocalizedStringResource("Already unsealed. No share was read or sent.", bundle: .module))
                 synchronizeServerDetails(&state)
                 return .none
 
@@ -230,8 +230,8 @@ package struct HomeFeature {
                 state.operation = nil
                 state.status = status
                 let feedbackText: LocalizedStringResource = status.sealed
-                    ? "Submission completed; still sealed. Progress: \(status.progress)/\(status.t). Other holders must submit their own shares to this same node."
-                    : "Verified: this endpoint now reports unsealed. This does not prove which operator completed the quorum."
+                    ? LocalizedStringResource("Submission completed; still sealed. Progress: \(status.progress)/\(status.t). Other holders must submit their own shares to this same node.", bundle: .module)
+                    : LocalizedStringResource("Verified: this endpoint now reports unsealed. This does not prove which operator completed the quorum.", bundle: .module)
                 state.feedback = .success(feedbackText)
                 synchronizeServerDetails(&state)
                 return .none
@@ -240,7 +240,7 @@ package struct HomeFeature {
                 state.operation = nil
                 state.status = nil
                 state.feedback = .warning(
-                    "Operation cancelled. Refresh status before retrying; a submitted request may already have been processed."
+                    LocalizedStringResource("Operation cancelled. Refresh status before retrying; a submitted request may already have been processed.", bundle: .module)
                 )
                 synchronizeServerDetails(&state)
                 return .none
@@ -275,7 +275,7 @@ package struct HomeFeature {
                     do {
                         let outcome = try await client.removeLocalProfile(
                             profileID,
-                            "Permanently remove Sealbreak’s local share; independent recovery will be required"
+                            LocalizedStringResource("Permanently remove Sealbreak’s local share; independent recovery will be required", bundle: .module)
                         )
                         await send(.removeLocalDataResponse(.success(outcome)))
                     } catch is CancellationError {
@@ -288,7 +288,7 @@ package struct HomeFeature {
 
             case .removeLocalDataResponse(.success(.completed)):
                 let feedback = AppFeedback.success(
-                    "Local share removed. Copies elsewhere remain valid; only server-side rekeying replaces the server’s Shamir shares."
+                    LocalizedStringResource("Local share removed. Copies elsewhere remain valid; only server-side rekeying replaces the server’s Shamir shares.", bundle: .module)
                 )
                 state.operation = nil
                 state.status = nil
@@ -359,7 +359,7 @@ package struct HomeFeature {
                 state.operation = nil
                 if wasBusy {
                     state.feedback = .warning(
-                        "Operation interrupted. Check status on return; an already submitted request cannot be recalled."
+                        LocalizedStringResource("Operation interrupted. Check status on return; an already submitted request cannot be recalled.", bundle: .module)
                     )
                 }
                 return .merge(

@@ -31,10 +31,10 @@ struct HomeViewStateTests {
     }
 
     @Test
-    func primaryActionMapsLabelsIconsAndAvailability() {
+    func primaryActionMapsLabelsIconsAndAvailability() throws {
         let cases: [(
             action: HomeViewState.PrimaryAction,
-            title: LocalizedStringResource,
+            title: String,
             systemImage: String,
             enabled: Bool
         )] = [
@@ -47,10 +47,21 @@ struct HomeViewStateTests {
         ]
 
         for item in cases {
-            #expect(item.action.title == item.title)
+            #expect(String(localized: item.action.title) == item.title)
+            if case .working(let title) = item.action {
+                #expect(item.action.title == title)
+            }
             #expect(item.action.systemImage == item.systemImage)
             #expect(item.action.enabled == item.enabled)
         }
+
+        let title = HomeViewState.PrimaryAction.checkStatus(enabled: true).title
+        guard case .atURL(let bundleURL) = title.bundle else {
+            Issue.record("The action title must use its module resource bundle.")
+            return
+        }
+        let bundle = try #require(Bundle(url: bundleURL))
+        #expect(bundle.bundleURL.lastPathComponent == "Sealbreak_SealbreakAppModule.bundle")
     }
 
     @Test
@@ -64,7 +75,7 @@ struct HomeViewStateTests {
         )
         let operations: [(
             operation: HomeFeature.State.Operation,
-            activity: LocalizedStringResource
+            activity: String
         )] = [
             (.checkingStatus, "Checking seal status…"),
             (.checkingTarget, "Checking target…"),
@@ -85,7 +96,8 @@ struct HomeViewStateTests {
             #expect(state.serverName == "Server")
             #expect(state.origin == "bao.example.com")
             #expect(state.status == expectedStatus)
-            #expect(state.primaryAction == .working(title: item.activity))
+            #expect(state.primaryAction == .working(title: item.operation.activity))
+            #expect(String(localized: item.operation.activity) == item.activity)
             #expect(state.feedback == nil)
             #expect(state.isBusy)
         }
@@ -170,7 +182,9 @@ struct HomeViewStateTests {
     func homeFeedbackPreservesKnownStatusBeforeSubmissionAndClearsUncertainState() throws {
         let profile = try ServerProfile(id: UUID(), name: "Server", address: "https://bao.example.com")
         let status = sealStatus(sealed: true, supportsUnseal: true)
-        let failure = AppFailure("Protected share could not be read.")
+        let sourceText = HomeViewState.Status.unknown.primaryDetail
+        let failure = AppFailure(sourceText)
+        #expect(normalizedAppFailure(failure).feedback.text == sourceText)
 
         #expect(
             HomeViewState(

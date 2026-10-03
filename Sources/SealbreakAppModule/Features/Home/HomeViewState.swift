@@ -10,33 +10,33 @@ struct HomeViewState: Equatable {
         var title: LocalizedStringResource {
             switch self {
             case .unknown:
-                return "UNKNOWN"
+                return LocalizedStringResource("UNKNOWN", bundle: .module)
             case .sealed:
-                return "SEALED"
+                return LocalizedStringResource("SEALED", bundle: .module)
             case .unsealed:
-                return "UNSEALED"
+                return LocalizedStringResource("UNSEALED", bundle: .module)
             }
         }
 
         var primaryDetail: LocalizedStringResource {
             switch self {
             case .unknown:
-                return "Status unknown"
+                return LocalizedStringResource("Status unknown", bundle: .module)
             case .sealed(let progress, let threshold, _):
-                return "\(progress) of \(threshold) shares submitted"
+                return LocalizedStringResource("\(progress) of \(threshold) shares submitted", bundle: .module)
             case .unsealed:
-                return "Server is available"
+                return LocalizedStringResource("Server is available", bundle: .module)
             }
         }
 
         var secondaryDetail: LocalizedStringResource {
             switch self {
             case .unknown:
-                return "Check status before sending"
+                return LocalizedStringResource("Check status before sending", bundle: .module)
             case .sealed(_, _, let supportsUnseal):
-                return supportsUnseal ? "Shamir seal" : "Manual unseal unavailable"
+                return supportsUnseal ? LocalizedStringResource("Shamir seal", bundle: .module) : LocalizedStringResource("Manual unseal unavailable", bundle: .module)
             case .unsealed:
-                return "Status checked"
+                return LocalizedStringResource("Status checked", bundle: .module)
             }
         }
 
@@ -61,9 +61,9 @@ struct HomeViewState: Equatable {
         var title: LocalizedStringResource {
             switch self {
             case .checkStatus:
-                return "Check status"
+                return LocalizedStringResource("Check status", bundle: .module)
             case .unseal:
-                return "Unseal with Face ID"
+                return LocalizedStringResource("Unseal with Face ID", bundle: .module)
             case .working(let title):
                 return title
             }

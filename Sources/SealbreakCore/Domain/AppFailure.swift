@@ -47,5 +47,5 @@ package func normalizedAppFailure(_ error: Error) -> AppFailure {
     if let failure = error as? AppFailure {
         return failure
     }
-    return AppFailure("Operation failed. No sensitive diagnostic data was recorded.")
+    return AppFailure(LocalizedStringResource("Operation failed. No sensitive diagnostic data was recorded.", bundle: .module))
 }

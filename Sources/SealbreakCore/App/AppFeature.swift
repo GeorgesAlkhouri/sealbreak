@@ -1,4 +1,5 @@
 import ComposableArchitecture
+import Foundation
 
 @Reducer
 package struct AppFeature {
@@ -81,7 +82,7 @@ package struct AppFeature {
                 state.setup = nil
                 state.welcome = WelcomeFeature.State(
                     feedback: .warning(
-                        "Local Sealbreak configuration could not be read. Reset local data to continue, then set up again using your independent share copy."
+                        LocalizedStringResource("Local Sealbreak configuration could not be read. Reset local data to continue, then set up again using your independent share copy.", bundle: .module)
                     ),
                     requiresLocalReset: true
                 )

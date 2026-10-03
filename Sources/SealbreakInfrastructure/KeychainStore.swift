@@ -78,25 +78,25 @@ package struct KeychainStore {
             data.resetBytes(in: data.startIndex..<data.endIndex)
         }
         guard data.count <= StorageLimits.maxRecordBytes else {
-            throw AppFailure("The protected record is larger than expected. Use independent recovery.")
+            throw AppFailure(LocalizedStringResource("The protected record is larger than expected. Use independent recovery.", bundle: .module))
         }
 
         let record: ShareRecord
         do {
             record = try JSONDecoder().decode(ShareRecord.self, from: data).validated()
         } catch {
-            throw AppFailure("The protected record is unreadable. Use independent recovery; do not overwrite your only copy.")
+            throw AppFailure(LocalizedStringResource("The protected record is unreadable. Use independent recovery; do not overwrite your only copy.", bundle: .module))
         }
 
         guard record.profileID == profileID else {
-            throw AppFailure("The protected profile binding does not match this Keychain entry. Use independent recovery.")
+            throw AppFailure(LocalizedStringResource("The protected profile binding does not match this Keychain entry. Use independent recovery.", bundle: .module))
         }
         return record
     }
 
     package func insert(_ record: ShareRecord, context: LAContext) throws {
         guard let accessControl = access.makeBiometricAccessControl() else {
-            throw AppFailure("Could not create biometric Keychain protection. A device passcode and Face ID are required.")
+            throw AppFailure(LocalizedStringResource("Could not create biometric Keychain protection. A device passcode and Face ID are required.", bundle: .module))
         }
 
         var data = try JSONEncoder().encode(record.validated())
@@ -157,14 +157,14 @@ package struct KeychainStore {
     private func failure(_ status: OSStatus) -> AppFailure {
         switch status {
         case errSecDuplicateItem:
-            return AppFailure("A protected share already exists for this server profile.")
+            return AppFailure(LocalizedStringResource("A protected share already exists for this server profile.", bundle: .module))
         case errSecItemNotFound:
-            return AppFailure("No accessible share was found. Face ID or the device passcode may have changed. Recover from your independent copy.")
+            return AppFailure(LocalizedStringResource("No accessible share was found. Face ID or the device passcode may have changed. Recover from your independent copy.", bundle: .module))
         case errSecAuthFailed, errSecInteractionNotAllowed, errSecUserCanceled:
-            return AppFailure("Keychain access was denied. No passcode fallback is used. Try fresh Face ID; otherwise use independent recovery.")
+            return AppFailure(LocalizedStringResource("Keychain access was denied. No passcode fallback is used. Try fresh Face ID; otherwise use independent recovery.", bundle: .module))
         default:
             let statusCode = String(status)
-            return AppFailure("The Keychain operation failed (status \(statusCode)). Existing data was not deliberately deleted.")
+            return AppFailure(LocalizedStringResource("The Keychain operation failed (status \(statusCode)). Existing data was not deliberately deleted.", bundle: .module))
         }
     }
 }

@@ -1,4 +1,5 @@
 import ComposableArchitecture
+import Foundation
 import SealbreakCore
 import SwiftUI
 
@@ -25,7 +26,7 @@ public struct SealbreakRootView: View {
                 } else {
                     ZStack {
                         PapercutPalette.sky.ignoresSafeArea()
-                        ProgressView("Loading protected profile…")
+                        ProgressView(LocalizedStringResource("Loading protected profile…", bundle: .module))
                             .tint(PapercutPalette.cream)
                             .foregroundStyle(PapercutPalette.cream)
                     }

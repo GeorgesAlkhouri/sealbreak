@@ -116,7 +116,7 @@ package struct InstanceSetupFeature {
                                 .connectionResponse(
                                     .failure(
                                         AppFailure(
-                                            "DNSSEC validation failed for this host. Fix its DNSSEC configuration before continuing."
+                                            LocalizedStringResource("DNSSEC validation failed for this host. Fix its DNSSEC configuration before continuing.", bundle: .module)
                                         )
                                     )
                                 )
@@ -142,7 +142,7 @@ package struct InstanceSetupFeature {
                         )
                         await send(.connectionResponse(.success(checkedProfile)))
                     } catch is CancellationError {
-                        await send(.connectionResponse(.failure(AppFailure("Connection check cancelled."))))
+                        await send(.connectionResponse(.failure(AppFailure(LocalizedStringResource("Connection check cancelled.", bundle: .module)))))
                     } catch {
                         await send(
                             .connectionResponse(
@@ -181,7 +181,7 @@ package struct InstanceSetupFeature {
                 state.isCheckingConnection = false
                 state.checkedProfile = nil
                 if wasChecking {
-                    state.feedback = .warning("Connection check interrupted. Try again.")
+                    state.feedback = .warning(LocalizedStringResource("Connection check interrupted. Try again.", bundle: .module))
                 }
                 return .cancel(id: CancelID.connectionCheck)
 

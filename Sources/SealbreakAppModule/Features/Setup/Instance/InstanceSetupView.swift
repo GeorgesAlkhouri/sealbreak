@@ -10,13 +10,13 @@ struct InstanceSetupView: View {
     var body: some View {
         VStack(spacing: 24) {
             VStack(spacing: 10) {
-                Text("Connect your instance")
+                Text("Connect your instance", bundle: .module)
                     .font(.system(.title, design: .rounded, weight: .bold))
                     .foregroundStyle(PapercutPalette.cream)
                     .multilineTextAlignment(.center)
                     .fixedSize(horizontal: false, vertical: true)
 
-                Text("Enter the direct HTTPS address of one server node.")
+                Text("Enter the direct HTTPS address of one server node.", bundle: .module)
                     .font(.callout.weight(.medium))
                     .foregroundStyle(PapercutPalette.secondaryText)
                     .multilineTextAlignment(.center)
@@ -27,16 +27,16 @@ struct InstanceSetupView: View {
             PapercutCard {
                 VStack(alignment: .leading, spacing: 18) {
                     setupField(
-                        title: "Name",
-                        prompt: "Server",
+                        title: LocalizedStringResource("Name", bundle: .module),
+                        prompt: LocalizedStringResource("Server", bundle: .module),
                         text: nameBinding,
                         keyboardType: .default,
                         error: store.nameValidationError
                     )
 
                     setupField(
-                        title: "Server address",
-                        prompt: "HTTPS origin with optional port",
+                        title: LocalizedStringResource("Server address", bundle: .module),
+                        prompt: LocalizedStringResource("HTTPS origin with optional port", bundle: .module),
                         text: addressBinding,
                         keyboardType: .URL,
                         error: store.addressValidationError
@@ -61,7 +61,7 @@ struct InstanceSetupView: View {
                 .frame(maxWidth: 335)
                 .padding(.horizontal, 6)
 
-            Text("Sealbreak checks the server using normal iOS certificate validation. DNSSEC is reported separately when the hostname can be validated.")
+            Text("Sealbreak checks the server using normal iOS certificate validation. DNSSEC is reported separately when the hostname can be validated.", bundle: .module)
                 .font(.caption)
                 .foregroundStyle(PapercutPalette.secondaryText.opacity(0.9))
                 .multilineTextAlignment(.center)
@@ -82,7 +82,7 @@ struct InstanceSetupView: View {
                     ProgressView()
                         .tint(PapercutPalette.cream)
 
-                    Text("Checking connection…")
+                    Text("Checking connection…", bundle: .module)
                         .font(.subheadline.weight(.semibold))
                         .foregroundStyle(PapercutPalette.cream)
                         .fixedSize(horizontal: false, vertical: true)
@@ -92,13 +92,13 @@ struct InstanceSetupView: View {
             if store.checkedProfile != nil {
                 statusRow(
                     icon: "checkmark.circle.fill",
-                    text: "HTTPS certificate valid",
+                    text: LocalizedStringResource("HTTPS certificate valid", bundle: .module),
                     color: PapercutPalette.unsealed
                 )
 
                 statusRow(
                     icon: "checkmark.circle.fill",
-                    text: "Server reachable",
+                    text: LocalizedStringResource("Server reachable", bundle: .module),
                     color: PapercutPalette.unsealed
                 )
             }
@@ -128,37 +128,37 @@ struct InstanceSetupView: View {
         case .secure:
             statusRow(
                 icon: "checkmark.circle.fill",
-                text: "DNSSEC validated",
+                text: LocalizedStringResource("DNSSEC validated", bundle: .module),
                 color: PapercutPalette.unsealed
             )
         case .insecure:
             statusRow(
                 icon: "info.circle.fill",
-                text: "DNSSEC not secured",
+                text: LocalizedStringResource("DNSSEC not secured", bundle: .module),
                 color: PapercutPalette.secondaryText
             )
         case .bogus:
             statusRow(
                 icon: "xmark.circle.fill",
-                text: "DNSSEC validation failed",
+                text: LocalizedStringResource("DNSSEC validation failed", bundle: .module),
                 color: PapercutPalette.sealed
             )
         case .indeterminate:
             statusRow(
                 icon: "questionmark.circle.fill",
-                text: "DNSSEC status indeterminate",
+                text: LocalizedStringResource("DNSSEC status indeterminate", bundle: .module),
                 color: PapercutPalette.secondaryText
             )
         case .notApplicable:
             statusRow(
                 icon: "minus.circle.fill",
-                text: "DNSSEC not applicable",
+                text: LocalizedStringResource("DNSSEC not applicable", bundle: .module),
                 color: PapercutPalette.secondaryText
             )
         case .unavailable:
             statusRow(
                 icon: "questionmark.circle.fill",
-                text: "DNSSEC could not be checked",
+                text: LocalizedStringResource("DNSSEC could not be checked", bundle: .module),
                 color: PapercutPalette.secondaryText
             )
         }
@@ -183,12 +183,12 @@ struct InstanceSetupView: View {
 
     private var primaryButtonTitle: LocalizedStringResource {
         if store.isCheckingConnection {
-            return "Checking…"
+            return LocalizedStringResource("Checking…", bundle: .module)
         }
         if store.canContinue {
-            return "Continue"
+            return LocalizedStringResource("Continue", bundle: .module)
         }
-        return "Check connection"
+        return LocalizedStringResource("Check connection", bundle: .module)
     }
 
     private var primaryButton: some View {
@@ -247,7 +247,7 @@ struct InstanceSetupView: View {
                 .fixedSize(horizontal: false, vertical: true)
 
             TextField(
-                "",
+                LocalizedStringResource("", bundle: .module),
                 text: text,
                 prompt: Text(prompt)
                     .foregroundStyle(PapercutPalette.secondaryText.opacity(0.7))
@@ -303,11 +303,11 @@ struct InstanceSetupView: View {
     private func productLabel(_ product: ServerProduct) -> LocalizedStringResource {
         switch product {
         case .openBao:
-            return "OpenBao detected"
+            return LocalizedStringResource("OpenBao detected", bundle: .module)
         case .vault:
-            return "Vault detected"
+            return LocalizedStringResource("Vault detected", bundle: .module)
         case .generic:
-            return "Generic server response"
+            return LocalizedStringResource("Generic server response", bundle: .module)
         }
     }
 }

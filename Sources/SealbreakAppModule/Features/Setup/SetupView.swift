@@ -54,20 +54,20 @@ struct SetupView: View {
         .background(PapercutPalette.sky)
         .toolbar(.hidden, for: .navigationBar)
         .confirmationDialog(
-            "Discard setup?",
+            LocalizedStringResource("Discard setup?", bundle: .module),
             isPresented: $confirmCancel,
             titleVisibility: .visible
         ) {
-            Button("Discard setup", role: .destructive) {
+            Button(LocalizedStringResource("Discard setup", bundle: .module), role: .destructive) {
                 store.send(.cancelTapped)
             }
             .disabled(store.blocksSetupExit)
 
-            Button("Keep setting up", role: .cancel) {
+            Button(LocalizedStringResource("Keep setting up", bundle: .module), role: .cancel) {
                 // The cancel role dismisses the confirmation dialog without changing setup state.
             }
         } message: {
-            Text("Your current setup entries will not be saved.")
+            Text("Your current setup entries will not be saved.", bundle: .module)
         }
     }
 
@@ -105,7 +105,7 @@ struct SetupView: View {
                     .font(.system(size: 17, weight: .bold))
                     .frame(width: 44, height: 44)
             }
-            .accessibilityLabel("Back")
+            .accessibilityLabel(LocalizedStringResource("Back", bundle: .module))
             .disabled(store.blocksSetupExit)
         } else {
             Color.clear
@@ -115,13 +115,13 @@ struct SetupView: View {
     }
 
     private var headerTitle: some View {
-        Text("Setup")
+        Text("Setup", bundle: .module)
             .font(.system(.headline, design: .rounded, weight: .bold))
             .fixedSize()
     }
 
     private var cancelButton: some View {
-        Button("Cancel") {
+        Button(LocalizedStringResource("Cancel", bundle: .module)) {
             if hasDraft {
                 confirmCancel = true
             } else {
@@ -167,7 +167,7 @@ struct SetupView: View {
     private var instanceStep: some View {
         progressStep(
             number: 1,
-            title: "Instance",
+            title: LocalizedStringResource("Instance", bundle: .module),
             active: store.step == .instance,
             complete: store.step == .share
         )
@@ -176,7 +176,7 @@ struct SetupView: View {
     private var shareStep: some View {
         progressStep(
             number: 2,
-            title: "Share",
+            title: LocalizedStringResource("Share", bundle: .module),
             active: store.step == .share,
             complete: false
         )
@@ -219,15 +219,17 @@ struct SetupView: View {
                 .fixedSize(horizontal: false, vertical: true)
         }
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("Step \(number) of 2: \(title)")
+        .accessibilityLabel(Text("Step \(number) of 2: \(title)", bundle: .module))
         .accessibilityValue(progressState(active: active, complete: complete))
     }
 
-    private func progressState(active: Bool, complete: Bool) -> String {
+    private func progressState(active: Bool, complete: Bool) -> LocalizedStringResource {
         if complete {
-            return "Completed"
+            return LocalizedStringResource("Completed", bundle: .module)
         }
-        return active ? "Current" : "Not started"
+        return active
+            ? LocalizedStringResource("Current", bundle: .module)
+            : LocalizedStringResource("Not started", bundle: .module)
     }
 
     private var hasDraft: Bool {
@@ -282,6 +284,6 @@ struct SetupView: View {
             )
         }
     } else {
-        Text("Preview fixture unavailable")
+        Text(verbatim: "Preview fixture unavailable")
     }
 }

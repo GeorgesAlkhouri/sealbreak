@@ -4,6 +4,7 @@ import PackageDescription
 
 let package = Package(
     name: "Sealbreak",
+    defaultLocalization: "en",
     platforms: [
         .iOS("26.0"),
         .macOS(.v13)
@@ -27,11 +28,13 @@ let package = Package(
                     name: "ComposableArchitecture",
                     package: "swift-composable-architecture"
                 )
-            ]
+            ],
+            resources: [.process("Resources")]
         ),
         .target(
             name: "SealbreakInfrastructure",
-            dependencies: ["SealbreakCore"]
+            dependencies: ["SealbreakCore"],
+            resources: [.process("Resources")]
         ),
         .target(
             name: "SealbreakAppModule",
@@ -42,7 +45,8 @@ let package = Package(
                     name: "ComposableArchitecture",
                     package: "swift-composable-architecture"
                 )
-            ]
+            ],
+            resources: [.process("Resources")]
         ),
         .testTarget(
             name: "SealbreakCoreTests",

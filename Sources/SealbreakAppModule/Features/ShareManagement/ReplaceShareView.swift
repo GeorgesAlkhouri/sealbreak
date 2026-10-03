@@ -12,22 +12,22 @@ struct ReplaceShareView: View {
     var body: some View {
         NavigationStack {
             Form {
-                Section("Replace local share") {
+                Section(LocalizedStringResource("Replace local share", bundle: .module)) {
                     ShareEditor(
                         share: $share,
                         recoveryConfirmed: $recoveryConfirmed,
-                        saveTitle: "Save replacement with Face ID",
+                        saveTitle: LocalizedStringResource("Save replacement with Face ID", bundle: .module),
                         busy: store.isBusy,
                         onSave: save
                     )
 
-                    Text("This replaces only the locally stored share. It does not rotate server keys or change the configured target.")
+                    Text("This replaces only the locally stored share. It does not rotate server keys or change the configured target.", bundle: .module)
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                 }
 
                 if store.isBusy || store.feedback != nil {
-                    Section("Result") {
+                    Section(LocalizedStringResource("Result", bundle: .module)) {
                         if store.isBusy, let activity = store.activity {
                             ProgressView(activity)
                         }
@@ -37,10 +37,10 @@ struct ReplaceShareView: View {
                     }
                 }
             }
-            .navigationTitle("Local share")
+            .navigationTitle(LocalizedStringResource("Local share", bundle: .module))
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") {
+                    Button(LocalizedStringResource("Cancel", bundle: .module)) {
                         clearDraft()
                         store.send(.cancelTapped)
                     }

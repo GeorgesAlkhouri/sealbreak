@@ -45,12 +45,12 @@ struct HomeHeader: View {
 
     private var brandText: some View {
         VStack(alignment: .leading, spacing: 0) {
-            Text("Sealbreak")
+            Text("Sealbreak", bundle: .module)
                 .font(.title.bold())
                 .foregroundStyle(PapercutPalette.cream)
                 .fixedSize(horizontal: false, vertical: true)
 
-            Text("SECURE ACCESS")
+            Text("SECURE ACCESS", bundle: .module)
                 .font(.caption2.weight(.medium))
                 .tracking(2)
                 .foregroundStyle(PapercutPalette.secondaryText)

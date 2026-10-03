@@ -33,7 +33,7 @@ struct PrivacyCover<Content: View>: View {
     }
 
     private var concealmentTitle: LocalizedStringResource {
-        store.isCaptured ? "Screen capture blocked" : "Sealbreak locked"
+        store.isCaptured ? LocalizedStringResource("Screen capture blocked", bundle: .module) : LocalizedStringResource("Sealbreak locked", bundle: .module)
     }
 }
 

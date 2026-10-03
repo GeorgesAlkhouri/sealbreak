@@ -7,13 +7,13 @@ package enum StorageLimits {
 
     package static func validateEncodedSize(_ data: Data) throws {
         guard data.count <= maxRecordBytes else {
-            throw AppFailure("The record exceeds the \(maxRecordBytes)-byte storage limit. Shorten the server name; nothing was saved.")
+            throw AppFailure(LocalizedStringResource("The record exceeds the \(maxRecordBytes)-byte storage limit. Shorten the server name; nothing was saved.", bundle: .module))
         }
     }
 
     package static func validateProfileCatalogSize(_ data: Data) throws {
         guard data.count <= maxProfileCatalogBytes else {
-            throw AppFailure("The profile catalog exceeds the supported local storage limit. Nothing was saved.")
+            throw AppFailure(LocalizedStringResource("The profile catalog exceeds the supported local storage limit. Nothing was saved.", bundle: .module))
         }
     }
 }
@@ -41,7 +41,7 @@ package struct ServerProfile: Codable, Equatable, Identifiable, Sendable {
               name.utf8.count <= StorageLimits.maxRecordBytes,
               name.count <= 40,
               !name.unicodeScalars.contains(where: { CharacterSet.controlCharacters.contains($0) }) else {
-            throw AppFailure("Use a server name of 1–40 characters without control characters, within \(StorageLimits.maxRecordBytes) UTF-8 bytes.")
+            throw AppFailure(LocalizedStringResource("Use a server name of 1–40 characters without control characters, within \(StorageLimits.maxRecordBytes) UTF-8 bytes.", bundle: .module))
         }
         self.id = id
         self.name = name
@@ -51,7 +51,7 @@ package struct ServerProfile: Codable, Equatable, Identifiable, Sendable {
 
     package func validated() throws -> Self {
         guard try ServerProfile(id: id, name: name, address: origin, product: product) == self else {
-            throw AppFailure("The server profile is invalid. Set up this server profile again.")
+            throw AppFailure(LocalizedStringResource("The server profile is invalid. Set up this server profile again.", bundle: .module))
         }
         return self
     }
@@ -78,7 +78,7 @@ package struct ServerProfile: Codable, Equatable, Identifiable, Sendable {
               parts.fragment == nil,
               parts.path.isEmpty || parts.path == "/",
               parts.port == nil || (1...65535).contains(parts.port!) else {
-            throw AppFailure("Use an HTTPS origin such as https://server.example.com:8200. No credentials, path, query, fragment, or non-ASCII hostname is allowed.")
+            throw AppFailure(LocalizedStringResource("Use an HTTPS origin such as https://server.example.com:8200. No credentials, path, query, fragment, or non-ASCII hostname is allowed.", bundle: .module))
         }
         parts.scheme = "https"
         parts.host = host.lowercased()
@@ -91,7 +91,7 @@ package struct ServerProfile: Codable, Equatable, Identifiable, Sendable {
 
     static func url(from components: URLComponents) throws -> URL {
         guard let url = components.url else {
-            throw AppFailure("Unable to construct a canonical HTTPS server origin.")
+            throw AppFailure(LocalizedStringResource("Unable to construct a canonical HTTPS server origin.", bundle: .module))
         }
         return url
     }
@@ -101,7 +101,7 @@ package struct ServerProfile: Codable, Equatable, Identifiable, Sendable {
         parser: (String) -> URL? = { URL(string: $0) }
     ) throws -> URL {
         guard let url = parser(origin) else {
-            throw AppFailure("The canonical server origin could not be converted to a URL.")
+            throw AppFailure(LocalizedStringResource("The canonical server origin could not be converted to a URL.", bundle: .module))
         }
         return url
     }
@@ -123,10 +123,10 @@ package struct ShareRecord: Codable, Equatable, Sendable {
 
     package func validated() throws -> Self {
         guard version == 1 else {
-            throw AppFailure("Unsupported Keychain record version.")
+            throw AppFailure(LocalizedStringResource("Unsupported Keychain record version.", bundle: .module))
         }
         guard try ServerProfile.canonicalOrigin(boundOrigin) == boundOrigin else {
-            throw AppFailure("The protected target binding is invalid. Use independent recovery.")
+            throw AppFailure(LocalizedStringResource("The protected target binding is invalid. Use independent recovery.", bundle: .module))
         }
         _ = try Self.validateShare(share)
         return self
@@ -145,7 +145,7 @@ package struct ShareRecord: Codable, Equatable, Sendable {
         }
         guard (16...1024).contains(text.utf8.count),
               isHex || Data(base64Encoded: text) != nil else {
-            throw AppFailure("Enter one hexadecimal or Base64 Shamir share.")
+            throw AppFailure(LocalizedStringResource("Enter one hexadecimal or Base64 Shamir share.", bundle: .module))
         }
         return text
     }
@@ -213,7 +213,7 @@ package struct SealStatus: Decodable, Equatable, Sendable {
               (0...255).contains(progress),
               !initialized || type != "shamir" || (t > 0 && progress < t),
               initialized || sealed else {
-            throw AppFailure("The server returned inconsistent seal status. No share was sent by this status request.")
+            throw AppFailure(LocalizedStringResource("The server returned inconsistent seal status. No share was sent by this status request.", bundle: .module))
         }
         return self
     }

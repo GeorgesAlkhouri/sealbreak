@@ -112,23 +112,23 @@ extension DependencyValues {
 
 extension SealbreakClient {
     package static let unimplemented = Self(
-        loadLocalSetupState: { throw AppFailure("Unimplemented local setup state dependency.") },
+        loadLocalSetupState: { throw AppFailure(LocalizedStringResource("Unimplemented local setup state dependency.", bundle: .module)) },
         protectNewProfile: { _, _, _ in
-            throw AppFailure("Unimplemented setup protection dependency.")
+            throw AppFailure(LocalizedStringResource("Unimplemented setup protection dependency.", bundle: .module))
         },
-        resetLocalData: { throw AppFailure("Unimplemented local-data reset dependency.") },
-        detectProduct: { _ in throw AppFailure("Unimplemented server-product detection dependency.") },
-        dnssecStatus: { _ in throw AppFailure("Unimplemented DNSSEC status dependency.") },
-        status: { _ in throw AppFailure("Unimplemented seal-status dependency.") },
-        submit: { _ in throw AppFailure("Unimplemented share submission dependency.") },
-        readShareFragment: { _, _ in throw AppFailure("Unimplemented protected-share dependency.") },
-        readShare: { _, _ in throw AppFailure("Unimplemented protected-share dependency.") },
-        replaceShare: { _, _, _ in throw AppFailure("Unimplemented protected-share dependency.") },
+        resetLocalData: { throw AppFailure(LocalizedStringResource("Unimplemented local-data reset dependency.", bundle: .module)) },
+        detectProduct: { _ in throw AppFailure(LocalizedStringResource("Unimplemented server-product detection dependency.", bundle: .module)) },
+        dnssecStatus: { _ in throw AppFailure(LocalizedStringResource("Unimplemented DNSSEC status dependency.", bundle: .module)) },
+        status: { _ in throw AppFailure(LocalizedStringResource("Unimplemented seal-status dependency.", bundle: .module)) },
+        submit: { _ in throw AppFailure(LocalizedStringResource("Unimplemented share submission dependency.", bundle: .module)) },
+        readShareFragment: { _, _ in throw AppFailure(LocalizedStringResource("Unimplemented protected-share dependency.", bundle: .module)) },
+        readShare: { _, _ in throw AppFailure(LocalizedStringResource("Unimplemented protected-share dependency.", bundle: .module)) },
+        replaceShare: { _, _, _ in throw AppFailure(LocalizedStringResource("Unimplemented protected-share dependency.", bundle: .module)) },
         removeLocalProfile: { _, _ in
-            throw AppFailure("Unimplemented local removal dependency.")
+            throw AppFailure(LocalizedStringResource("Unimplemented local removal dependency.", bundle: .module))
         },
-        requireForeground: { throw AppFailure("Unimplemented foreground dependency.") },
-        waitForForeground: { throw AppFailure("Unimplemented foreground dependency.") },
+        requireForeground: { throw AppFailure(LocalizedStringResource("Unimplemented foreground dependency.", bundle: .module)) },
+        waitForForeground: { throw AppFailure(LocalizedStringResource("Unimplemented foreground dependency.", bundle: .module)) },
         cancelSensitiveOperation: {
             // Intentionally empty: the test dependency owns no sensitive context to cancel.
         }
