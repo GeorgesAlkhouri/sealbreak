@@ -3,14 +3,11 @@ name: TestFlight
 on:
   workflow_dispatch:
     inputs:
-      release_type:
-        description: Semantic version increment from the current production baseline
+      git_ref:
+        description: Release Git ref to build (branch, tag, or commit SHA)
         required: true
-        type: choice
-        options:
-          - patch
-          - minor
-          - major
+        default: main
+        type: string
 
 permissions:
   contents: read
@@ -38,15 +35,17 @@ jobs:
       MATCH_GIT_BASIC_AUTHORIZATION: ${{ secrets.MATCH_GIT_BASIC_AUTHORIZATION }}
 
     steps:
-      - name: Require main branch
-        if: github.ref != 'refs/heads/main'
-        run: |
-          echo "::error::TestFlight releases must be created from main."
-          exit 1
-
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - name: Check out release ref
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
+          ref: ${{ inputs.git_ref }}
+          fetch-depth: 0
           persist-credentials: false
+
+      - name: Record release source
+        run: |
+          echo "Releasing ref: ${{ inputs.git_ref }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "Commit: $(git rev-parse HEAD)" >> "$GITHUB_STEP_SUMMARY"
 
       - name: Require release configuration
         run: |
@@ -68,6 +67,4 @@ jobs:
         run: xcodebuild -version
 
       - name: Build and upload TestFlight release
-        env:
-          RELEASE_TYPE: ${{ inputs.release_type }}
-        run: bundle exec fastlane ios testflight release_type:"$RELEASE_TYPE"
+        run: bundle exec fastlane ios testflight

@@ -3,6 +3,16 @@ name: Dependency Review
 on:
   pull_request:
     branches: [main]
+  workflow_dispatch:
+    inputs:
+      base_ref:
+        description: Base ref for a manually dispatched dependency review
+        required: true
+        type: string
+      head_ref:
+        description: Head ref for a manually dispatched dependency review
+        required: true
+        type: string
 
 permissions:
   contents: read
@@ -21,3 +31,5 @@ jobs:
         with:
           fail-on-severity: moderate
           fail-on-scopes: runtime, development, unknown
+          base-ref: ${{ github.event_name == 'workflow_dispatch' && inputs.base_ref || github.event.pull_request.base.sha }}
+          head-ref: ${{ github.event_name == 'workflow_dispatch' && inputs.head_ref || github.event.pull_request.head.sha }}
