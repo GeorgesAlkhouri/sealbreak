@@ -1042,6 +1042,7 @@ struct FeatureTests {
         let spy = ClientSpy()
         await spy.setDetectedProduct(.openBao)
         await spy.setDNSSECStatus(.secure)
+        await spy.setStatusQueue([.success(status())])
 
         let store = TestStore(initialState: SetupFeature.State()) {
             SetupFeature()
@@ -1061,6 +1062,7 @@ struct FeatureTests {
         #expect(store.state.instance.checkedProfile?.origin == origin)
         #expect(store.state.instance.checkedProfile?.product == .openBao)
         #expect(store.state.instance.canContinue)
+        #expect(await spy.statusCalls == 1)
         #expect(await spy.detectProductCalls == 1)
         #expect(await spy.dnssecCount == 1)
 
@@ -1100,6 +1102,7 @@ struct FeatureTests {
     func setupEditingInstanceInvalidatesSuccessfulCheck() async {
         let spy = ClientSpy()
         await spy.setDNSSECStatus(.secure)
+        await spy.setStatusQueue([.success(status())])
 
         let store = TestStore(initialState: InstanceSetupFeature.State()) {
             InstanceSetupFeature()
