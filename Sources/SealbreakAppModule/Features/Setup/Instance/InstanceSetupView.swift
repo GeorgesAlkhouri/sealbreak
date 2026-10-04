@@ -213,9 +213,8 @@ struct InstanceSetupView: View {
         }
         .buttonStyle(.plain)
         .accessibilityValue(
-            store.isCheckingConnection
-                ? LocalizedStringResource("Checking connection…", bundle: .module)
-                : LocalizedStringResource("", bundle: .module)
+            LocalizedStringResource("Checking connection…", bundle: .module),
+            isEnabled: store.isCheckingConnection
         )
         .disabled(
             store.isCheckingConnection
