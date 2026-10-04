@@ -101,7 +101,7 @@ struct HomeViewState: Equatable {
         profile: ServerProfile,
         sealStatus: SealStatus?,
         operation: HomeFeature.State.Operation?,
-        feedback: AppFeedback
+        feedback: AppFeedback?
     ) {
         serverName = profile.name
         origin = Self.displayOrigin(profile.origin)
@@ -136,6 +136,12 @@ struct HomeViewState: Equatable {
         primaryAction = sealStatus.sealed
             ? .unseal(enabled: sealStatus.supportsUnseal)
             : .checkStatus(enabled: true)
+
+        guard let feedback else {
+            self.feedback = nil
+            return
+        }
+
         switch feedback.level {
         case .warning, .error:
             self.feedback = feedback

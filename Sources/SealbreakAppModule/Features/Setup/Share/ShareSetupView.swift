@@ -170,8 +170,8 @@ struct ShareSetupView: View {
                         .fixedSize(horizontal: false, vertical: true)
                 }
             }
-        } else {
-            PapercutFeedback(feedback: store.feedback)
+        } else if let feedback = store.feedback {
+            PapercutFeedback(feedback: feedback)
         }
     }
 

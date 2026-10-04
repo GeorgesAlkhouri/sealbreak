@@ -15,10 +15,10 @@ package struct SetupFeature {
         package var step: Step = .instance
         package var instance = InstanceSetupFeature.State()
         package var share: ShareSetupFeature.State?
-        var feedback: AppFeedback
+        var feedback: AppFeedback?
 
         package init(
-            feedback: AppFeedback = .info(LocalizedStringResource("Prototype: use disposable test shares until the security checks in issue #1 have been completed.", bundle: .module))
+            feedback: AppFeedback? = nil
         ) {
             self.feedback = feedback
         }
