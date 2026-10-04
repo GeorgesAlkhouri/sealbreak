@@ -1,31 +1,41 @@
 default_platform(:ios)
 
-def next_version(current_version, release_type)
-  match = /\A(\d+)\.(\d+)\.(\d+)\z/.match(current_version)
-  UI.user_error!("MARKETING_VERSION must use major.minor.patch") unless match
+platform :ios do
+  desc "Bump the committed marketing version for a release PR"
+  lane :prepare_release do |options|
+    release_type = options[:release_type].to_s
+    UI.user_error!("release_type must be patch, minor, or major") unless %w[patch minor major].include?(release_type)
 
-  major, minor, patch = match.captures.map(&:to_i)
+    current_version = get_version_number(
+      xcodeproj: "Sealbreak.xcodeproj",
+      target: "Sealbreak",
+      configuration: "Release"
+    )
 
-  case release_type
-  when "patch"
-    patch += 1
-  when "minor"
-    minor += 1
-    patch = 0
-  when "major"
-    major += 1
-    minor = 0
-    patch = 0
-  else
-    UI.user_error!("release_type must be patch, minor, or major")
+    next_version = increment_version_number(
+      bump_type: release_type,
+      xcodeproj: "Sealbreak.xcodeproj"
+    ).to_s
+
+    updated_version = get_version_number(
+      xcodeproj: "Sealbreak.xcodeproj",
+      target: "Sealbreak",
+      configuration: "Release"
+    )
+    UI.user_error!("Version bump mismatch: #{updated_version}") unless updated_version == next_version
+
+    if ENV["GITHUB_OUTPUT"]
+      File.open(ENV["GITHUB_OUTPUT"], "a") do |output|
+        output.puts("current_version=#{current_version}")
+        output.puts("next_version=#{next_version}")
+      end
+    end
+
+    UI.success("Prepared Sealbreak #{current_version} -> #{next_version}")
   end
 
-  [major, minor, patch].join(".")
-end
-
-platform :ios do
   desc "Build, sign, and upload Sealbreak to TestFlight"
-  lane :testflight do |options|
+  lane :testflight do
     setup_ci
 
     app_identifier = ENV.fetch("APP_IDENTIFIER")
@@ -39,12 +49,11 @@ platform :ios do
       is_key_content_base64: true
     )
 
-    current_version = get_version_number(
+    version = get_version_number(
       xcodeproj: "Sealbreak.xcodeproj",
       target: "Sealbreak",
       configuration: "Release"
     )
-    version = next_version(current_version, options[:release_type].to_s)
 
     latest_build = latest_testflight_build_number(
       api_key: api_key,
@@ -79,7 +88,7 @@ platform :ios do
     output_directory = File.expand_path("../build/TestFlight", __dir__)
     ipa_path = File.join(output_directory, "Sealbreak.ipa")
 
-    UI.message("Preparing Sealbreak #{version} (#{build_number}) from #{current_version}")
+    UI.message("Preparing Sealbreak #{version} (#{build_number})")
 
     build_app(
       project: "Sealbreak.xcodeproj",

@@ -1,0 +1,87 @@
+name: Prepare Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_type:
+        description: Semantic version increment from MARKETING_VERSION on main
+        required: true
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+
+permissions:
+  actions: write
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: prepare-release
+  cancel-in-progress: false
+
+jobs:
+  prepare:
+    name: Release / Prepare
+    runs-on: macos-26
+    timeout-minutes: 10
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_26.6.app/Contents/Developer
+      FASTLANE_SKIP_UPDATE_CHECK: "1"
+
+    steps:
+      - name: Require main branch
+        if: github.ref != 'refs/heads/main'
+        run: |
+          echo "::error::Release preparation must be started from main."
+          exit 1
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@14594264cd68ce8a2345dd349bc3d138a4ef85c8 # v1.327.0
+        with:
+          ruby-version: '4.0'
+          bundler-cache: true
+
+      - name: Verify Xcode 26.6
+        run: xcodebuild -version
+
+      - name: Bump marketing version
+        id: version
+        env:
+          RELEASE_TYPE: ${{ inputs.release_type }}
+        run: bundle exec fastlane ios prepare_release release_type:"$RELEASE_TYPE"
+
+      - name: Create release pull request
+        id: release_pr
+        uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1 # v8.1.1
+        with:
+          token: ${{ github.token }}
+          add-paths: Sealbreak.xcodeproj/project.pbxproj
+          commit-message: "chore: bump version to ${{ steps.version.outputs.next_version }}"
+          branch: release/v${{ steps.version.outputs.next_version }}
+          base: main
+          title: "chore: bump version to ${{ steps.version.outputs.next_version }}"
+          body: |
+            Prepare Sealbreak ${{ steps.version.outputs.next_version }} by updating MARKETING_VERSION from ${{ steps.version.outputs.current_version }}.
+
+            TestFlight build numbers are assigned separately at upload time.
+
+      - name: Run release pull request checks
+        if: steps.release_pr.outputs.pull-request-number != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_BRANCH: ${{ steps.release_pr.outputs.pull-request-branch }}
+        run: |
+          gh workflow run ci.yml --ref "$RELEASE_BRANCH"
+          gh workflow run dependency-review.yml \
+            --ref "$RELEASE_BRANCH" \
+            -f base_ref=main \
+            -f head_ref="$RELEASE_BRANCH"
+
+          echo "Created or updated ${{ steps.release_pr.outputs.pull-request-url }}" >> "$GITHUB_STEP_SUMMARY"
