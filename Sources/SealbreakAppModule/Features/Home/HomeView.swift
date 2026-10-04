@@ -180,8 +180,7 @@ struct HomeView: View {
                 store: Store(
                     initialState: HomeFeature.State(
                         profile: profile,
-                        status: status,
-                        feedback: .info("")
+                        status: status
                     )
                 ) {
                     HomeFeature()

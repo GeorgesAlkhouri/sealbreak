@@ -239,7 +239,7 @@ struct SetupView: View {
 
 #Preview("Setup — Instance") {
     let state: SetupFeature.State = {
-        var state = SetupFeature.State(feedback: .info(""))
+        var state = SetupFeature.State()
         state.instance.name = "Production OpenBao"
         state.instance.address = "https://bao.example.com:8200"
         return state
@@ -264,13 +264,13 @@ struct SetupView: View {
         product: .openBao
     ) {
         let state: SetupFeature.State = {
-            var state = SetupFeature.State(feedback: .info(""))
+            var state = SetupFeature.State()
             state.step = .share
             state.instance.name = profile.name
             state.instance.address = profile.origin
             state.instance.checkedProfile = profile
             state.instance.dnssecStatus = .secure
-            state.share = ShareSetupFeature.State(profile: profile, feedback: .info(""))
+            state.share = ShareSetupFeature.State(profile: profile)
             return state
         }()
 

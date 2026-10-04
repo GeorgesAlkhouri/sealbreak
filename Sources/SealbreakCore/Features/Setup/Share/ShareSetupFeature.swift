@@ -15,11 +15,11 @@ package struct ShareSetupFeature {
 
         package let profile: ServerProfile
         var operation: Operation?
-        package var feedback: AppFeedback
+        package var feedback: AppFeedback?
 
         package init(
             profile: ServerProfile,
-            feedback: AppFeedback = .info(LocalizedStringResource("Prototype: use disposable test shares until the security checks in issue #1 have been completed.", bundle: .module))
+            feedback: AppFeedback? = nil
         ) {
             self.profile = profile
             self.feedback = feedback

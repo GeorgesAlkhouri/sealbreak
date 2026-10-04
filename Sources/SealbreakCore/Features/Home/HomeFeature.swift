@@ -41,7 +41,7 @@ package struct HomeFeature {
         package var profile: ServerProfile
         package var status: SealStatus?
         package var operation: Operation?
-        package var feedback: AppFeedback
+        package var feedback: AppFeedback?
         package var confirmation: Confirmation?
         @Presents package var serverDetails: ServerDetailsFeature.State?
         @Presents package var replaceShare: ReplaceShareFeature.State?
@@ -49,7 +49,7 @@ package struct HomeFeature {
         package init(
             profile: ServerProfile,
             status: SealStatus? = nil,
-            feedback: AppFeedback = .info(LocalizedStringResource("Prototype: use disposable test shares until the security checks in issue #1 have been completed.", bundle: .module))
+            feedback: AppFeedback? = nil
         ) {
             self.profile = profile
             self.status = status
