@@ -1,6 +1,39 @@
 default_platform(:ios)
 
 platform :ios do
+  desc "Bump the committed marketing version for a release PR"
+  lane :prepare_release do |options|
+    release_type = options[:release_type].to_s
+    UI.user_error!("release_type must be patch, minor, or major") unless %w[patch minor major].include?(release_type)
+
+    current_version = get_version_number(
+      xcodeproj: "Sealbreak.xcodeproj",
+      target: "Sealbreak",
+      configuration: "Release"
+    )
+
+    next_version = increment_version_number(
+      bump_type: release_type,
+      xcodeproj: "Sealbreak.xcodeproj"
+    ).to_s
+
+    updated_version = get_version_number(
+      xcodeproj: "Sealbreak.xcodeproj",
+      target: "Sealbreak",
+      configuration: "Release"
+    )
+    UI.user_error!("Version bump mismatch: #{updated_version}") unless updated_version == next_version
+
+    if ENV["GITHUB_OUTPUT"]
+      File.open(ENV["GITHUB_OUTPUT"], "a") do |output|
+        output.puts("current_version=#{current_version}")
+        output.puts("next_version=#{next_version}")
+      end
+    end
+
+    UI.success("Prepared Sealbreak #{current_version} -> #{next_version}")
+  end
+
   desc "Build, sign, and upload Sealbreak to TestFlight"
   lane :testflight do
     setup_ci
