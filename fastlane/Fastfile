@@ -1,31 +1,8 @@
 default_platform(:ios)
 
-def next_version(current_version, release_type)
-  match = /\A(\d+)\.(\d+)\.(\d+)\z/.match(current_version)
-  UI.user_error!("Version must use major.minor.patch") unless match
-
-  major, minor, patch = match.captures.map(&:to_i)
-
-  case release_type
-  when "patch"
-    patch += 1
-  when "minor"
-    minor += 1
-    patch = 0
-  when "major"
-    major += 1
-    minor = 0
-    patch = 0
-  else
-    UI.user_error!("release_type must be patch, minor, or major")
-  end
-
-  [major, minor, patch].join(".")
-end
-
 platform :ios do
   desc "Build, sign, and upload Sealbreak to TestFlight"
-  lane :testflight do |options|
+  lane :testflight do
     setup_ci
 
     app_identifier = ENV.fetch("APP_IDENTIFIER")
@@ -39,25 +16,18 @@ platform :ios do
       is_key_content_base64: true
     )
 
+    version = get_version_number(
+      xcodeproj: "Sealbreak.xcodeproj",
+      target: "Sealbreak",
+      configuration: "Release"
+    )
+
     latest_build = latest_testflight_build_number(
       api_key: api_key,
       app_identifier: app_identifier,
+      version: version,
       initial_build_number: 0
     )
-    baseline_version = lane_context[SharedValues::LATEST_TESTFLIGHT_VERSION].to_s
-
-    if baseline_version.empty?
-      baseline_version = get_version_number(
-        xcodeproj: "Sealbreak.xcodeproj",
-        target: "Sealbreak",
-        configuration: "Release"
-      )
-      UI.message("No TestFlight version found; using project version #{baseline_version} as bootstrap baseline")
-    else
-      UI.message("Using latest TestFlight version #{baseline_version} as release baseline")
-    end
-
-    version = next_version(baseline_version, options[:release_type].to_s)
     build_number = (latest_build.to_i + 1).to_s
 
     match(
@@ -85,7 +55,7 @@ platform :ios do
     output_directory = File.expand_path("../build/TestFlight", __dir__)
     ipa_path = File.join(output_directory, "Sealbreak.ipa")
 
-    UI.message("Preparing Sealbreak #{version} (#{build_number}) from #{baseline_version}")
+    UI.message("Preparing Sealbreak #{version} (#{build_number})")
 
     build_app(
       project: "Sealbreak.xcodeproj",
