@@ -148,7 +148,8 @@ struct ShareSetupView: View {
         }
         .buttonStyle(.plain)
         .accessibilityValue(
-            store.activity ?? LocalizedStringResource("", bundle: .module)
+            store.activity ?? LocalizedStringResource("Protect with Face ID", bundle: .module),
+            isEnabled: store.isBusy
         )
         .disabled(store.isBusy || !isShareLocallyValid)
         .opacity(store.isBusy || isShareLocallyValid ? 1 : 0.5)
