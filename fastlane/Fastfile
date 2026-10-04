@@ -2,7 +2,7 @@ default_platform(:ios)
 
 def next_version(current_version, release_type)
   match = /\A(\d+)\.(\d+)\.(\d+)\z/.match(current_version)
-  UI.user_error!("MARKETING_VERSION must use major.minor.patch") unless match
+  UI.user_error!("Version must use major.minor.patch") unless match
 
   major, minor, patch = match.captures.map(&:to_i)
 
@@ -39,7 +39,7 @@ platform :ios do
       is_key_content_base64: true
     )
 
-    latest_testflight_build_number(
+    latest_build = latest_testflight_build_number(
       api_key: api_key,
       app_identifier: app_identifier,
       initial_build_number: 0
@@ -58,13 +58,6 @@ platform :ios do
     end
 
     version = next_version(baseline_version, options[:release_type].to_s)
-
-    latest_build = latest_testflight_build_number(
-      api_key: api_key,
-      app_identifier: app_identifier,
-      version: version,
-      initial_build_number: 0
-    )
     build_number = (latest_build.to_i + 1).to_s
 
     match(
