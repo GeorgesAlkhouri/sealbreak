@@ -182,9 +182,6 @@ struct InstanceSetupView: View {
     }
 
     private var primaryButtonTitle: LocalizedStringResource {
-        if store.isCheckingConnection {
-            return LocalizedStringResource("Checking…", bundle: .module)
-        }
         if store.canContinue {
             return LocalizedStringResource("Continue", bundle: .module)
         }
@@ -200,17 +197,12 @@ struct InstanceSetupView: View {
             }
         } label: {
             HStack(spacing: 10) {
-                if store.isCheckingConnection {
-                    ProgressView()
-                        .tint(PapercutPalette.cream)
-                } else {
-                    Image(
-                        systemName: store.canContinue
-                            ? "arrow.right.circle.fill"
-                            : "checkmark.shield.fill"
-                    )
-                    .font(.system(size: 20, weight: .semibold))
-                }
+                Image(
+                    systemName: store.canContinue
+                        ? "arrow.right.circle.fill"
+                        : "checkmark.shield.fill"
+                )
+                .font(.system(size: 20, weight: .semibold))
 
                 Text(primaryButtonTitle)
                     .font(.headline)
@@ -220,6 +212,10 @@ struct InstanceSetupView: View {
             .papercutPrimaryButtonAppearance()
         }
         .buttonStyle(.plain)
+        .accessibilityValue(
+            LocalizedStringResource("Checking connection…", bundle: .module),
+            isEnabled: store.isCheckingConnection
+        )
         .disabled(
             store.isCheckingConnection
                 || (!store.canContinue && !store.canCheckConnection)
