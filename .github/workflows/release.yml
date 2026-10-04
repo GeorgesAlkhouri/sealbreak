@@ -2,15 +2,6 @@ name: TestFlight
 
 on:
   workflow_dispatch:
-    inputs:
-      release_type:
-        description: Semantic version increment from the latest TestFlight version
-        required: true
-        type: choice
-        options:
-          - patch
-          - minor
-          - major
 
 permissions:
   contents: read
@@ -68,6 +59,4 @@ jobs:
         run: xcodebuild -version
 
       - name: Build and upload TestFlight release
-        env:
-          RELEASE_TYPE: ${{ inputs.release_type }}
-        run: bundle exec fastlane ios testflight release_type:"$RELEASE_TYPE"
+        run: bundle exec fastlane ios testflight
