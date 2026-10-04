@@ -686,7 +686,7 @@ struct FeatureTests {
     }
 
     @Test
-    func instanceSetupSurfacesProductDetectionFailureWithoutStatusRetry() async throws {
+    func instanceSetupFallsBackToGenericWhenProductDetectionFails() async throws {
         let spy = ClientSpy()
         await spy.setDNSSECStatus(.secure)
         await spy.setDetectionError(AppFailure("detection failed"))
@@ -704,11 +704,11 @@ struct FeatureTests {
         await store.send(.checkConnectionTapped).finish()
         await store.skipReceivedActions()
 
-        #expect(store.state.checkedProfile == nil)
-        #expect(!store.state.canContinue)
-        #expect(localizedContains(store.state.feedback, "detection failed"))
+        #expect(store.state.checkedProfile?.product == .generic)
+        #expect(store.state.checkedProfile?.id.uuidString == "00000000-0000-0000-0000-000000000000")
+        #expect(store.state.canContinue)
+        #expect(await spy.statusCalls == 1)
         #expect(await spy.detectProductCalls == 1)
-        #expect(await spy.statusCalls == 0)
     }
 
     @Test
