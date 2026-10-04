@@ -1,0 +1,153 @@
+name: Prepare Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_type:
+        description: Semantic version increment from MARKETING_VERSION on main
+        required: true
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+
+permissions:
+  actions: write
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: prepare-release
+  cancel-in-progress: false
+
+jobs:
+  prepare:
+    name: Release / Prepare
+    runs-on: ubuntu-26.04
+    timeout-minutes: 10
+
+    steps:
+      - name: Require main branch
+        if: github.ref != 'refs/heads/main'
+        run: |
+          echo "::error::Release preparation must be started from main."
+          exit 1
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 0
+
+      - name: Bump marketing version
+        id: version
+        env:
+          RELEASE_TYPE: ${{ inputs.release_type }}
+        run: |
+          python3 <<'PY'
+          import os
+          import re
+          from pathlib import Path
+
+          path = Path("Sealbreak.xcodeproj/project.pbxproj")
+          text = path.read_text()
+
+          block_pattern = re.compile(
+              r'\t\t[A-F0-9]{24} /\* (?:Debug|Release) \*/ = \{\n'
+              r'\t\t\tisa = XCBuildConfiguration;\n'
+              r'\t\t\tbuildSettings = \{\n.*?\n'
+              r'\t\t\t\};\n'
+              r'\t\t\tname = (?:Debug|Release);\n'
+              r'\t\t\};',
+              re.S,
+          )
+          bundle_identifier = "PRODUCT_BUNDLE_IDENTIFIER = com.georgesalkhouri.sealbreak;"
+          version_pattern = re.compile(
+              r'(?m)^(\s*MARKETING_VERSION = )(\d+)\.(\d+)\.(\d+)(;)$'
+          )
+
+          app_blocks = [
+              match.group(0)
+              for match in block_pattern.finditer(text)
+              if bundle_identifier in match.group(0)
+          ]
+          if len(app_blocks) != 2:
+              raise SystemExit(f"Expected 2 Sealbreak build configurations, found {len(app_blocks)}")
+
+          versions = []
+          for block in app_blocks:
+              match = version_pattern.search(block)
+              if not match:
+                  raise SystemExit("Sealbreak MARKETING_VERSION must use major.minor.patch")
+              versions.append(tuple(map(int, match.group(2, 3, 4))))
+
+          if len(set(versions)) != 1:
+              raise SystemExit("Sealbreak Debug and Release MARKETING_VERSION values differ")
+
+          major, minor, patch = versions[0]
+          release_type = os.environ["RELEASE_TYPE"]
+          if release_type == "patch":
+              patch += 1
+          elif release_type == "minor":
+              minor += 1
+              patch = 0
+          elif release_type == "major":
+              major += 1
+              minor = 0
+              patch = 0
+          else:
+              raise SystemExit("release_type must be patch, minor, or major")
+
+          current_version = ".".join(map(str, versions[0]))
+          next_version = f"{major}.{minor}.{patch}"
+
+          replacements = 0
+          def update_block(match):
+              global replacements
+              block = match.group(0)
+              if bundle_identifier not in block:
+                  return block
+              updated, count = version_pattern.subn(
+                  lambda version: f"{version.group(1)}{next_version}{version.group(5)}",
+                  block,
+                  count=1,
+              )
+              replacements += count
+              return updated
+
+          updated_text = block_pattern.sub(update_block, text)
+          if replacements != 2:
+              raise SystemExit(f"Expected 2 MARKETING_VERSION replacements, found {replacements}")
+
+          path.write_text(updated_text)
+
+          with open(os.environ["GITHUB_OUTPUT"], "a") as output:
+              output.write(f"current_version={current_version}\n")
+              output.write(f"next_version={next_version}\n")
+          PY
+
+      - name: Create release pull request
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CURRENT_VERSION: ${{ steps.version.outputs.current_version }}
+          NEXT_VERSION: ${{ steps.version.outputs.next_version }}
+        run: |
+          branch="release/v$NEXT_VERSION"
+
+          if git ls-remote --exit-code --heads origin "$branch" >/dev/null 2>&1; then
+            echo "::error::Branch $branch already exists."
+            exit 1
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -b "$branch"
+          git add Sealbreak.xcodeproj/project.pbxproj
+          git commit -m "chore: bump version to $NEXT_VERSION"
+          git push --set-upstream origin "$branch"
+
+          pr_url="$(gh pr create             --base main             --head "$branch"             --title "chore: bump version to $NEXT_VERSION"             --body "Prepare Sealbreak $NEXT_VERSION by updating MARKETING_VERSION from $CURRENT_VERSION. TestFlight build numbers are assigned separately at upload time.")"
+
+          echo "Created $pr_url" >> "$GITHUB_STEP_SUMMARY"
+
+          gh workflow run ci.yml --ref "$branch"
+          gh workflow run dependency-review.yml             --ref "$branch"             -f base_ref=main             -f head_ref="$branch"
