@@ -94,16 +94,18 @@ struct SetupCoverageTests {
     }
 
     @Test
-    func instanceProductDetectionFailureDoesNotRetryStatus() async {
+    func instanceStatusFailureSkipsProductDetection() async {
         let statusCalls = CallCounter()
+        let detectionCalls = CallCounter()
         var dependency = SealbreakClient.testValue
         dependency.dnssecStatus = { _ in .secure }
-        dependency.detectProduct = { _ in
-            throw AppFailure("product metadata unavailable")
-        }
         dependency.status = { _ in
             await statusCalls.increment()
-            throw AppFailure("unexpected status request")
+            throw AppFailure("server unavailable")
+        }
+        dependency.detectProduct = { _ in
+            await detectionCalls.increment()
+            return .generic
         }
 
         let store = instanceStore(dependency)
@@ -111,8 +113,9 @@ struct SetupCoverageTests {
         await store.send(.checkConnectionTapped).finish()
         await store.skipReceivedActions()
 
-        #expect(store.state.feedback == .error("product metadata unavailable"))
-        #expect(await statusCalls.count == 0)
+        #expect(store.state.feedback == .error("server unavailable"))
+        #expect(await statusCalls.count == 1)
+        #expect(await detectionCalls.count == 0)
         #expect(store.state.checkedProfile == nil)
         #expect(!store.state.canContinue)
     }
