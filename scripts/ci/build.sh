@@ -2,6 +2,7 @@
 set -euo pipefail
 cd "$(dirname "$0")/../.."
 common=(-project Sealbreak.xcodeproj -scheme Sealbreak
+  -disableAutomaticPackageResolution
   CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO DEVELOPMENT_TEAM=
   COMPILER_INDEX_STORE_ENABLE=NO
   -skipMacroValidation)
