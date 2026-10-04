@@ -212,6 +212,11 @@ struct InstanceSetupView: View {
             .papercutPrimaryButtonAppearance()
         }
         .buttonStyle(.plain)
+        .accessibilityValue(
+            store.isCheckingConnection
+                ? LocalizedStringResource("Checking connection…", bundle: .module)
+                : LocalizedStringResource("", bundle: .module)
+        )
         .disabled(
             store.isCheckingConnection
                 || (!store.canContinue && !store.canCheckConnection)
