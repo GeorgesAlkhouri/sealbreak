@@ -145,9 +145,18 @@ jobs:
           git commit -m "chore: bump version to $NEXT_VERSION"
           git push --set-upstream origin "$branch"
 
-          pr_url="$(gh pr create             --base main             --head "$branch"             --title "chore: bump version to $NEXT_VERSION"             --body "Prepare Sealbreak $NEXT_VERSION by updating MARKETING_VERSION from $CURRENT_VERSION. TestFlight build numbers are assigned separately at upload time.")"
+          pr_url="$(
+            gh pr create \
+              --base main \
+              --head "$branch" \
+              --title "chore: bump version to $NEXT_VERSION" \
+              --body "Prepare Sealbreak $NEXT_VERSION by updating MARKETING_VERSION from $CURRENT_VERSION. TestFlight build numbers are assigned separately at upload time."
+          )"
 
           echo "Created $pr_url" >> "$GITHUB_STEP_SUMMARY"
 
           gh workflow run ci.yml --ref "$branch"
-          gh workflow run dependency-review.yml             --ref "$branch"             -f base_ref=main             -f head_ref="$branch"
+          gh workflow run dependency-review.yml \
+            --ref "$branch" \
+            -f base_ref=main \
+            -f head_ref="$branch"
