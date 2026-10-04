@@ -63,10 +63,10 @@ jobs:
         with:
           token: ${{ github.token }}
           add-paths: Sealbreak.xcodeproj/project.pbxproj
-          commit-message: chore: bump version to ${{ steps.version.outputs.next_version }}
+          commit-message: "chore: bump version to ${{ steps.version.outputs.next_version }}"
           branch: release/v${{ steps.version.outputs.next_version }}
           base: main
-          title: chore: bump version to ${{ steps.version.outputs.next_version }}
+          title: "chore: bump version to ${{ steps.version.outputs.next_version }}"
           body: |
             Prepare Sealbreak ${{ steps.version.outputs.next_version }} by updating MARKETING_VERSION from ${{ steps.version.outputs.current_version }}.
 
