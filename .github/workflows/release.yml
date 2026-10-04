@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       release_type:
-        description: Semantic version increment from the current production baseline
+        description: Semantic version increment from the latest TestFlight version
         required: true
         type: choice
         options:
