@@ -251,6 +251,7 @@ TEST_RUNNER_SEALBREAK_INTEGRATION_SHARE_2="$second_share" \
 xcodebuild \
   -project Sealbreak.xcodeproj \
   -scheme Sealbreak \
+  -disableAutomaticPackageResolution \
   -configuration Debug \
   -destination "platform=iOS Simulator,id=$simulator_udid" \
   -derivedDataPath "$work_dir/DerivedData" \
