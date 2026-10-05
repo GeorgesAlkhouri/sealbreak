@@ -23,7 +23,7 @@
   <a href="THREAT_MODEL.md">Threat Model</a>
 </p>
 
-<table>
+<table align="center">
   <tr>
     <th align="center">Set up once</th>
     <th align="center">Approve with Face ID</th>
