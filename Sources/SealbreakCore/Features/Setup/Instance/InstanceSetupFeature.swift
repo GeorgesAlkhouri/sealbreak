@@ -126,11 +126,12 @@ package struct InstanceSetupFeature {
 
                         try Task.checkCancellation()
 
+                        _ = try await client.status(profile)
+
                         let product: ServerProduct
                         do {
                             product = try await client.detectProduct(profile)
                         } catch is AppFailure {
-                            _ = try await client.status(profile)
                             product = .generic
                         }
 

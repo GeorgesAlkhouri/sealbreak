@@ -136,15 +136,10 @@ struct ShareSetupView: View {
     private var protectButton: some View {
         Button(action: save) {
             HStack(spacing: 10) {
-                if store.isBusy {
-                    ProgressView()
-                        .tint(PapercutPalette.cream)
-                } else {
-                    Image(systemName: "faceid")
-                        .font(.system(size: 21, weight: .semibold))
-                }
+                Image(systemName: "faceid")
+                    .font(.system(size: 21, weight: .semibold))
 
-                Text(protectButtonTitle)
+                Text("Protect with Face ID", bundle: .module)
                     .font(.headline)
                     .multilineTextAlignment(.center)
                     .fixedSize(horizontal: false, vertical: true)
@@ -152,6 +147,10 @@ struct ShareSetupView: View {
             .papercutPrimaryButtonAppearance()
         }
         .buttonStyle(.plain)
+        .accessibilityValue(
+            store.activity ?? LocalizedStringResource("Protect with Face ID", bundle: .module),
+            isEnabled: store.isBusy
+        )
         .disabled(store.isBusy || !isShareLocallyValid)
         .opacity(store.isBusy || isShareLocallyValid ? 1 : 0.5)
     }
@@ -173,10 +172,6 @@ struct ShareSetupView: View {
         } else if let feedback = store.feedback {
             PapercutFeedback(feedback: feedback)
         }
-    }
-
-    private var protectButtonTitle: LocalizedStringResource {
-        store.isBusy ? LocalizedStringResource("Protecting…", bundle: .module) : LocalizedStringResource("Protect with Face ID", bundle: .module)
     }
 
     private var isShareLocallyValid: Bool {

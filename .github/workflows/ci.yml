@@ -80,6 +80,23 @@ jobs:
         with:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
           persist-credentials: false
+      - name: Verify Swift package lockfile
+        env:
+          DEVELOPER_DIR: /Applications/Xcode_26.6.app/Contents/Developer
+        run: |
+          set -euo pipefail
+          xcodebuild \
+            -project Sealbreak.xcodeproj \
+            -scheme Sealbreak \
+            -resolvePackageDependencies
+          if git diff --quiet -- \
+            Sealbreak.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved; then
+            exit 0
+          fi
+          echo '::error title=Package.resolved out of date::Xcode changed Package.resolved. Resolve packages with Xcode 26.6 and commit the generated lockfile.'
+          git diff -- \
+            Sealbreak.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved
+          exit 1
       - name: Compile complete iOS app for Simulator
         run: bash scripts/ci/build.sh simulator
       - name: Run AppModule presentation tests
@@ -89,6 +106,7 @@ jobs:
           xcodebuild test -project Sealbreak.xcodeproj -scheme Sealbreak \
             -configuration Debug -destination 'platform=iOS Simulator,name=iPhone 17,OS=26.5' \
             -derivedDataPath build/Simulator -only-testing:SealbreakAppModuleTests \
+            -disableAutomaticPackageResolution \
             -skipMacroValidation CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO \
             DEVELOPMENT_TEAM= COMPILER_INDEX_STORE_ENABLE=NO
       - name: Check localization catalog drift
