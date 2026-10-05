@@ -23,9 +23,24 @@
   <a href="THREAT_MODEL.md">Threat Model</a>
 </p>
 
-<p align="center">
-  <img src="design/readme/hero-device.svg" width="300" alt="Sealbreak app interface">
-</p>
+<table align="center">
+  <tr>
+    <th align="center">Set up once</th>
+    <th align="center">Approve with Face ID</th>
+    <th align="center">Check the result</th>
+  </tr>
+  <tr>
+    <td align="center">
+      <img src="design/readme/screenshots/framed/protect-your-share.webp" width="250" alt="Sealbreak setup with a Shamir share added and the Protect with Face ID button.">
+    </td>
+    <td align="center">
+      <img src="design/readme/screenshots/framed/sealed.webp" width="250" alt="Sealbreak showing a sealed OpenBao server and the Unseal with Face ID button.">
+    </td>
+    <td align="center">
+      <img src="design/readme/screenshots/framed/unsealed.webp" width="250" alt="Sealbreak showing an unsealed OpenBao server and the Check status button.">
+    </td>
+  </tr>
+</table>
 
 Sealbreak is a small iOS app for securely storing a Shamir unseal share for OpenBao or HashiCorp Vault on your iPhone and submitting it only after explicit Face ID authorization.
 
