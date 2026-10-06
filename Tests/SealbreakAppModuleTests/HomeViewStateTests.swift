@@ -196,6 +196,57 @@ struct HomeViewStateTests {
         )
     }
 
+    @Test
+    func stalePasteLoadIsDiscardedAfterInvalidation() async {
+        let coordinator = SharePasteLoadCoordinator()
+        let progress = Progress(totalUnitCount: 1)
+        var completion: ((NSString?, Error?) -> Void)?
+        var received: Result<String, AppFailure>?
+
+        coordinator.start(
+            using: { handler in
+                completion = handler
+                return progress
+            },
+            onResult: { received = $0 }
+        )
+
+        coordinator.invalidate()
+        completion?(NSString(string: "0123456789abcdef0123456789abcdef"), nil)
+        await Task.yield()
+
+        #expect(progress.isCancelled)
+        #expect(received == nil)
+    }
+
+    @Test
+    func pasteProviderFailureIsReportedWithoutRawProviderDetails() async {
+        struct ProviderFailure: Error {}
+
+        let coordinator = SharePasteLoadCoordinator()
+        let progress = Progress(totalUnitCount: 1)
+        var completion: ((NSString?, Error?) -> Void)?
+        var received: Result<String, AppFailure>?
+
+        coordinator.start(
+            using: { handler in
+                completion = handler
+                return progress
+            },
+            onResult: { received = $0 }
+        )
+
+        completion?(nil, ProviderFailure())
+        await Task.yield()
+
+        guard case .failure(let failure) = received else {
+            Issue.record("Expected paste provider failure.")
+            return
+        }
+
+        #expect(String(localized: failure.feedback.text) == "Operation failed. No sensitive diagnostic data was recorded.")
+    }
+
     private func sealStatus(sealed: Bool, supportsUnseal: Bool) -> SealStatus {
         SealStatus(
             type: supportsUnseal ? "shamir" : "transit",
