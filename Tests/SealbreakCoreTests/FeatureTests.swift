@@ -735,6 +735,30 @@ struct FeatureTests {
         #expect(localizedContains(store.state.feedback, "Reset local Sealbreak data"))
     }
     @Test
+    func pasteFailuresUseFeatureFeedback() async throws {
+        let target = try profile()
+        let failure = AppFailure("Invalid Shamir share.")
+
+        let setupStore = TestStore(
+            initialState: ShareSetupFeature.State(profile: target)
+        ) {
+            ShareSetupFeature()
+        }
+        await setupStore.send(.pasteFailed(failure)) {
+            $0.feedback = failure.feedback
+        }
+
+        let replaceStore = TestStore(
+            initialState: ReplaceShareFeature.State(profile: target)
+        ) {
+            ReplaceShareFeature()
+        }
+        await replaceStore.send(.pasteFailed(failure)) {
+            $0.feedback = failure.feedback
+        }
+    }
+
+    @Test
     func replaceSharePreservesTargetBindingInDependency() async throws {
         let target = try profile()
         let spy = ClientSpy()
