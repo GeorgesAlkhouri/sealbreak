@@ -18,6 +18,7 @@ struct ReplaceShareView: View {
                         disabled: store.isBusy,
                         onPaste: handlePaste
                     )
+                    .padding(.bottom, 18)
                 }
 
                 if store.isBusy || store.feedback != nil {
