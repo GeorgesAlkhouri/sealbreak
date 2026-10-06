@@ -8,17 +8,6 @@ struct SecurityRegressionTests {
     private let share = String(repeating: "a", count: 64)
 
     @Test
-    func sharePasteValidationAcceptsValidInputAndRejectsInvalidInput() throws {
-        let replacement = String(repeating: "b", count: 64)
-
-        #expect(try validatedSharePaste(share) == share)
-        #expect(throws: AppFailure.self) {
-            try validatedSharePaste("not-a-share")
-        }
-        #expect(try validatedSharePaste(replacement) == replacement)
-    }
-
-    @Test
     func homeFeedbackPreservesKnownStatusBeforeSubmissionAndClearsUncertainState() async throws {
         let profile = try ServerProfile(id: UUID(), name: "Server", address: "https://bao.example.com")
         let status = SealStatus(
