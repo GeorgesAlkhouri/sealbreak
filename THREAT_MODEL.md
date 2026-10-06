@@ -85,7 +85,8 @@ flowchart TB
     end
 
     OP -->|"Explicit action"| UI
-    IMPORT -->|"TB1: share import"| UI
+    IMPORT -->|"TB1: transient share paste"| MEM
+    MEM -->|"Validate and start protected write"| MODEL
     BUILD -.->|"TB5: install / update"| APP
 
     UI <--> MODEL
@@ -271,7 +272,7 @@ Controls: **M06, M12**
 
 #### T10 — Share read from process memory
 
-After successful Face ID authorization, the complete share must briefly exist in Sealbreak process memory during an unseal submission and when deriving a comparison fragment for the operator.
+During setup or replacement, a pasted share briefly exists in Sealbreak process memory before Face ID completes and protected Keychain storage begins. A valid paste starts the protected operation immediately and is not retained as a share draft in SwiftUI state. After successful Face ID authorization, the complete stored share must also briefly exist in process memory during an unseal submission and when deriving a comparison fragment for the operator.
 
 For share comparison, Sealbreak derives only the configured fragment and does not expose the complete share to feature state or the user interface.
 
@@ -440,7 +441,7 @@ A residual risk rating does not imply risk acceptance. This threat model does no
 | **M04 — Target binding** | Application | Store the authoritative server profile with the share and compare it before submission |
 | **M05 — State machine and request discipline** | Application | Validate seal state, permit only supported Shamir states, perform one explicit submission per action, never automatically retry, and verify state afterwards |
 | **M06 — Data minimization** | Application | Do not log, cache, export, or persist the complete share outside the protected record; keep unavoidable plaintext processing transient and narrowly scoped; secret-derived data exposed to the user must be explicitly authorized, minimized to its purpose, transient, and removed when no longer required; minimize diagnostic detail and clear mutable buffers where practical |
-| **M07 — Secure import** | Application | Accept share input only through an explicit system paste control, validate the value before accepting it, clear the current general pasteboard after successful validation, do not read the clipboard automatically, and provide no share-export functionality |
+| **M07 — Secure import** | Application | Accept share input only through an explicit system paste control, validate the value, immediately start the protected storage operation without retaining a share draft in UI state, clear the current general pasteboard after successful validation, do not read the clipboard automatically, and provide no share-export functionality |
 | **M08 — Safe local lifecycle** | Application | Require fresh authorization for sensitive local-share operations, persist a fail-closed lifecycle marker before changes that could leave protected share storage and profile metadata inconsistent, treat only fully committed local state as configured, reject incomplete or unsupported local state, use safe in-place updates, and enforce one encoded storage-size invariant across readers and writers |
 | **M09 — Recovery and incident response** | Operator / deployment | Maintain independent recovery and use the supported vault's rekey procedure to replace compromised unseal shares |
 | **M10 — Secure infrastructure** | Operator / deployment | Protect the configured vault, TLS proxies, VPN, DNS, certificates, node routing, and bootstrap dependencies outside the application |
