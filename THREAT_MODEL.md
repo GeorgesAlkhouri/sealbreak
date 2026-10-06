@@ -21,8 +21,8 @@ In scope:
 
 Out of scope:
 
-- the internal security of supported vaults and TLS-terminating proxies;
-- network security beyond the configured HTTPS endpoint;
+- the internal implementation security of supported vault servers;
+- transport security beyond TLS termination at the configured HTTPS endpoint;
 - general server administration, policy management, and secret browsing;
 - auto-unseal and seal migration;
 - cloud synchronization of the share;
@@ -50,7 +50,7 @@ A compromised share is especially significant when the configured vault uses a t
 | **AN03** | The iPhone is not already fully compromised |
 | **AN04** | The configured vault is manually unsealed with Shamir shares |
 | **AN06** | An independent recovery copy exists outside the iPhone and Sealbreak |
-| **AN07** | Any TLS-terminating proxy is trusted infrastructure and can observe the complete Shamir share |
+| **AN07** | Any TLS-terminating proxy is trusted infrastructure because it receives the complete Shamir share in decrypted form |
 | **AN08** | The operator explicitly initiates every unseal attempt |
 
 ## 2. Architecture and Trust Boundaries
