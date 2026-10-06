@@ -67,11 +67,5 @@ struct ShareEditor: View {
             disabled: busy || !recoveryConfirmed,
             onPaste: onPaste
         )
-
-        if !recoveryConfirmed {
-            Text("Confirm recovery before pasting a replacement share.", bundle: .module)
-                .font(.footnote)
-                .foregroundStyle(.secondary)
-        }
     }
 }
