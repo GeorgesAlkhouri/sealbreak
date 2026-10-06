@@ -6,7 +6,6 @@ import SwiftUI
 struct ReplaceShareView: View {
     let store: StoreOf<ReplaceShareFeature>
 
-    @State private var share = ""
     @State private var recoveryConfirmed = false
 
     var body: some View {
@@ -14,11 +13,9 @@ struct ReplaceShareView: View {
             Form {
                 Section(LocalizedStringResource("Replace local share", bundle: .module)) {
                     ShareEditor(
-                        share: $share,
                         recoveryConfirmed: $recoveryConfirmed,
-                        saveTitle: LocalizedStringResource("Save replacement with Face ID", bundle: .module),
                         busy: store.isBusy,
-                        onSave: save
+                        onPaste: replace
                     )
 
                     Text("This replaces only the locally stored share. It does not rotate server keys or change the configured target.", bundle: .module)
@@ -41,25 +38,21 @@ struct ReplaceShareView: View {
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button(LocalizedStringResource("Cancel", bundle: .module)) {
-                        clearDraft()
+                        recoveryConfirmed = false
                         store.send(.cancelTapped)
                     }
                     .disabled(store.isBusy)
                 }
             }
         }
-        .clearSensitiveDraftOnPrivacyChange(clearDraft)
+        .clearSensitiveDraftOnPrivacyChange {
+            recoveryConfirmed = false
+        }
     }
 
-    private func save() {
-        let value = share
+    private func replace(_ share: String) {
         let recovery = recoveryConfirmed
-        clearDraft()
-        store.send(.saveTapped(share: value, recoveryConfirmed: recovery))
-    }
-
-    private func clearDraft() {
-        share.removeAll(keepingCapacity: false)
         recoveryConfirmed = false
+        store.send(.saveTapped(share: share, recoveryConfirmed: recovery))
     }
 }
