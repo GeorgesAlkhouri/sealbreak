@@ -31,11 +31,6 @@ struct ShareSetupView: View {
                         .foregroundStyle(PapercutPalette.secondaryText)
                         .fixedSize(horizontal: false, vertical: true)
 
-                    SharePasteControl(
-                        disabled: store.isBusy,
-                        onPaste: protect
-                    )
-
                     Divider()
                         .overlay(PapercutPalette.ring)
 
@@ -53,6 +48,13 @@ struct ShareSetupView: View {
                 }
                 .padding(24)
             }
+            .frame(maxWidth: 335)
+            .padding(.horizontal, 6)
+
+            SharePasteControl(
+                disabled: store.isBusy,
+                onPaste: handlePaste
+            )
             .frame(maxWidth: 335)
             .padding(.horizontal, 6)
 
@@ -160,7 +162,12 @@ struct ShareSetupView: View {
         }
     }
 
-    private func protect(_ share: String) {
-        store.send(.saveTapped(share: share))
+    private func handlePaste(_ result: Result<String, AppFailure>) {
+        switch result {
+        case .success(let share):
+            store.send(.saveTapped(share: share))
+        case .failure(let failure):
+            store.send(.pasteFailed(failure))
+        }
     }
 }
