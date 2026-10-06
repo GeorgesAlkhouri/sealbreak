@@ -48,7 +48,6 @@ A compromised share is especially significant when the configured vault uses a t
 | **AN02** | The iPhone has a device passcode and Face ID enabled |
 | **AN03** | The iPhone is not already fully compromised |
 | **AN04** | The configured vault is manually unsealed with Shamir shares |
-| **AN05** | Network communication uses HTTPS |
 | **AN06** | An independent recovery copy exists outside the iPhone and Sealbreak |
 | **AN07** | The configured vault and any TLS-terminating proxy are intended trusted infrastructure |
 | **AN08** | The operator explicitly initiates every unseal attempt |
