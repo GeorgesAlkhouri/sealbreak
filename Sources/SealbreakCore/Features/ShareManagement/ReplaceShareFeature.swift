@@ -17,7 +17,8 @@ package struct ReplaceShareFeature {
             case dismissRequested
         }
 
-        case saveTapped(share: String, recoveryConfirmed: Bool)
+        case saveTapped(share: String)
+        case pasteFailed(AppFailure)
         case saveSucceeded
         case saveFailed(AppFailure)
         case operationCancelled
@@ -35,12 +36,8 @@ package struct ReplaceShareFeature {
     package var body: some ReducerOf<Self> {
         Reduce { state, action in
             switch action {
-            case .saveTapped(let input, let recoveryConfirmed):
+            case .saveTapped(let input):
                 guard !state.isBusy else { return .none }
-                guard recoveryConfirmed else {
-                    state.feedback = .warning(LocalizedStringResource("Confirm recovery for the replacement share before saving.", bundle: .module))
-                    return .none
-                }
 
                 let replacement: ShareRecord
                 do {
@@ -72,6 +69,11 @@ package struct ReplaceShareFeature {
                     }
                 }
                 .cancellable(id: CancelID.operation)
+
+            case .pasteFailed(let failure):
+                guard !state.isBusy else { return .none }
+                state.feedback = failure.feedback
+                return .none
 
             case .saveSucceeded:
                 state.isBusy = false
