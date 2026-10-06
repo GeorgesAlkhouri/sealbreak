@@ -21,8 +21,8 @@ In scope:
 
 Out of scope:
 
-- the internal implementation security of supported vault servers and TLS-terminating proxies;
-- transport and routing inside target infrastructure after Sealbreak's configured HTTPS endpoint;
+- the internal security of supported vaults and TLS-terminating proxies;
+- network security beyond the configured HTTPS endpoint;
 - general server administration, policy management, and secret browsing;
 - auto-unseal and seal migration;
 - cloud synchronization of the share;
@@ -50,7 +50,7 @@ A compromised share is especially significant when the configured vault uses a t
 | **AN03** | The iPhone is not already fully compromised |
 | **AN04** | The configured vault is manually unsealed with Shamir shares |
 | **AN06** | An independent recovery copy exists outside the iPhone and Sealbreak |
-| **AN07** | The configured target infrastructure is trusted by the operator. If the configured HTTPS endpoint terminates TLS before the vault, that intermediary can observe the complete Shamir share; security beyond that endpoint is outside Sealbreak's control |
+| **AN07** | Any TLS-terminating proxy is trusted infrastructure and can observe the complete Shamir share |
 | **AN08** | The operator explicitly initiates every unseal attempt |
 
 ## 2. Architecture and Trust Boundaries
@@ -110,7 +110,7 @@ flowchart TB
 | --- | --- | --- |
 | **TB1** | External import source → Sealbreak | The external source and any copies it retains are outside Sealbreak control |
 | **TB2** | App → Keychain / Face ID | iOS must enforce access to the share itself, not merely access to the visible UI |
-| **TB3** | iPhone → configured HTTPS endpoint | The share leaves the Sealbreak-controlled environment. Sealbreak authenticates and protects transport only to the configured endpoint, which may be the vault or a TLS-terminating intermediary; redirects must not retarget the share |
+| **TB3** | iPhone → configured HTTPS endpoint | Authenticate the endpoint and transport; redirects must not retarget the share |
 | **TB5** | Build/signing path → installed app | A malicious but validly signed build can misuse a legitimately released share |
 | **TB6** | Sealbreak/device → independent recovery | Recovery must remain usable without the original iPhone, app, or sealed server instance |
 
