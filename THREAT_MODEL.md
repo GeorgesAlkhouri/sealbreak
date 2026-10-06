@@ -4,7 +4,9 @@
 
 ### 1.1 Scope
 
-Sealbreak is an iOS application that stores one OpenBao Shamir unseal share on an iPhone, protects access to that share with Face ID and iOS Keychain controls, and submits the share to one explicitly configured OpenBao endpoint after a current operator action.
+Sealbreak is an iOS application that stores one Shamir unseal share for a supported vault on an iPhone, protects access to that share with Face ID and iOS Keychain controls, and submits the share to one explicitly configured vault endpoint after a current operator action.
+
+Throughout this document, **vault** means a Sealbreak-supported server that is manually unsealed with Shamir shares, currently OpenBao and HashiCorp Vault.
 
 In scope:
 
@@ -19,7 +21,7 @@ In scope:
 
 Out of scope:
 
-- OpenBao, HashiCorp Vault, or another compatible server's internal implementation security;
+- the internal implementation security of supported vault servers;
 - general server administration, policy management, and secret browsing;
 - auto-unseal and seal migration;
 - cloud synchronization of the share;
@@ -30,14 +32,13 @@ Out of scope:
 
 | ID | Asset | Security objective |
 | --- | --- | --- |
-| **A01** | Shamir share | Prevent disclosure of the complete share except during explicitly authorized sensitive operations; minimize and strictly limit any intentional partial disclosure |
+| **A01** | Shamir share | Prevent disclosure of the complete share except during explicitly authorized sensitive operations; preserve controlled availability for authorized use; minimize and strictly limit any intentional partial disclosure |
 | **A02** | Share-to-server binding | Prevent a stored share from being redirected to another target |
 | **A03** | Operator intent | Require a current, explicit operator action before share release or disclosure of share-derived data |
-| **A04** | Recovery capability | Device loss or Keychain invalidation must not cause permanent lock-out |
-| **A05** | OpenBao target identity | Prevent submission to an unintended or spoofed endpoint |
+| **A05** | Vault target identity | Prevent submission to an unintended or spoofed endpoint |
 | **A06** | Application integrity | Prevent a malicious build or update from stealing an authorized share |
 
-A compromised share is especially significant when OpenBao is configured with a threshold of one. In a 1-of-1 configuration, one stolen share represents the full unseal quorum.
+A compromised share is especially significant when the configured vault uses a threshold of one. In a 1-of-1 configuration, one stolen share represents the full unseal quorum.
 
 ### 1.3 Assumptions
 
@@ -46,10 +47,10 @@ A compromised share is especially significant when OpenBao is configured with a 
 | **AN01** | The conservative baseline is a 1-of-1 Shamir configuration |
 | **AN02** | The iPhone has a device passcode and Face ID enabled |
 | **AN03** | The iPhone is not already fully compromised |
-| **AN04** | OpenBao is manually unsealed with Shamir shares |
+| **AN04** | The configured vault is manually unsealed with Shamir shares |
 | **AN05** | Network communication uses HTTPS |
 | **AN06** | An independent recovery copy exists outside the iPhone and Sealbreak |
-| **AN07** | The configured OpenBao instance and any TLS-terminating proxy are intended trusted infrastructure |
+| **AN07** | The configured vault and any TLS-terminating proxy are intended trusted infrastructure |
 | **AN08** | The operator explicitly initiates every unseal attempt |
 
 ## 2. Architecture and Trust Boundaries
@@ -70,7 +71,7 @@ flowchart TB
             DISPLAY[("Non-secret profile catalog + persistence lifecycle")]
             MEM["Transient plaintext share / request body"]
             FRAGMENT["Transient share-comparison fragment"]
-            NET["OpenBao network client"]
+            NET["Vault network client"]
         end
 
         subgraph IOS["iOS security services"]
@@ -81,7 +82,7 @@ flowchart TB
 
     subgraph TARGET["Target infrastructure"]
         PROXY["Optional TLS-terminating proxy"]
-        BAO["OpenBao"]
+        VAULT["Supported vault"]
     end
 
     OP -->|"Explicit action"| UI
@@ -99,9 +100,9 @@ flowchart TB
     UI -->|"Comparison fragment"| OP
     MEM -->|"Verify protected target binding"| NET
 
-    NET <-->|"TB3: HTTPS"| BAO
+    NET <-->|"TB3: HTTPS"| VAULT
     NET <-->|"TB3: HTTPS"| PROXY
-    PROXY <-->|"TB4"| BAO
+    PROXY <-->|"TB4"| VAULT
 
     REC -.->|"TB6: independent recovery"| OP
 ```
@@ -112,8 +113,8 @@ flowchart TB
 | --- | --- | --- |
 | **TB1** | External import source → Sealbreak | The external source and any copies it retains are outside Sealbreak control |
 | **TB2** | App → Keychain / Face ID | iOS must enforce access to the share itself, not merely access to the visible UI |
-| **TB3** | iPhone → OpenBao or TLS proxy | Server identity and transport must be authenticated; redirects must not retarget the share |
-| **TB4** | TLS proxy → OpenBao | A proxy expands the trusted infrastructure and can observe the share after TLS termination |
+| **TB3** | iPhone → configured vault or TLS proxy | Server identity and transport must be authenticated; redirects must not retarget the share |
+| **TB4** | TLS proxy → configured vault | A proxy expands the trusted infrastructure and can observe the share after TLS termination |
 | **TB5** | Build/signing path → installed app | A malicious but validly signed build can misuse a legitimately released share |
 | **TB6** | Sealbreak/device → independent recovery | Recovery must remain usable without the original iPhone, app, or sealed server instance |
 
@@ -123,12 +124,12 @@ flowchart TB
 sequenceDiagram
     participant U as Operator
     participant A as Sealbreak
-    participant O as OpenBao
+    participant V as Supported vault
     participant F as Face ID
     participant K as iOS Keychain
 
-    A->>O: GET /v1/sys/seal-status
-    O-->>A: Seal status
+    A->>V: GET /v1/sys/seal-status
+    V-->>A: Seal status
 
     U->>A: Tap Unseal
     A->>F: Request fresh biometric authorization
@@ -137,15 +138,15 @@ sequenceDiagram
     A->>K: Read protected share record for selected profile ID
     K-->>A: Share + profile ID + authoritative target binding
     A->>A: Verify profile ID and protected target match selection
-    A->>O: POST /v1/sys/unseal
-    O-->>A: Response
+    A->>V: POST /v1/sys/unseal
+    V-->>A: Response
 
-    A->>O: GET /v1/sys/seal-status
-    O-->>A: Current seal state
+    A->>V: GET /v1/sys/seal-status
+    V-->>A: Current seal state
     A-->>U: Show verified state or unknown outcome
 ```
 
-A successful HTTP response alone is not treated as proof that OpenBao is fully unsealed. Sealbreak re-checks the seal state after submission. If submission may already have reached the server but verification fails, the final outcome is treated as unknown and the app does not retry automatically.
+A successful HTTP response alone is not treated as proof that the configured vault is fully unsealed. Sealbreak re-checks the seal state after submission. If submission may already have reached the server but verification fails, the final outcome is treated as unknown and the app does not retry automatically.
 
 ### 2.4 Security-Critical Share Comparison Flow
 
@@ -176,7 +177,7 @@ STRIDE covers Spoofing, Tampering, Repudiation, Information Disclosure, Denial o
 
 ### 3.1 Spoofing
 
-#### T01 — Spoofed OpenBao server
+#### T01 — Spoofed vault server
 
 An attacker attempts to make Sealbreak submit a valid share to an unintended endpoint.
 
@@ -212,7 +213,7 @@ Controls: **M01, M02**
 
 Malformed, stale, or attacker-controlled status data could cause the application to present an incorrect state or proceed under false assumptions.
 
-Sealbreak accepts only HTTP 200 JSON responses from the expected URL, bounds response size, decodes into a typed model, and validates basic state consistency. It re-checks status after submission. These controls cannot make a compromised legitimate OpenBao server truthful.
+Sealbreak accepts only HTTP 200 JSON responses from the expected URL, bounds response size, decodes into a typed model, and validates basic state consistency. It re-checks status after submission. These controls cannot make a compromised legitimate vault server truthful.
 
 Affected assets: **A03, A05**
 
@@ -224,13 +225,13 @@ A failed, interrupted, or partially completed local share operation could leave 
 
 Sealbreak persists a non-ready lifecycle state before operations that could leave the Keychain and profile catalog inconsistent. Only fully committed local state is treated as configured. Interrupted, incomplete, unreadable, unsupported, or otherwise inconsistent local state fails closed into the recovery path instead of reopening normal operation. Replacement updates the existing Keychain item in place, and destructive reset operations establish a persistent recovery state before deleting protected shares. All readers and writers enforce a common encoded-record size limit. Sealbreak still cannot prove that an independent recovery copy exists or is usable.
 
-Affected assets: **A01, A04**
+Affected assets: **A01**
 
 Controls: **M08, M09**
 
 #### T06 — Reuse of a stolen share
 
-A Shamir share is not a one-time credential. An attacker who obtains a copy can submit it again after OpenBao is resealed without using Sealbreak or Face ID.
+A Shamir share is not a one-time credential. An attacker who obtains a copy can submit it again after the vault is resealed without using Sealbreak or Face ID.
 
 Sealbreak limits its own behavior to one controlled submission per explicit action and performs no automatic retry, but it cannot make a copied Shamir share expire or bind it cryptographically to the app, device, operator, or time of use.
 
@@ -242,7 +243,7 @@ Controls: **M02, M05, M06, M09**
 
 #### T07 — Weak actor attribution
 
-OpenBao receives the submitted share but does not receive cryptographic proof that a particular person completed Face ID on a particular iPhone.
+The vault receives the submitted share but does not receive cryptographic proof that a particular person completed Face ID on a particular iPhone.
 
 Sealbreak therefore does not claim individual server-verifiable attribution. A successful unseal also does not prove which operator completed the quorum.
 
@@ -312,17 +313,17 @@ Device loss, hardware failure, Face ID re-enrollment, Keychain invalidation, app
 
 This is partly an intentional consequence of device-bound storage. Sealbreak's operating model requires an independent recovery copy outside the app. Setup communicates that requirement, but the application cannot prove that the external copy exists or is usable. Recovery therefore remains an operator and deployment responsibility.
 
-Affected assets: **A04**
+Affected assets: **A01**
 
 Controls: **M08, M09**
 
 #### T13 — Bootstrap dependency failure
 
-Unseal may depend on DNS, a VPN, certificates, or a TLS proxy that is itself unavailable while OpenBao is sealed.
+Unseal may depend on DNS, a VPN, certificates, or a TLS proxy that is itself unavailable while the vault is sealed.
 
-Sealbreak has bounded request timeouts and fails closed, but it cannot repair an unavailable dependency. The deployment must ensure that the network path required for unseal does not depend on secrets that are themselves unavailable while OpenBao is sealed.
+Sealbreak has bounded request timeouts and fails closed, but it cannot repair an unavailable dependency. The deployment must ensure that the network path required for unseal does not depend on secrets that are themselves unavailable while the vault is sealed.
 
-Affected assets: **A04, A05**
+Affected assets: **A01, A05**
 
 Controls: **M05, M10**
 
@@ -332,7 +333,7 @@ In a clustered deployment, Shamir unseal progress is node-specific. Requests rou
 
 Sealbreak is configured with one explicit origin but does not cryptographically bind requests to a node identity or an unseal attempt. Deployment routing must therefore keep the status and share submissions directed to the intended node.
 
-Affected assets: **A04, A05**
+Affected assets: **A01, A05**
 
 Controls: **M05, M10**
 
@@ -348,9 +349,9 @@ Affected assets: **A01, A06**
 
 Controls: **M11**
 
-#### T16 — Compromised legitimate OpenBao infrastructure
+#### T16 — Compromised legitimate vault infrastructure
 
-Sealbreak may connect to the intended hostname with valid TLS while the OpenBao host or TLS-terminating proxy is already compromised. A valid unseal operation would then disclose the share to compromised infrastructure.
+Sealbreak may connect to the intended hostname with valid TLS while the vault server or TLS-terminating proxy is already compromised. A valid unseal operation would then disclose the share to compromised infrastructure.
 
 This is an architectural trust dependency. Correct TLS validation confirms endpoint identity, not endpoint integrity.
 
@@ -364,7 +365,7 @@ With a 1-of-1 Shamir configuration, disclosure of the one stored share is equiva
 
 A higher threshold can reduce the impact only when additional shares are held independently. Storing all required shares on the same device would not provide meaningful custody separation.
 
-Affected assets: **A01, A04**
+Affected assets: **A01**
 
 Controls: **M09, M10**
 
@@ -414,13 +415,13 @@ A residual risk rating does not imply risk acceptance. This threat model does no
 
 | Threat | Likelihood | Impact | Residual risk | Controls | Basis |
 | --- | ---: | ---: | ---: | --- | --- |
-| **T01** Spoofed OpenBao server | 1 | 5 | **5 Medium** | M03, M04 | HTTPS validation, canonical origins, blocked redirects, expected response URL |
+| **T01** Spoofed vault server | 1 | 5 | **5 Medium** | M03, M04 | HTTPS validation, canonical origins, blocked redirects, expected response URL |
 | **T02** Manipulated target binding | 1 | 5 | **5 Medium** | M04 | Authoritative profile stored with share and compared before submission |
 | **T03** Biometric access-control bypass | 1 | 5 | **5 Medium** | M01, M02 | Device-bound Keychain protection and fresh Face ID context; physical-device validation still relevant |
 | **T04** Incorrect seal status | 2 | 3 | **6 Medium** | M05 | Typed, bounded, validated status with post-submit re-check; compromised server can still lie |
 | **T05** Local lifecycle state integrity failure | 2 | 3 | **6 Medium** | M08, M09 | Fail-closed lifecycle state, in-place replacement, bounded storage, and independent recovery |
 | **T06** Reuse of stolen share | 2 | 5 | **10 High** | M02, M05, M06, M09 | Copied Shamir share remains reusable outside Sealbreak |
-| **T07** Weak actor attribution | 3 | 2 | **6 Medium** | M12 | OpenBao receives no cryptographic proof of local Face ID or specific human identity |
+| **T07** Weak actor attribution | 3 | 2 | **6 Medium** | M12 | The vault receives no cryptographic proof of local Face ID or specific human identity |
 | **T08** External import/recovery copy stolen | 2 | 5 | **10 High** | M07, M09 | Explicit paste and clipboard clearing after successful validation reduce clipboard exposure; external or already synchronized copies remain outside app control |
 | **T09** Diagnostic leak | 1 | 5 | **5 Medium** | M06, M12 | No application logging or analytics; caches and response-body reflection disabled |
 | **T10** Runtime memory compromise | 2 | 5 | **10 High** | M01, M02, M06, M11, M13 | Authorized share must exist transiently in process memory for submission and comparison-fragment derivation |
@@ -445,8 +446,8 @@ A residual risk rating does not imply risk acceptance. This threat model does no
 | **M06 — Data minimization** | Application | Do not log, cache, export, or persist the complete share outside the protected record; keep unavoidable plaintext processing transient and narrowly scoped; secret-derived data exposed to the user must be explicitly authorized, minimized to its purpose, transient, and removed when no longer required; minimize diagnostic detail and clear mutable buffers where practical |
 | **M07 — Secure import** | Application | Accept share input only through an explicit system paste control, validate the value before accepting it, clear the current general pasteboard after successful validation, do not read the clipboard automatically, and provide no share-export functionality |
 | **M08 — Safe local lifecycle** | Application | Require fresh authorization for sensitive local-share operations, persist a fail-closed lifecycle marker before changes that could leave protected share storage and profile metadata inconsistent, treat only fully committed local state as configured, reject incomplete or unsupported local state, use safe in-place updates, and enforce one encoded storage-size invariant across readers and writers |
-| **M09 — Recovery and incident response** | Operator / deployment | Maintain independent recovery and use OpenBao rekeying to replace compromised server-side shares |
-| **M10 — Secure infrastructure** | Operator / deployment | Protect OpenBao, TLS proxies, VPN, DNS, certificates, node routing, and bootstrap dependencies outside the application |
+| **M09 — Recovery and incident response** | Operator / deployment | Maintain independent recovery and use the supported vault's rekey procedure to replace compromised unseal shares |
+| **M10 — Secure infrastructure** | Operator / deployment | Protect the configured vault, TLS proxies, VPN, DNS, certificates, node routing, and bootstrap dependencies outside the application |
 | **M11 — Software supply chain** | Project / release | Protect signing rights and developer systems, keep dependencies minimal, and review distributed builds and updates |
 | **M12 — Minimal diagnostics and attribution claims** | Application / project | Never record secret material and do not claim server-verifiable proof of which human completed an unseal quorum |
 | **M13 — Minimized share comparison** | Application | Require fresh Face ID before revealing share-derived data; derive only a fixed first-three and last-three-character fragment; never expose the complete share to feature state or the UI; provide no copy or export action; keep the fragment only in transient state; allow immediate manual hiding; hide it automatically after 20 seconds and on privacy interruption; and never represent a fragment match as verification of the complete stored share |
