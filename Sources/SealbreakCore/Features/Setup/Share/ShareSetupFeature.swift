@@ -41,6 +41,7 @@ package struct ShareSetupFeature {
         }
 
         case saveTapped(share: String)
+        case pasteFailed(AppFailure)
         case importResponse(Result<ProfileResult, AppFailure>)
         case localResetRequired(AppFeedback)
         case operationCancelled
@@ -104,6 +105,11 @@ package struct ShareSetupFeature {
                         )
                     }
                 }
+
+            case .pasteFailed(let failure):
+                guard !state.isBusy else { return .none }
+                state.feedback = failure.feedback
+                return .none
 
             case .importResponse(.success(let result)):
                 state.operation = nil
