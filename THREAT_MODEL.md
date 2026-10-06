@@ -22,6 +22,7 @@ In scope:
 Out of scope:
 
 - the internal implementation security of supported vault servers;
+- transport security beyond TLS termination at the configured HTTPS endpoint;
 - general server administration, policy management, and secret browsing;
 - auto-unseal and seal migration;
 - cloud synchronization of the share;
@@ -49,7 +50,7 @@ A compromised share is especially significant when the configured vault uses a t
 | **AN03** | The iPhone is not already fully compromised |
 | **AN04** | The configured vault is manually unsealed with Shamir shares |
 | **AN06** | An independent recovery copy exists outside the iPhone and Sealbreak |
-| **AN07** | The configured vault and any TLS-terminating proxy are intended trusted infrastructure |
+| **AN07** | Any TLS-terminating proxy is trusted infrastructure because it receives the complete Shamir share in decrypted form |
 | **AN08** | The operator explicitly initiates every unseal attempt |
 
 ## 2. Architecture and Trust Boundaries
@@ -79,9 +80,8 @@ flowchart TB
         end
     end
 
-    subgraph TARGET["Target infrastructure"]
-        PROXY["Optional TLS-terminating proxy"]
-        VAULT["Supported vault"]
+    subgraph TARGET["External target infrastructure"]
+        ENDPOINT["Configured HTTPS endpoint<br/>(vault or TLS-terminating proxy)"]
     end
 
     OP -->|"Explicit action"| UI
@@ -99,9 +99,7 @@ flowchart TB
     UI -->|"Comparison fragment"| OP
     MEM -->|"Verify protected target binding"| NET
 
-    NET <-->|"TB3: HTTPS"| VAULT
-    NET <-->|"TB3: HTTPS"| PROXY
-    PROXY <-->|"TB4"| VAULT
+    NET <-->|"TB3: HTTPS"| ENDPOINT
 
     REC -.->|"TB6: independent recovery"| OP
 ```
@@ -112,8 +110,7 @@ flowchart TB
 | --- | --- | --- |
 | **TB1** | External import source → Sealbreak | The external source and any copies it retains are outside Sealbreak control |
 | **TB2** | App → Keychain / Face ID | iOS must enforce access to the share itself, not merely access to the visible UI |
-| **TB3** | iPhone → configured vault or TLS proxy | Server identity and transport must be authenticated; redirects must not retarget the share |
-| **TB4** | TLS proxy → configured vault | A proxy expands the trusted infrastructure and can observe the share after TLS termination |
+| **TB3** | iPhone → configured HTTPS endpoint | Authenticate the endpoint and transport; redirects must not retarget the share |
 | **TB5** | Build/signing path → installed app | A malicious but validly signed build can misuse a legitimately released share |
 | **TB6** | Sealbreak/device → independent recovery | Recovery must remain usable without the original iPhone, app, or sealed server instance |
 
