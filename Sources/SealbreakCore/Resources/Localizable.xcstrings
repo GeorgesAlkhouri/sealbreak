@@ -1,77 +1,196 @@
 {
-  "sourceLanguage": "en",
-  "strings": {
-    "%@ The final outcome is unknown. Check status before another attempt; a request already received cannot be undone.": {},
-    "Already unsealed. No share was read or sent.": {},
-    "Checking connection…": {},
-    "Checking seal status…": {},
-    "Checking target…": {},
-    "Confirm recovery for the replacement share before saving.": {},
-    "Connection check cancelled.": {},
-    "Connection check interrupted. Try again.": {},
-    "DNSSEC validation failed for this host. Fix its DNSSEC configuration before continuing.": {},
-    "Enter one hexadecimal or Base64 Shamir share.": {},
-    "Local Sealbreak configuration could not be read. Reset local data to continue, then set up again using your independent share copy.": {},
-    "Local Sealbreak data contains multiple server profiles, but this app version supports one. Reset local data to continue.": {},
-    "Local Sealbreak data was reset. Set up again using your independent share copy.": {},
-    "Local Sealbreak removal did not finish cleanly. Reset local data to continue.": {},
-    "Local Sealbreak setup did not finish cleanly. Reset local data to continue, then set up again using your independent share copy.": {},
-    "Local removal could not be completed safely. Reset local Sealbreak data before continuing.": {},
-    "Local setup could not be completed safely. Reset local Sealbreak data before continuing.": {},
-    "Local share removed. Copies elsewhere remain valid; only server-side rekeying replaces the server’s Shamir shares.": {},
-    "Only initialized Shamir seals are supported. Initialization, auto-unseal, and seal migration are not supported.": {},
-    "Operation cancelled. No new protected share was saved.": {},
-    "Operation cancelled. Refresh status before retrying; a submitted request may already have been processed.": {},
-    "Operation failed. No sensitive diagnostic data was recorded.": {},
-    "Operation interrupted. Check status on return; an already submitted request cannot be recalled.": {},
-    "Permanently remove Sealbreak’s local share; independent recovery will be required": {},
-    "Protect this share for %@": {},
-    "Protecting share…": {},
-    "Removing local data…": {},
-    "Replace the local share for %@": {},
-    "Request failed.": {},
-    "Send one Shamir share to %@": {},
-    "Share protected on this iPhone. Check status to begin.": {},
-    "Show stored share fragment": {},
-    "Status checked. Nothing is sent automatically.": {},
-    "Submission completed; still sealed. Progress: %lld/%lld. Other holders must submit their own shares to this same node.": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "new",
-            "value": "Submission completed; still sealed. Progress: %1$lld/%2$lld. Other holders must submit their own shares to this same node."
+  "sourceLanguage" : "en",
+  "strings" : {
+    "%@ The final outcome is unknown. Check status before another attempt; a request already received cannot be undone." : {
+
+    },
+    "Already unsealed. No share was read or sent." : {
+
+    },
+    "Checking connection…" : {
+
+    },
+    "Checking seal status…" : {
+
+    },
+    "Checking target…" : {
+
+    },
+    "Connection check cancelled." : {
+
+    },
+    "Connection check interrupted. Try again." : {
+
+    },
+    "DNSSEC validation failed for this host. Fix its DNSSEC configuration before continuing." : {
+
+    },
+    "Enter one hexadecimal or Base64 Shamir share." : {
+
+    },
+    "Local removal could not be completed safely. Reset local Sealbreak data before continuing." : {
+
+    },
+    "Local Sealbreak configuration could not be read. Reset local data to continue, then set up again using your independent share copy." : {
+
+    },
+    "Local Sealbreak data contains multiple server profiles, but this app version supports one. Reset local data to continue." : {
+
+    },
+    "Local Sealbreak data was reset. Set up again using your independent share copy." : {
+
+    },
+    "Local Sealbreak removal did not finish cleanly. Reset local data to continue." : {
+
+    },
+    "Local Sealbreak setup did not finish cleanly. Reset local data to continue, then set up again using your independent share copy." : {
+
+    },
+    "Local setup could not be completed safely. Reset local Sealbreak data before continuing." : {
+
+    },
+    "Local share removed. Copies elsewhere remain valid; only server-side rekeying replaces the server’s Shamir shares." : {
+
+    },
+    "Only initialized Shamir seals are supported. Initialization, auto-unseal, and seal migration are not supported." : {
+
+    },
+    "Operation cancelled. No new protected share was saved." : {
+
+    },
+    "Operation cancelled. Refresh status before retrying; a submitted request may already have been processed." : {
+
+    },
+    "Operation failed. No sensitive diagnostic data was recorded." : {
+
+    },
+    "Operation interrupted. Check status on return; an already submitted request cannot be recalled." : {
+
+    },
+    "Permanently remove Sealbreak’s local share; independent recovery will be required" : {
+
+    },
+    "Protect this share for %@" : {
+
+    },
+    "Protecting share…" : {
+
+    },
+    "Removing local data…" : {
+
+    },
+    "Replace the local share for %@" : {
+
+    },
+    "Request failed." : {
+
+    },
+    "Send one Shamir share to %@" : {
+
+    },
+    "Share protected on this iPhone. Check status to begin." : {
+
+    },
+    "Show stored share fragment" : {
+
+    },
+    "Status checked. Nothing is sent automatically." : {
+
+    },
+    "Submission completed; still sealed. Progress: %lld/%lld. Other holders must submit their own shares to this same node." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Submission completed; still sealed. Progress: %1$lld/%2$lld. Other holders must submit their own shares to this same node."
           }
         }
       }
     },
-    "Submitting one share…": {},
-    "Target binding mismatch. Nothing was sent. Reconfigure the local share for this server before retrying.": {},
-    "Target binding mismatch. Reconfigure the local share for this server before retrying.": {},
-    "The canonical server origin could not be converted to a URL.": {},
-    "The profile catalog exceeds the supported local storage limit. Nothing was saved.": {},
-    "The protected target binding is invalid. Use independent recovery.": {},
-    "The record exceeds the %lld-byte storage limit. Shorten the server name; nothing was saved.": {},
-    "The server profile is invalid. Set up this server profile again.": {},
-    "The server returned inconsistent seal status. No share was sent by this status request.": {},
-    "This target does not support manual Shamir unseal.": {},
-    "Unable to construct a canonical HTTPS server origin.": {},
-    "Unexpected seal configuration after submission.": {},
-    "Unimplemented DNSSEC status dependency.": {},
-    "Unimplemented foreground dependency.": {},
-    "Unimplemented local removal dependency.": {},
-    "Unimplemented local setup state dependency.": {},
-    "Unimplemented local-data reset dependency.": {},
-    "Unimplemented protected-share dependency.": {},
-    "Unimplemented seal-status dependency.": {},
-    "Unimplemented server-product detection dependency.": {},
-    "Unimplemented setup protection dependency.": {},
-    "Unimplemented share submission dependency.": {},
-    "Unsupported Keychain record version.": {},
-    "Use a server name of 1–40 characters without control characters, within %lld UTF-8 bytes.": {},
-    "Use an HTTPS origin such as https://server.example.com:8200. No credentials, path, query, fragment, or non-ASCII hostname is allowed.": {},
-    "Verified: this endpoint now reports unsealed. This does not prove which operator completed the quorum.": {},
-    "Verifying seal status…": {},
-    "Waiting for Face ID…": {}
+    "Submitting one share…" : {
+
+    },
+    "Target binding mismatch. Nothing was sent. Reconfigure the local share for this server before retrying." : {
+
+    },
+    "Target binding mismatch. Reconfigure the local share for this server before retrying." : {
+
+    },
+    "The canonical server origin could not be converted to a URL." : {
+
+    },
+    "The profile catalog exceeds the supported local storage limit. Nothing was saved." : {
+
+    },
+    "The protected target binding is invalid. Use independent recovery." : {
+
+    },
+    "The record exceeds the %lld-byte storage limit. Shorten the server name; nothing was saved." : {
+
+    },
+    "The server profile is invalid. Set up this server profile again." : {
+
+    },
+    "The server returned inconsistent seal status. No share was sent by this status request." : {
+
+    },
+    "This target does not support manual Shamir unseal." : {
+
+    },
+    "Unable to construct a canonical HTTPS server origin." : {
+
+    },
+    "Unexpected seal configuration after submission." : {
+
+    },
+    "Unimplemented DNSSEC status dependency." : {
+
+    },
+    "Unimplemented foreground dependency." : {
+
+    },
+    "Unimplemented local removal dependency." : {
+
+    },
+    "Unimplemented local setup state dependency." : {
+
+    },
+    "Unimplemented local-data reset dependency." : {
+
+    },
+    "Unimplemented protected-share dependency." : {
+
+    },
+    "Unimplemented seal-status dependency." : {
+
+    },
+    "Unimplemented server-product detection dependency." : {
+
+    },
+    "Unimplemented setup protection dependency." : {
+
+    },
+    "Unimplemented share submission dependency." : {
+
+    },
+    "Unsupported Keychain record version." : {
+
+    },
+    "Use a server name of 1–40 characters without control characters, within %lld UTF-8 bytes." : {
+
+    },
+    "Use an HTTPS origin such as https://server.example.com:8200. No credentials, path, query, fragment, or non-ASCII hostname is allowed." : {
+
+    },
+    "Verified: this endpoint now reports unsealed. This does not prove which operator completed the quorum." : {
+
+    },
+    "Verifying seal status…" : {
+
+    },
+    "Waiting for Face ID…" : {
+
+    }
   },
-  "version": "1.0"
+  "version" : "1.0"
 }
