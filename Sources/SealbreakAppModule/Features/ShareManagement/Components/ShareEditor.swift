@@ -4,10 +4,10 @@ import SwiftUI
 import UIKit
 
 struct SharePasteControl: View {
-    @Binding var share: String
     @State private var pasteError: LocalizedStringResource?
 
     let disabled: Bool
+    let onPaste: (String) -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -19,14 +19,10 @@ struct SharePasteControl: View {
                 }
                 .font(.footnote.weight(.semibold))
                 .foregroundStyle(PapercutPalette.sealed)
-            } else if share.isEmpty {
+            } else {
                 Text("Paste Shamir share", bundle: .module)
                     .font(.footnote.weight(.semibold))
                     .foregroundStyle(PapercutPalette.secondaryText)
-            } else {
-                Label(LocalizedStringResource("Shamir share added", bundle: .module), systemImage: "checkmark.circle.fill")
-                    .font(.footnote.weight(.semibold))
-                    .foregroundStyle(PapercutPalette.unsealed)
             }
 
             PasteButton(payloadType: String.self) { values in
@@ -45,8 +41,13 @@ struct SharePasteControl: View {
         pasteError = nil
 
         do {
-            try applySharePaste(values.first, to: &share)
+            var share = try validatedSharePaste(values.first)
+            defer {
+                share.removeAll(keepingCapacity: false)
+            }
+
             UIPasteboard.general.items = []
+            onPaste(share)
         } catch {
             pasteError = normalizedAppFailure(error).feedback.text
         }
@@ -54,22 +55,23 @@ struct SharePasteControl: View {
 }
 
 struct ShareEditor: View {
-    @Binding var share: String
     @Binding var recoveryConfirmed: Bool
 
-    let saveTitle: LocalizedStringResource
     let busy: Bool
-    let onSave: () -> Void
+    let onPaste: (String) -> Void
 
     var body: some View {
-        SharePasteControl(
-            share: $share,
-            disabled: busy
-        )
-
         Toggle(LocalizedStringResource("I have an independent recovery copy", bundle: .module), isOn: $recoveryConfirmed)
 
-        Button(saveTitle, action: onSave)
-            .disabled(busy || share.isEmpty || !recoveryConfirmed)
+        SharePasteControl(
+            disabled: busy || !recoveryConfirmed,
+            onPaste: onPaste
+        )
+
+        if !recoveryConfirmed {
+            Text("Confirm recovery before pasting a replacement share.", bundle: .module)
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+        }
     }
 }
