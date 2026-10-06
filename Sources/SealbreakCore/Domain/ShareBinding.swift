@@ -1,7 +1,6 @@
 import Foundation
-package func applySharePaste(_ candidate: String?, to draft: inout String) throws {
-    draft.removeAll(keepingCapacity: false)
-    draft = try ShareRecord.validateShare(candidate ?? "")
+package func validatedSharePaste(_ candidate: String?) throws -> String {
+    try ShareRecord.validateShare(candidate ?? "")
 }
 
 package func replaceShareIfBound(
