@@ -4,42 +4,22 @@ import SwiftUI
 import UIKit
 
 struct SharePasteControl: View {
-    @State private var pasteError: LocalizedStringResource?
-
     let disabled: Bool
-    let onPaste: (String) -> Void
+    let onPaste: (Result<String, AppFailure>) -> Void
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            if let pasteError {
-                Label {
-                    Text(pasteError)
-                } icon: {
-                    Image(systemName: "exclamationmark.triangle.fill")
-                }
-                .font(.footnote.weight(.semibold))
-                .foregroundStyle(PapercutPalette.sealed)
-            } else {
-                Text("Paste Shamir share", bundle: .module)
-                    .font(.footnote.weight(.semibold))
-                    .foregroundStyle(PapercutPalette.secondaryText)
-            }
-
-            PasteButton(payloadType: String.self) { values in
-                importShare(values)
-            }
-            .labelStyle(.titleAndIcon)
-            .buttonBorderShape(.roundedRectangle(radius: 14))
-            .tint(PapercutPalette.button)
-            .controlSize(.large)
-            .disabled(disabled)
-            .frame(maxWidth: .infinity)
+        PasteButton(payloadType: String.self) { values in
+            importShare(values)
         }
+        .labelStyle(.titleAndIcon)
+        .font(.headline)
+        .papercutPrimaryButtonAppearance()
+        .buttonStyle(.plain)
+        .disabled(disabled)
+        .opacity(disabled ? 0.5 : 1)
     }
 
     private func importShare(_ values: [String]) {
-        pasteError = nil
-
         do {
             var share = try validatedSharePaste(values.first)
             defer {
@@ -47,25 +27,9 @@ struct SharePasteControl: View {
             }
 
             UIPasteboard.general.items = []
-            onPaste(share)
+            onPaste(.success(share))
         } catch {
-            pasteError = normalizedAppFailure(error).feedback.text
+            onPaste(.failure(normalizedAppFailure(error)))
         }
-    }
-}
-
-struct ShareEditor: View {
-    @Binding var recoveryConfirmed: Bool
-
-    let busy: Bool
-    let onPaste: (String) -> Void
-
-    var body: some View {
-        Toggle(LocalizedStringResource("I have an independent recovery copy", bundle: .module), isOn: $recoveryConfirmed)
-
-        SharePasteControl(
-            disabled: busy || !recoveryConfirmed,
-            onPaste: onPaste
-        )
     }
 }
