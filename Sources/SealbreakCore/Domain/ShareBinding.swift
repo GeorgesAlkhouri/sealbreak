@@ -1,8 +1,4 @@
 import Foundation
-package func validatedSharePaste(_ candidate: String?) throws -> String {
-    try ShareRecord.validateShare(candidate ?? "")
-}
-
 package func replaceShareIfBound(
     expectedProfile: ServerProfile,
     replacement: ShareRecord,
