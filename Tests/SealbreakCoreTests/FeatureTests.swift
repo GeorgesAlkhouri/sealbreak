@@ -746,10 +746,7 @@ struct FeatureTests {
         }
         store.exhaustivity = .off(showSkippedAssertions: false)
 
-        await store.send(.saveTapped(share: share, recoveryConfirmed: false))
-        #expect(localizedContains(store.state.feedback, "Confirm recovery"))
-
-        await store.send(.saveTapped(share: share, recoveryConfirmed: true)).finish()
+        await store.send(.saveTapped(share: share)).finish()
         await store.receive(.saveSucceeded)
         await store.receive(.delegate(.saved))
         let replacedCount = await spy.replacedCount
