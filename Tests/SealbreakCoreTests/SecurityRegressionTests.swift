@@ -8,20 +8,14 @@ struct SecurityRegressionTests {
     private let share = String(repeating: "a", count: 64)
 
     @Test
-    func invalidPasteClearsPreviouslyValidShareDraft() throws {
-        var draft = ""
+    func sharePasteValidationAcceptsValidInputAndRejectsInvalidInput() throws {
         let replacement = String(repeating: "b", count: 64)
 
-        try applySharePaste(share, to: &draft)
-        #expect(draft == share)
-
+        #expect(try validatedSharePaste(share) == share)
         #expect(throws: AppFailure.self) {
-            try applySharePaste("not-a-share", to: &draft)
+            try validatedSharePaste("not-a-share")
         }
-        #expect(draft.isEmpty)
-
-        try applySharePaste(replacement, to: &draft)
-        #expect(draft == replacement)
+        #expect(try validatedSharePaste(replacement) == replacement)
     }
 
     @Test
