@@ -203,7 +203,7 @@ private final class SharePasteTargetView: UIView {
 
     private func handlePaste(_ candidate: String) {
         do {
-            var share = try validatedSharePaste(candidate)
+            var share = try ShareRecord.validateShare(candidate)
             defer {
                 share.removeAll(keepingCapacity: false)
             }
