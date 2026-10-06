@@ -1208,12 +1208,12 @@ struct FeatureTests {
         }
         store.exhaustivity = .off(showSkippedAssertions: false)
 
-        await store.send(.saveTapped(share: "short", recoveryConfirmed: true))
+        await store.send(.saveTapped(share: "short"))
         #expect(!store.state.isBusy)
         #expect(localizedContains(store.state.feedback, "share"))
 
         await spy.setReplaceError(AppFailure("replace failed"))
-        await store.send(.saveTapped(share: share, recoveryConfirmed: true)).finish()
+        await store.send(.saveTapped(share: share)).finish()
         await store.skipReceivedActions()
         #expect(!store.state.isBusy)
         #expect(store.state.activity == nil)
@@ -1233,7 +1233,7 @@ struct FeatureTests {
         }
         cancellationStore.exhaustivity = .off(showSkippedAssertions: false)
 
-        await cancellationStore.send(.saveTapped(share: share, recoveryConfirmed: true)).finish()
+        await cancellationStore.send(.saveTapped(share: share)).finish()
         await cancellationStore.skipReceivedActions()
         #expect(!cancellationStore.state.isBusy)
         #expect(cancellationStore.state.activity == nil)
