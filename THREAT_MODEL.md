@@ -421,7 +421,7 @@ A residual risk rating does not imply risk acceptance. This threat model does no
 | **T07** Weak actor attribution | 3 | 2 | **6 Medium** | M12 | The vault receives no cryptographic proof of local Face ID or specific human identity |
 | **T08** External import/recovery copy stolen | 2 | 5 | **10 High** | M07, M09 | Explicit paste and clipboard clearing after successful validation reduce clipboard exposure; external or already synchronized copies remain outside app control |
 | **T09** Diagnostic leak | 1 | 5 | **5 Medium** | M06, M12 | No application logging or analytics; caches and response-body reflection disabled |
-| **T10** Runtime memory compromise | 2 | 5 | **10 High** | M01, M02, M06, M11, M13 | Authorized share must exist transiently in process memory for submission and comparison-fragment derivation |
+| **T10** Runtime memory compromise | 2 | 5 | **10 High** | M01, M02, M06, M11, M13 | Pasted shares exist transiently before protected storage; stored shares exist transiently after authorization for submission and comparison-fragment derivation |
 | **T11** Unexpected synchronization or migration | 1 | 5 | **5 Medium** | M01, M06, M08 | `ThisDeviceOnly` plus synchronization disabled; platform behavior remains trusted |
 | **T12** Device, biometric, or identity loss | 2 | 5 | **10 High** | M08, M09 | Device binding can intentionally make the local item inaccessible; recovery is external |
 | **T13** Bootstrap dependency failure | 2 | 2 | **4 Low** | M05, M10 | App fails closed but depends on reachable DNS, VPN, certificates, and optional proxy |
