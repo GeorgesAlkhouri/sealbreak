@@ -39,7 +39,7 @@ Out of scope:
 | **A05** | Vault target identity | Prevent submission to an unintended or spoofed endpoint |
 | **A06** | Application integrity | Prevent a malicious build or update from stealing an authorized share |
 
-A compromised share is especially significant when the configured vault uses a threshold of one. In a 1-of-1 configuration, one stolen share represents the full unseal quorum.
+In a 1-of-1 configuration, disclosure of the stored share compromises the full unseal quorum.
 
 ### 1.3 Assumptions
 
@@ -178,7 +178,7 @@ STRIDE covers Spoofing, Tampering, Repudiation, Information Disclosure, Denial o
 
 An attacker attempts to make Sealbreak submit a valid share to an unintended endpoint.
 
-Current controls include HTTPS-only canonical origins, normal certificate and hostname validation, rejection of redirects, and validation that the response URL matches the request URL. These controls do not protect against a compromised legitimate endpoint or a wrongly enrolled but otherwise valid endpoint.
+Current controls include HTTPS-only canonical origins, normal certificate and hostname validation, rejection of redirects, and validation that the response URL matches the request URL. These controls reduce spoofing or retargeting after a correct endpoint enrollment. They do not protect against a compromised legitimate endpoint and cannot determine whether the operator initially enrolled the intended HTTPS endpoint. The residual score below applies to the post-enrollment spoofing or retargeting case; initial mis-enrollment is an operator configuration failure rather than a transport-control failure.
 
 Affected assets: **A01, A05**
 
@@ -230,11 +230,11 @@ Controls: **M08, M09**
 
 A Shamir share is not a one-time credential. An attacker who obtains a copy can submit it again after the vault is resealed without using Sealbreak or Face ID.
 
-Sealbreak limits its own behavior to one controlled submission per explicit action and performs no automatic retry, but it cannot make a copied Shamir share expire or bind it cryptographically to the app, device, operator, or time of use.
+Once a share has been copied, app-local authorization, data minimization, and request discipline cannot prevent its reuse outside Sealbreak. The applicable post-compromise response is to replace the compromised share using the supported vault's rekey procedure.
 
-Affected assets: **A01, A03**
+Affected assets: **A01**
 
-Controls: **M02, M05, M06, M09**
+Controls: **M09**
 
 ### 3.3 Repudiation
 
@@ -290,6 +290,16 @@ Affected assets: **A01, A02**
 
 Controls: **M01, M06, M08**
 
+#### T16 — Compromised legitimate vault infrastructure
+
+Sealbreak may connect to the intended hostname with valid TLS while the vault server or TLS-terminating proxy is already compromised. A valid unseal operation would then disclose the share to compromised infrastructure.
+
+This is an architectural trust dependency. Correct TLS validation confirms endpoint identity, not endpoint integrity.
+
+Affected assets: **A01, A05**
+
+Controls: **M10**
+
 #### T18 — Disclosure of a share-comparison fragment
 
 After fresh biometric authorization, Sealbreak intentionally displays a fixed fragment derived from the protected Shamir share. An unauthorized observer or a captured screen may therefore obtain part of the share even though the complete value remains protected.
@@ -306,11 +316,11 @@ Controls: **M01, M02, M06, M13**
 
 Device loss, hardware failure, Face ID re-enrollment, Keychain invalidation, app deletion, or an application-identity change may make the local share inaccessible.
 
-This is partly an intentional consequence of device-bound storage. Sealbreak's operating model requires an independent recovery copy outside the app. Setup communicates that requirement, but the application cannot prove that the external copy exists or is usable. Recovery therefore remains an operator and deployment responsibility.
+This is partly an intentional consequence of device-bound storage. Under AN06, loss of the local share is recoverable through the independent recovery copy, although Sealbreak remains unavailable until the operator reprovisions the local share. If that recovery copy is missing or unusable, the impact can become irreversible, but that outcome violates AN06 rather than the baseline T12 scenario.
 
 Affected assets: **A01**
 
-Controls: **M08, M09**
+Controls: **M09**
 
 #### T13 — Bootstrap dependency failure
 
@@ -343,26 +353,6 @@ The project has a small dependency surface, but local biometric controls cannot 
 Affected assets: **A01, A06**
 
 Controls: **M11**
-
-#### T16 — Compromised legitimate vault infrastructure
-
-Sealbreak may connect to the intended hostname with valid TLS while the vault server or TLS-terminating proxy is already compromised. A valid unseal operation would then disclose the share to compromised infrastructure.
-
-This is an architectural trust dependency. Correct TLS validation confirms endpoint identity, not endpoint integrity.
-
-Affected assets: **A01, A05**
-
-Controls: **M10**
-
-#### T17 — Single share represents the full quorum
-
-With a 1-of-1 Shamir configuration, disclosure of the one stored share is equivalent to disclosure of the complete unseal quorum.
-
-A higher threshold can reduce the impact only when additional shares are held independently. Storing all required shares on the same device would not provide meaningful custody separation.
-
-Affected assets: **A01**
-
-Controls: **M09, M10**
 
 ## 4. Risk Assessment and Controls
 
@@ -406,27 +396,28 @@ Risk = Likelihood × Impact
 
 The current assessment reflects application, project, and deployment controls relevant to each threat. Residual risk is the risk that remains after these controls are considered.
 
+A risk rating assumes that the assumptions in section 1.3 hold.
+
 A residual risk rating does not imply risk acceptance. This threat model does not accept risks on behalf of users or operators. Risks may require further mitigation, deployment controls, avoidance, transfer, or an explicit acceptance decision.
 
 | Threat | Likelihood | Impact | Residual risk | Controls | Basis |
 | --- | ---: | ---: | ---: | --- | --- |
-| **T01** Spoofed vault server | 1 | 5 | **5 Medium** | M03, M04 | HTTPS validation, canonical origins, blocked redirects, expected response URL |
+| **T01** Spoofed vault server | 1 | 5 | **5 Medium** | M03, M04 | HTTPS validation, canonical origins, blocked redirects, protected target binding |
 | **T02** Manipulated target binding | 1 | 5 | **5 Medium** | M04 | Authoritative profile stored with share and compared before submission |
 | **T03** Biometric access-control bypass | 1 | 5 | **5 Medium** | M01, M02 | Device-bound Keychain protection and fresh Face ID context; physical-device validation still relevant |
 | **T04** Incorrect seal status | 2 | 3 | **6 Medium** | M05 | Typed, bounded, validated status with post-submit re-check; compromised server can still lie |
 | **T05** Local lifecycle state integrity failure | 2 | 3 | **6 Medium** | M08, M09 | Fail-closed lifecycle state, in-place replacement, bounded storage, and independent recovery |
-| **T06** Reuse of stolen share | 2 | 5 | **10 High** | M02, M05, M06, M09 | Copied Shamir share remains reusable outside Sealbreak |
+| **T06** Reuse of stolen share | 2 | 5 | **10 High** | M09 | Once copied, a Shamir share remains reusable outside Sealbreak until the vault replaces it |
 | **T07** Weak actor attribution | 3 | 2 | **6 Medium** | M12 | The vault receives no cryptographic proof of local Face ID or specific human identity |
 | **T08** External import/recovery copy stolen | 2 | 5 | **10 High** | M07, M09 | Explicit paste and clipboard clearing after successful validation reduce clipboard exposure; external or already synchronized copies remain outside app control |
 | **T09** Diagnostic leak | 1 | 5 | **5 Medium** | M06, M12 | No application logging or analytics; caches and response-body reflection disabled |
 | **T10** Runtime memory compromise | 2 | 5 | **10 High** | M01, M02, M06, M07, M11, M13 | Complete shares exist transiently in process memory during import and authorized use |
 | **T11** Unexpected synchronization or migration | 1 | 5 | **5 Medium** | M01, M06, M08 | `ThisDeviceOnly` plus synchronization disabled; platform behavior remains trusted |
-| **T12** Device, biometric, or identity loss | 2 | 5 | **10 High** | M08, M09 | Device binding can intentionally make the local item inaccessible; recovery is external |
+| **T12** Device, biometric, or identity loss | 2 | 3 | **6 Medium** | M09 | With AN06 satisfied, loss of the local copy is recoverable |
 | **T13** Bootstrap dependency failure | 2 | 2 | **4 Low** | M05, M10 | App fails closed but depends on reachable DNS, VPN, certificates, and optional proxy |
 | **T14** Wrong cluster node | 2 | 3 | **6 Medium** | M05, M10 | Node affinity is a deployment requirement, not an app-enforced invariant |
 | **T15** Malicious application or update | 2 | 5 | **10 High** | M11 | Authorized code can misuse an authorized Keychain release |
 | **T16** Compromised legitimate infrastructure | 2 | 5 | **10 High** | M10 | Correct TLS does not protect against a compromised intended target or proxy |
-| **T17** 1-of-1 quorum compromise | 2 | 5 | **10 High** | M09, M10 | One stolen share is the full quorum in the conservative baseline |
 | **T18** Comparison-fragment disclosure | 2 | 2 | **4 Low** | M01, M02, M06, M13 | Fresh Face ID, fixed partial reveal, transient state, no export, and privacy interruption limit exposure |
 
 ### 4.4 Controls
