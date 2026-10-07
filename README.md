@@ -23,6 +23,12 @@
   <a href="THREAT_MODEL.md">Threat Model</a>
 </p>
 
+<p align="center">
+  <a href="https://sealbreak.app/beta">
+    <img src="design/readme/join-beta.svg" width="560" alt="Join the Sealbreak public beta on TestFlight">
+  </a>
+</p>
+
 <table align="center">
   <tr>
     <th align="center">Set up once</th>
