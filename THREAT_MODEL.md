@@ -39,7 +39,7 @@ Out of scope:
 | **A05** | Vault target identity | Prevent submission to an unintended or spoofed endpoint |
 | **A06** | Application integrity | Prevent a malicious build or update from stealing an authorized share |
 
-A compromised share is especially significant when the configured vault uses a threshold of one. In a 1-of-1 configuration, one stolen share represents the full unseal quorum. This is an impact factor for disclosure threats, not a separate attack path.
+In a 1-of-1 configuration, disclosure of the stored share compromises the full unseal quorum.
 
 ### 1.3 Assumptions
 
