@@ -61,7 +61,7 @@ flowchart TB
     OP["Operator"]
     IMPORT["External import source"]
     REC["Independent recovery copy"]
-    BUILD["Developer Mac / Xcode / signing"]
+    BUILD["Repository / CI / signing / TestFlight"]
 
     subgraph PHONE["iPhone"]
         subgraph APP["Sealbreak app process and sandbox"]
@@ -111,7 +111,7 @@ flowchart TB
 | **TB1** | External import source → Sealbreak | The external source and any copies it retains are outside Sealbreak control |
 | **TB2** | App → Keychain / Face ID | iOS must enforce access to the share itself, not merely access to the visible UI |
 | **TB3** | iPhone → configured HTTPS endpoint | Authenticate the endpoint and transport; redirects must not retarget the share |
-| **TB5** | Build/signing path → installed app | A malicious but validly signed build can misuse a legitimately released share |
+| **TB5** | Repository / CI / signing / TestFlight → installed app | A malicious but validly signed build can misuse a legitimately released share |
 | **TB6** | Independent recovery → operator | Recovery must remain usable without the original iPhone, app, or sealed server instance |
 
 ### 2.3 Security-Critical Unseal Flow
@@ -345,7 +345,7 @@ Controls: **M05, M10**
 
 #### T15 — Malicious application or update
 
-A compromised developer workstation, signing account, build process, or distributed application could produce a legitimate-looking Sealbreak build that requests valid Face ID authorization and then copies the released share.
+A compromised repository, CI workflow, developer system, signing credential, or distributed application could produce a legitimate-looking Sealbreak build that requests valid Face ID authorization and then copies the released share.
 
 The project has a small dependency surface, but local biometric controls cannot defend against code that is itself authorized to access the Keychain item after successful authentication.
 
@@ -433,6 +433,6 @@ A residual risk rating does not imply risk acceptance. This threat model does no
 | **M08 — Safe local lifecycle** | Application | Require fresh authorization for normal local-share changes; treat recovery reset as a deletion-only exception that does not read or submit the share; persist a fail-closed lifecycle marker before changes that could leave protected share storage and profile metadata inconsistent, treat only fully committed local state as configured, reject incomplete or unsupported local state, use safe in-place updates, and enforce one encoded storage-size invariant across readers and writers |
 | **M09 — Recovery and incident response** | Operator / deployment | Maintain independent recovery and use the supported vault's rekey procedure to replace compromised unseal shares |
 | **M10 — Secure infrastructure** | Operator / deployment | Protect the configured vault, TLS proxies, VPN, DNS, certificates, node routing, and bootstrap dependencies outside the application |
-| **M11 — Software supply chain** | Project / release | Protect signing rights and developer systems, keep dependencies minimal, and review distributed builds and updates |
+| **M11 — Software supply chain** | Project / release | Protect repository, CI, signing, and App Store Connect access; pin GitHub Actions dependencies to full commit SHAs; avoid persisted checkout credentials in release jobs; keep dependencies minimal; and review distributed builds and updates |
 | **M12 — Minimal diagnostics and attribution claims** | Application / project | Never record secret material and do not claim server-verifiable proof of which human completed an unseal quorum |
 | **M13 — Minimized share comparison** | Application | Require fresh Face ID before revealing share-derived data; derive only a fixed first-three and last-three-character fragment; never expose the complete share to feature state or the UI; provide no copy or export action; keep the fragment only in transient state; allow immediate manual hiding; hide it automatically after 20 seconds and on privacy interruption; and never represent a fragment match as verification of the complete stored share |
