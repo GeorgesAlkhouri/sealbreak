@@ -50,14 +50,14 @@ private struct SystemSharePasteControl: UIViewRepresentable {
     let privacyEpoch: UUID
     let onPaste: (Result<String, AppFailure>) -> Void
 
-    func makeUIView(context: Context) -> SharePasteTargetView {
+    func makeUIView(context _: Context) -> SharePasteTargetView {
         let view = SharePasteTargetView()
         view.onPaste = onPaste
         view.update(externallyDisabled: disabled, privacyEpoch: privacyEpoch)
         return view
     }
 
-    func updateUIView(_ uiView: SharePasteTargetView, context: Context) {
+    func updateUIView(_ uiView: SharePasteTargetView, context _: Context) {
         uiView.onPaste = onPaste
         uiView.update(externallyDisabled: disabled, privacyEpoch: privacyEpoch)
     }
@@ -159,7 +159,7 @@ private final class SharePasteTargetView: UIView {
     }
 
     @available(*, unavailable)
-    required init?(coder: NSCoder) {
+    required init?(coder _: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }
 
