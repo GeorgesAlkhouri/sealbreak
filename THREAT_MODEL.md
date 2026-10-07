@@ -396,13 +396,13 @@ Risk = Likelihood × Impact
 
 The current assessment reflects application, project, and deployment controls relevant to each threat. Residual risk is the risk that remains after these controls are considered.
 
-A risk rating assumes that the assumptions in section 1.3 hold. A higher-impact outcome that requires an assumption to fail is described separately rather than silently folded into the baseline rating.
+A risk rating assumes that the assumptions in section 1.3 hold.
 
 A residual risk rating does not imply risk acceptance. This threat model does not accept risks on behalf of users or operators. Risks may require further mitigation, deployment controls, avoidance, transfer, or an explicit acceptance decision.
 
 | Threat | Likelihood | Impact | Residual risk | Controls | Basis |
 | --- | ---: | ---: | ---: | --- | --- |
-| **T01** Spoofed vault server | 1 | 5 | **5 Medium** | M03, M04 | Rating covers spoofing or retargeting after correct endpoint enrollment; TLS and target binding do not validate initial endpoint selection |
+| **T01** Spoofed vault server | 1 | 5 | **5 Medium** | M03, M04 | HTTPS validation, canonical origins, blocked redirects, protected target binding |
 | **T02** Manipulated target binding | 1 | 5 | **5 Medium** | M04 | Authoritative profile stored with share and compared before submission |
 | **T03** Biometric access-control bypass | 1 | 5 | **5 Medium** | M01, M02 | Device-bound Keychain protection and fresh Face ID context; physical-device validation still relevant |
 | **T04** Incorrect seal status | 2 | 3 | **6 Medium** | M05 | Typed, bounded, validated status with post-submit re-check; compromised server can still lie |
@@ -413,7 +413,7 @@ A residual risk rating does not imply risk acceptance. This threat model does no
 | **T09** Diagnostic leak | 1 | 5 | **5 Medium** | M06, M12 | No application logging or analytics; caches and response-body reflection disabled |
 | **T10** Runtime memory compromise | 2 | 5 | **10 High** | M01, M02, M06, M07, M11, M13 | Complete shares exist transiently in process memory during import and authorized use |
 | **T11** Unexpected synchronization or migration | 1 | 5 | **5 Medium** | M01, M06, M08 | `ThisDeviceOnly` plus synchronization disabled; platform behavior remains trusted |
-| **T12** Device, biometric, or identity loss | 2 | 3 | **6 Medium** | M09 | With AN06 satisfied, loss of the local copy is recoverable; irreversible lock-out requires the recovery assumption to fail |
+| **T12** Device, biometric, or identity loss | 2 | 3 | **6 Medium** | M09 | With AN06 satisfied, loss of the local copy is recoverable |
 | **T13** Bootstrap dependency failure | 2 | 2 | **4 Low** | M05, M10 | App fails closed but depends on reachable DNS, VPN, certificates, and optional proxy |
 | **T14** Wrong cluster node | 2 | 3 | **6 Medium** | M05, M10 | Node affinity is a deployment requirement, not an app-enforced invariant |
 | **T15** Malicious application or update | 2 | 5 | **10 High** | M11 | Authorized code can misuse an authorized Keychain release |
