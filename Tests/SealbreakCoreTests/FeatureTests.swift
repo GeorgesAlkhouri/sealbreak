@@ -735,6 +735,30 @@ struct FeatureTests {
         #expect(localizedContains(store.state.feedback, "Reset local Sealbreak data"))
     }
     @Test
+    func pasteFailuresUseFeatureFeedback() async throws {
+        let target = try profile()
+        let failure = AppFailure("Invalid Shamir share.")
+
+        let setupStore = TestStore(
+            initialState: ShareSetupFeature.State(profile: target)
+        ) {
+            ShareSetupFeature()
+        }
+        await setupStore.send(.pasteFailed(failure)) {
+            $0.feedback = failure.feedback
+        }
+
+        let replaceStore = TestStore(
+            initialState: ReplaceShareFeature.State(profile: target)
+        ) {
+            ReplaceShareFeature()
+        }
+        await replaceStore.send(.pasteFailed(failure)) {
+            $0.feedback = failure.feedback
+        }
+    }
+
+    @Test
     func replaceSharePreservesTargetBindingInDependency() async throws {
         let target = try profile()
         let spy = ClientSpy()
@@ -746,10 +770,7 @@ struct FeatureTests {
         }
         store.exhaustivity = .off(showSkippedAssertions: false)
 
-        await store.send(.saveTapped(share: share, recoveryConfirmed: false))
-        #expect(localizedContains(store.state.feedback, "Confirm recovery"))
-
-        await store.send(.saveTapped(share: share, recoveryConfirmed: true)).finish()
+        await store.send(.saveTapped(share: share)).finish()
         await store.receive(.saveSucceeded)
         await store.receive(.delegate(.saved))
         let replacedCount = await spy.replacedCount
@@ -1187,12 +1208,12 @@ struct FeatureTests {
         }
         store.exhaustivity = .off(showSkippedAssertions: false)
 
-        await store.send(.saveTapped(share: "short", recoveryConfirmed: true))
+        await store.send(.saveTapped(share: "short"))
         #expect(!store.state.isBusy)
         #expect(localizedContains(store.state.feedback, "share"))
 
         await spy.setReplaceError(AppFailure("replace failed"))
-        await store.send(.saveTapped(share: share, recoveryConfirmed: true)).finish()
+        await store.send(.saveTapped(share: share)).finish()
         await store.skipReceivedActions()
         #expect(!store.state.isBusy)
         #expect(store.state.activity == nil)
@@ -1212,7 +1233,7 @@ struct FeatureTests {
         }
         cancellationStore.exhaustivity = .off(showSkippedAssertions: false)
 
-        await cancellationStore.send(.saveTapped(share: share, recoveryConfirmed: true)).finish()
+        await cancellationStore.send(.saveTapped(share: share)).finish()
         await cancellationStore.skipReceivedActions()
         #expect(!cancellationStore.state.isBusy)
         #expect(cancellationStore.state.activity == nil)

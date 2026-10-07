@@ -6,8 +6,6 @@ import SwiftUI
 struct ShareSetupView: View {
     let store: StoreOf<ShareSetupFeature>
 
-    @State private var share = ""
-
     var body: some View {
         VStack(spacing: 24) {
             VStack(spacing: 10) {
@@ -33,11 +31,6 @@ struct ShareSetupView: View {
                         .foregroundStyle(PapercutPalette.secondaryText)
                         .fixedSize(horizontal: false, vertical: true)
 
-                    SharePasteControl(
-                        share: $share,
-                        disabled: store.isBusy
-                    )
-
                     Divider()
                         .overlay(PapercutPalette.ring)
 
@@ -58,9 +51,12 @@ struct ShareSetupView: View {
             .frame(maxWidth: 335)
             .padding(.horizontal, 6)
 
-            protectButton
-                .frame(maxWidth: 335)
-                .padding(.horizontal, 6)
+            SharePasteControl(
+                disabled: store.isBusy,
+                onPaste: handlePaste
+            )
+            .frame(maxWidth: 335)
+            .padding(.horizontal, 6)
 
             statusMessage
                 .frame(maxWidth: 325)
@@ -69,7 +65,6 @@ struct ShareSetupView: View {
         .padding(.top, 32)
         .padding(.horizontal, 24)
         .padding(.bottom, 140)
-        .clearSensitiveDraftOnPrivacyChange(clearDraft)
     }
 
     private var targetCard: some View {
@@ -133,28 +128,6 @@ struct ShareSetupView: View {
         }
     }
 
-    private var protectButton: some View {
-        Button(action: save) {
-            HStack(spacing: 10) {
-                Image(systemName: "faceid")
-                    .font(.system(size: 21, weight: .semibold))
-
-                Text("Protect with Face ID", bundle: .module)
-                    .font(.headline)
-                    .multilineTextAlignment(.center)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-            .papercutPrimaryButtonAppearance()
-        }
-        .buttonStyle(.plain)
-        .accessibilityValue(
-            store.activity ?? LocalizedStringResource("Protect with Face ID", bundle: .module),
-            isEnabled: store.isBusy
-        )
-        .disabled(store.isBusy || !isShareLocallyValid)
-        .opacity(store.isBusy || isShareLocallyValid ? 1 : 0.5)
-    }
-
     @ViewBuilder
     private var statusMessage: some View {
         if store.isBusy {
@@ -174,10 +147,6 @@ struct ShareSetupView: View {
         }
     }
 
-    private var isShareLocallyValid: Bool {
-        (try? ShareRecord.validateShare(share)) != nil
-    }
-
     private var hostLabel: String {
         URL(string: store.profile.origin)?.host ?? store.profile.origin
     }
@@ -193,13 +162,12 @@ struct ShareSetupView: View {
         }
     }
 
-    private func save() {
-        let value = share
-        clearDraft()
-        store.send(.saveTapped(share: value))
-    }
-
-    private func clearDraft() {
-        share.removeAll(keepingCapacity: false)
+    private func handlePaste(_ result: Result<String, AppFailure>) {
+        switch result {
+        case .success(let share):
+            store.send(.saveTapped(share: share))
+        case .failure(let failure):
+            store.send(.pasteFailed(failure))
+        }
     }
 }

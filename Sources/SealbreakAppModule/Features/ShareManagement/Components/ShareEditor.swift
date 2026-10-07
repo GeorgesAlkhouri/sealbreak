@@ -4,72 +4,214 @@ import SwiftUI
 import UIKit
 
 struct SharePasteControl: View {
-    @Binding var share: String
-    @State private var pasteError: LocalizedStringResource?
+    @Environment(\.isSceneCaptured) private var isSceneCaptured
+    @Environment(\.scenePhase) private var scenePhase
+    @State private var privacyEpoch = UUID()
 
     let disabled: Bool
+    let onPaste: (Result<String, AppFailure>) -> Void
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            if let pasteError {
-                Label {
-                    Text(pasteError)
-                } icon: {
-                    Image(systemName: "exclamationmark.triangle.fill")
-                }
-                .font(.footnote.weight(.semibold))
-                .foregroundStyle(PapercutPalette.sealed)
-            } else if share.isEmpty {
-                Text("Paste Shamir share", bundle: .module)
-                    .font(.footnote.weight(.semibold))
-                    .foregroundStyle(PapercutPalette.secondaryText)
-            } else {
-                Label(LocalizedStringResource("Shamir share added", bundle: .module), systemImage: "checkmark.circle.fill")
-                    .font(.footnote.weight(.semibold))
-                    .foregroundStyle(PapercutPalette.unsealed)
-            }
+        ZStack {
+            RoundedRectangle(cornerRadius: 21, style: .continuous)
+                .fill(PapercutPalette.buttonBack)
+                .offset(x: 2, y: 5)
 
-            PasteButton(payloadType: String.self) { values in
-                importShare(values)
-            }
-            .labelStyle(.titleAndIcon)
-            .buttonBorderShape(.roundedRectangle(radius: 14))
-            .tint(PapercutPalette.button)
-            .controlSize(.large)
-            .disabled(disabled)
-            .frame(maxWidth: .infinity)
+            SystemSharePasteControl(
+                disabled: disabled,
+                privacyEpoch: privacyEpoch,
+                onPaste: onPaste
+            )
         }
-    }
-
-    private func importShare(_ values: [String]) {
-        pasteError = nil
-
-        do {
-            try applySharePaste(values.first, to: &share)
-            UIPasteboard.general.items = []
-        } catch {
-            pasteError = normalizedAppFailure(error).feedback.text
+        .frame(maxWidth: .infinity)
+        .frame(minHeight: 62)
+        .shadow(color: .black.opacity(0.30), radius: 8, y: 8)
+        .opacity(disabled ? 0.5 : 1)
+        .onAppear {
+            if isSceneCaptured {
+                privacyEpoch = UUID()
+            }
+        }
+        .onChange(of: scenePhase) { _, phase in
+            if phase != .active {
+                privacyEpoch = UUID()
+            }
+        }
+        .onChange(of: isSceneCaptured) { _, isCaptured in
+            if isCaptured {
+                privacyEpoch = UUID()
+            }
         }
     }
 }
 
-struct ShareEditor: View {
-    @Binding var share: String
-    @Binding var recoveryConfirmed: Bool
+private struct SystemSharePasteControl: UIViewRepresentable {
+    let disabled: Bool
+    let privacyEpoch: UUID
+    let onPaste: (Result<String, AppFailure>) -> Void
 
-    let saveTitle: LocalizedStringResource
-    let busy: Bool
-    let onSave: () -> Void
+    func makeUIView(context _: Context) -> SharePasteTargetView {
+        let view = SharePasteTargetView()
+        view.onPaste = onPaste
+        view.update(externallyDisabled: disabled, privacyEpoch: privacyEpoch)
+        return view
+    }
 
-    var body: some View {
-        SharePasteControl(
-            share: $share,
-            disabled: busy
+    func updateUIView(_ uiView: SharePasteTargetView, context _: Context) {
+        uiView.onPaste = onPaste
+        uiView.update(externallyDisabled: disabled, privacyEpoch: privacyEpoch)
+    }
+
+    static func dismantleUIView(_ uiView: SharePasteTargetView, coordinator _: ()) {
+        uiView.invalidatePaste()
+    }
+}
+
+@MainActor
+final class SharePasteLoadCoordinator {
+    typealias Loader = (@escaping (NSString?, Error?) -> Void) -> Progress
+
+    private struct InvalidProviderResult: Error {}
+
+    private var activePasteID: UUID?
+    private var activeLoad: Progress?
+    private var onResult: ((Result<String, AppFailure>) -> Void)?
+
+    func start(
+        using loader: Loader,
+        onResult: @escaping (Result<String, AppFailure>) -> Void
+    ) {
+        invalidate()
+
+        let pasteID = UUID()
+        activePasteID = pasteID
+        self.onResult = onResult
+        activeLoad = loader { [weak self] string, error in
+            Task { @MainActor [weak self] in
+                self?.finish(pasteID: pasteID, string: string, error: error)
+            }
+        }
+    }
+
+    func invalidate() {
+        activePasteID = nil
+        onResult = nil
+        activeLoad?.cancel()
+        activeLoad = nil
+    }
+
+    private func finish(
+        pasteID: UUID,
+        string: NSString?,
+        error: Error?
+    ) {
+        guard activePasteID == pasteID else {
+            return
+        }
+
+        activePasteID = nil
+        activeLoad = nil
+        let resultHandler = onResult
+        onResult = nil
+
+        if let string {
+            resultHandler?(.success(string as String))
+            return
+        }
+
+        let failure = error.map(normalizedAppFailure)
+            ?? normalizedAppFailure(InvalidProviderResult())
+        resultHandler?(.failure(failure))
+    }
+}
+
+@MainActor
+private final class SharePasteTargetView: UIView {
+    var onPaste: ((Result<String, AppFailure>) -> Void)?
+
+    private let pasteControl: UIPasteControl
+    private let loadCoordinator = SharePasteLoadCoordinator()
+    private var privacyEpoch: UUID?
+
+    override init(frame: CGRect) {
+        let configuration = UIPasteControl.Configuration()
+        configuration.displayMode = .iconAndLabel
+        configuration.baseBackgroundColor = UIColor(PapercutPalette.button)
+        configuration.baseForegroundColor = UIColor(PapercutPalette.cream)
+        configuration.cornerStyle = .fixed
+        configuration.cornerRadius = 21
+
+        pasteControl = UIPasteControl(configuration: configuration)
+
+        super.init(frame: frame)
+
+        pasteConfiguration = UIPasteConfiguration(forAccepting: NSString.self)
+        pasteControl.target = self
+        pasteControl.translatesAutoresizingMaskIntoConstraints = false
+
+        addSubview(pasteControl)
+        NSLayoutConstraint.activate([
+            pasteControl.leadingAnchor.constraint(equalTo: leadingAnchor),
+            pasteControl.trailingAnchor.constraint(equalTo: trailingAnchor),
+            pasteControl.topAnchor.constraint(equalTo: topAnchor),
+            pasteControl.bottomAnchor.constraint(equalTo: bottomAnchor)
+        ])
+    }
+
+    @available(*, unavailable)
+    required init?(coder _: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+
+    func update(externallyDisabled disabled: Bool, privacyEpoch: UUID) {
+        if self.privacyEpoch != privacyEpoch {
+            self.privacyEpoch = privacyEpoch
+            invalidatePaste()
+        }
+        isUserInteractionEnabled = !disabled
+    }
+
+    func invalidatePaste() {
+        loadCoordinator.invalidate()
+    }
+
+    override func paste(itemProviders: [NSItemProvider]) {
+        loadCoordinator.invalidate()
+
+        guard let provider = itemProviders.first(where: {
+            $0.canLoadObject(ofClass: NSString.self)
+        }) else {
+            return
+        }
+
+        loadCoordinator.start(
+            using: { completion in
+                provider.loadObject(ofClass: NSString.self) { object, error in
+                    completion(object as? NSString, error)
+                }
+            },
+            onResult: { [weak self] result in
+                switch result {
+                case .success(let candidate):
+                    self?.handlePaste(candidate)
+                case .failure(let failure):
+                    self?.onPaste?(.failure(failure))
+                }
+            }
         )
+    }
 
-        Toggle(LocalizedStringResource("I have an independent recovery copy", bundle: .module), isOn: $recoveryConfirmed)
+    private func handlePaste(_ candidate: String) {
+        do {
+            var share = try ShareRecord.validateShare(candidate)
+            defer {
+                share.removeAll(keepingCapacity: false)
+            }
 
-        Button(saveTitle, action: onSave)
-            .disabled(busy || share.isEmpty || !recoveryConfirmed)
+            UIPasteboard.general.items = []
+            onPaste?(.success(share))
+        } catch {
+            onPaste?(.failure(normalizedAppFailure(error)))
+        }
     }
 }

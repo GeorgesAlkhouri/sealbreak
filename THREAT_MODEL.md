@@ -85,7 +85,8 @@ flowchart TB
     end
 
     OP -->|"Explicit action"| UI
-    IMPORT -->|"TB1: share import"| UI
+    IMPORT -->|"TB1: pasted share"| MEM
+    MEM -->|"Share"| MODEL
     BUILD -.->|"TB5: install / update"| APP
 
     UI <--> MODEL
@@ -271,15 +272,13 @@ Controls: **M06, M12**
 
 #### T10 — Share read from process memory
 
-After successful Face ID authorization, the complete share must briefly exist in Sealbreak process memory during an unseal submission and when deriving a comparison fragment for the operator.
-
-For share comparison, Sealbreak derives only the configured fragment and does not expose the complete share to feature state or the user interface.
+During setup or replacement, the pasted share exists transiently in process memory before protected storage. After authorization, the stored share also exists in process memory during unseal submission and comparison-fragment derivation. A process-memory compromise could expose the complete share during these periods.
 
 Sealbreak performs best-effort cleanup of mutable buffers and uses short-lived request data, but Swift strings, serialization internals, networking, a debugger, or a sufficiently privileged process attacker may retain or inspect copies. Guaranteed memory erasure is not claimed.
 
 Affected assets: **A01, A06**
 
-Controls: **M01, M02, M06, M11, M13**
+Controls: **M01, M02, M06, M07, M11, M13**
 
 #### T11 — Unexpected synchronization, backup, or migration
 
@@ -420,7 +419,7 @@ A residual risk rating does not imply risk acceptance. This threat model does no
 | **T07** Weak actor attribution | 3 | 2 | **6 Medium** | M12 | The vault receives no cryptographic proof of local Face ID or specific human identity |
 | **T08** External import/recovery copy stolen | 2 | 5 | **10 High** | M07, M09 | Explicit paste and clipboard clearing after successful validation reduce clipboard exposure; external or already synchronized copies remain outside app control |
 | **T09** Diagnostic leak | 1 | 5 | **5 Medium** | M06, M12 | No application logging or analytics; caches and response-body reflection disabled |
-| **T10** Runtime memory compromise | 2 | 5 | **10 High** | M01, M02, M06, M11, M13 | Authorized share must exist transiently in process memory for submission and comparison-fragment derivation |
+| **T10** Runtime memory compromise | 2 | 5 | **10 High** | M01, M02, M06, M07, M11, M13 | Complete shares exist transiently in process memory during import and authorized use |
 | **T11** Unexpected synchronization or migration | 1 | 5 | **5 Medium** | M01, M06, M08 | `ThisDeviceOnly` plus synchronization disabled; platform behavior remains trusted |
 | **T12** Device, biometric, or identity loss | 2 | 5 | **10 High** | M08, M09 | Device binding can intentionally make the local item inaccessible; recovery is external |
 | **T13** Bootstrap dependency failure | 2 | 2 | **4 Low** | M05, M10 | App fails closed but depends on reachable DNS, VPN, certificates, and optional proxy |
@@ -440,7 +439,7 @@ A residual risk rating does not imply risk acceptance. This threat model does no
 | **M04 — Target binding** | Application | Store the authoritative server profile with the share and compare it before submission |
 | **M05 — State machine and request discipline** | Application | Validate seal state, permit only supported Shamir states, perform one explicit submission per action, never automatically retry, and verify state afterwards |
 | **M06 — Data minimization** | Application | Do not log, cache, export, or persist the complete share outside the protected record; keep unavoidable plaintext processing transient and narrowly scoped; secret-derived data exposed to the user must be explicitly authorized, minimized to its purpose, transient, and removed when no longer required; minimize diagnostic detail and clear mutable buffers where practical |
-| **M07 — Secure import** | Application | Accept share input only through an explicit system paste control, validate the value before accepting it, clear the current general pasteboard after successful validation, do not read the clipboard automatically, and provide no share-export functionality |
+| **M07 — Secure import** | Application | Use explicit system paste only; reject stale or interrupted paste results; validate shares before use; do not retain them in long-lived UI state; clear the pasteboard after successful validation; never read the clipboard automatically or export shares |
 | **M08 — Safe local lifecycle** | Application | Require fresh authorization for sensitive local-share operations, persist a fail-closed lifecycle marker before changes that could leave protected share storage and profile metadata inconsistent, treat only fully committed local state as configured, reject incomplete or unsupported local state, use safe in-place updates, and enforce one encoded storage-size invariant across readers and writers |
 | **M09 — Recovery and incident response** | Operator / deployment | Maintain independent recovery and use the supported vault's rekey procedure to replace compromised unseal shares |
 | **M10 — Secure infrastructure** | Operator / deployment | Protect the configured vault, TLS proxies, VPN, DNS, certificates, node routing, and bootstrap dependencies outside the application |
