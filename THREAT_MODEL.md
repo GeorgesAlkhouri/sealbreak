@@ -51,7 +51,6 @@ In a 1-of-1 configuration, disclosure of the stored share compromises the full u
 | **AN04** | The configured vault is manually unsealed with Shamir shares |
 | **AN06** | An independent recovery copy exists outside the iPhone and Sealbreak |
 | **AN07** | Any TLS-terminating proxy is trusted infrastructure because it receives the complete Shamir share in decrypted form |
-| **AN08** | The operator explicitly initiates every unseal attempt |
 
 ## 2. Architecture and Trust Boundaries
 
@@ -113,7 +112,7 @@ flowchart TB
 | **TB2** | App → Keychain / Face ID | iOS must enforce access to the share itself, not merely access to the visible UI |
 | **TB3** | iPhone → configured HTTPS endpoint | Authenticate the endpoint and transport; redirects must not retarget the share |
 | **TB5** | Build/signing path → installed app | A malicious but validly signed build can misuse a legitimately released share |
-| **TB6** | Sealbreak/device → independent recovery | Recovery must remain usable without the original iPhone, app, or sealed server instance |
+| **TB6** | Independent recovery → operator | Recovery must remain usable without the original iPhone, app, or sealed server instance |
 
 ### 2.3 Security-Critical Unseal Flow
 
@@ -425,13 +424,13 @@ A residual risk rating does not imply risk acceptance. This threat model does no
 | Control | Scope | Requirement / implementation intent |
 | --- | --- | --- |
 | **M01 — Keychain protection** | Application | Store the share with `kSecAttrAccessibleWhenPasscodeSetThisDeviceOnly`, `biometryCurrentSet`, and synchronization disabled |
-| **M02 — Fresh authorization** | Application | Require a new Face ID authorization context for every sensitive share operation and invalidate it afterwards |
+| **M02 — Fresh authorization** | Application | Require a new Face ID authorization context for protected share access and normal modification, and invalidate it afterwards |
 | **M03 — Transport** | Application | HTTPS only, normal certificate and hostname validation, TLS 1.2 or newer, and blocked redirects |
-| **M04 — Target binding** | Application | Store the authoritative server profile with the share and compare it before submission |
+| **M04 — Target binding** | Application | Store the profile ID and canonical bound origin with the share and require both to match the selected profile before submission |
 | **M05 — State machine and request discipline** | Application | Validate seal state, permit only supported Shamir states, perform one explicit submission per action, never automatically retry, and verify state afterwards |
 | **M06 — Data minimization** | Application | Do not log, cache, export, or persist the complete share outside the protected record; keep unavoidable plaintext processing transient and narrowly scoped; secret-derived data exposed to the user must be explicitly authorized, minimized to its purpose, transient, and removed when no longer required; minimize diagnostic detail and clear mutable buffers where practical |
 | **M07 — Secure import** | Application | Use explicit system paste only; reject stale or interrupted paste results; validate shares before use; do not retain them in long-lived UI state; clear the pasteboard after successful validation; never read the clipboard automatically or export shares |
-| **M08 — Safe local lifecycle** | Application | Require fresh authorization for sensitive local-share operations, persist a fail-closed lifecycle marker before changes that could leave protected share storage and profile metadata inconsistent, treat only fully committed local state as configured, reject incomplete or unsupported local state, use safe in-place updates, and enforce one encoded storage-size invariant across readers and writers |
+| **M08 — Safe local lifecycle** | Application | Require fresh authorization for normal local-share changes; treat recovery reset as a deletion-only exception that does not read or submit the share; persist a fail-closed lifecycle marker before changes that could leave protected share storage and profile metadata inconsistent, treat only fully committed local state as configured, reject incomplete or unsupported local state, use safe in-place updates, and enforce one encoded storage-size invariant across readers and writers |
 | **M09 — Recovery and incident response** | Operator / deployment | Maintain independent recovery and use the supported vault's rekey procedure to replace compromised unseal shares |
 | **M10 — Secure infrastructure** | Operator / deployment | Protect the configured vault, TLS proxies, VPN, DNS, certificates, node routing, and bootstrap dependencies outside the application |
 | **M11 — Software supply chain** | Project / release | Protect signing rights and developer systems, keep dependencies minimal, and review distributed builds and updates |
