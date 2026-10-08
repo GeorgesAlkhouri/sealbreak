@@ -14,3 +14,7 @@ component_management:
       name: SealbreakInfrastructure
       paths:
         - "Sources/SealbreakInfrastructure/**"
+    - component_id: appmodule
+      name: SealbreakAppModule
+      paths:
+        - "Sources/SealbreakAppModule/**"
