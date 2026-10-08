@@ -292,10 +292,34 @@ final class PrivacyViewHost {
     func snapshot(_ name: String, file: StaticString = #filePath, testName: String = #function) throws {
         freezeSpinners(in: window)
         var captured = false
-        let image = UIGraphicsImageRenderer(bounds: window.bounds).image { _ in
+        let renderer = UIGraphicsImageRenderer(bounds: window.bounds)
+        let image = renderer.image { _ in
             captured = window.drawHierarchy(in: window.bounds, afterScreenUpdates: true)
         }
         _ = try XCTUnwrap(captured ? true : nil, "UIKit must capture the current hosted window without reparenting it.")
+        let png = try XCTUnwrap(image.pngData())
+        let format = try XCTUnwrap(renderer.format as? UIGraphicsImageRendererFormat)
+        XCTContext.runActivity(named: "Snapshot diagnostics: \(name)") { activity in
+            let attachment = XCTAttachment(data: png, uniformTypeIdentifier: "public.png")
+            attachment.name = "actual-\(name).png"
+            attachment.lifetime = .keepAlways
+            activity.add(attachment)
+            let traits = XCTAttachment(string: """
+            OS: \(ProcessInfo.processInfo.operatingSystemVersionString)
+            Bounds: \(window.bounds), safe area: \(window.safeAreaInsets)
+            Display scale: \(window.traitCollection.displayScale), gamut: \(window.traitCollection.displayGamut.rawValue)
+            Interface style: \(window.traitCollection.userInterfaceStyle.rawValue), contrast: \(window.traitCollection.accessibilityContrast.rawValue)
+            Content size: \(window.traitCollection.preferredContentSizeCategory.rawValue)
+            Reduce motion: \(UIAccessibility.isReduceMotionEnabled), reduce transparency: \(UIAccessibility.isReduceTransparencyEnabled)
+            Darker colors: \(UIAccessibility.isDarkerSystemColorsEnabled), bold text: \(UIAccessibility.isBoldTextEnabled)
+            Renderer scale: \(format.scale), range: \(format.preferredRange.rawValue)
+            Image pixels: \(image.cgImage?.width ?? 0)x\(image.cgImage?.height ?? 0), bits: \(image.cgImage?.bitsPerComponent ?? 0)
+            Color space: \(String(describing: image.cgImage?.colorSpace))
+            """)
+            traits.name = "rendering-traits-\(name)"
+            traits.lifetime = .keepAlways
+            activity.add(traits)
+        }
         assertSnapshot(of: image, as: .image, named: name, file: file, testName: testName)
         assertSnapshot(of: accessibility, as: .lines, named: "\(name)-accessibility", file: file, testName: testName)
     }
