@@ -42,7 +42,7 @@ jobs:
         run: pre-commit run --all-files --show-diff-on-failure
 
   tests:
-    name: CI / tests
+    name: CI / Swift package tests
     runs-on: macos-26
     timeout-minutes: 20
     permissions:
@@ -70,7 +70,7 @@ jobs:
           use_oidc: true
 
   build:
-    name: CI / build
+    name: CI / iOS app
     runs-on: macos-26
     timeout-minutes: 25
     permissions:
