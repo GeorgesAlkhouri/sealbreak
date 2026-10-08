@@ -292,7 +292,7 @@ final class PrivacyViewHost {
     func snapshot(_ name: String, file: StaticString = #filePath, testName: String = #function) throws {
         freezeSpinners(in: window)
         var captured = false
-        let renderer = UIGraphicsImageRenderer(bounds: window.bounds)
+        let renderer = makeRenderer()
         let image = renderer.image { _ in
             captured = window.drawHierarchy(in: window.bounds, afterScreenUpdates: true)
         }
@@ -328,13 +328,20 @@ final class PrivacyViewHost {
         // Prime the presented native materials before taking the comparison image.
         // Discard the preparatory render and let the next run loop draw settle.
         var rendered = false
-        _ = UIGraphicsImageRenderer(bounds: window.bounds).image { _ in
+        _ = makeRenderer().image { _ in
             rendered = window.drawHierarchy(in: window.bounds, afterScreenUpdates: true)
         }
         _ = try XCTUnwrap(rendered ? true : nil, "UIKit must prepare the presented sheet's materials.")
         await Task.yield()
         window.layoutIfNeeded()
         try await Task.sleep(for: .milliseconds(60))
+    }
+
+    private func makeRenderer() -> UIGraphicsImageRenderer {
+        let format = UIGraphicsImageRendererFormat(for: window.traitCollection)
+        // Fix the capture's color range before exact pixel comparison.
+        format.preferredRange = .standard
+        return UIGraphicsImageRenderer(bounds: window.bounds, format: format)
     }
 
     private func freezeSpinners(in view: UIView) {
