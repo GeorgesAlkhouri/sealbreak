@@ -197,7 +197,7 @@ Controls: **M04**
 
 An attacker attempts to retrieve or use the stored share without a current biometric authorization.
 
-The Keychain item uses `kSecAttrAccessibleWhenPasscodeSetThisDeviceOnly` with `biometryCurrentSet`. Sealbreak creates a fresh `LAContext` for every sensitive operation, requires Face ID, disables application fallback, and invalidates the context when the operation ends. Actual device behavior after Face ID changes, lockout, cancellation, and migration remains dependent on iOS enforcement and should be validated on physical hardware.
+The Keychain item uses `kSecAttrAccessibleWhenPasscodeSetThisDeviceOnly` with `biometryCurrentSet`. Sealbreak creates a fresh `LAContext` for protected share access and normal modification, requires Face ID, disables application fallback, and invalidates the context when the operation ends. Actual device behavior after Face ID changes, lockout, cancellation, and migration remains dependent on iOS enforcement and should be validated on physical hardware.
 
 Affected assets: **A01, A03**
 
@@ -230,6 +230,8 @@ Controls: **M08, M09**
 A Shamir share is not a one-time credential. An attacker who obtains a copy can submit it again after the vault is resealed without using Sealbreak or Face ID.
 
 Once a share has been copied, app-local authorization, data minimization, and request discipline cannot prevent its reuse outside Sealbreak. The applicable post-compromise response is to replace the compromised share using the supported vault's rekey procedure.
+
+The residual rating covers the complete scenario: obtaining a valid copy of the share and reusing it after reseal before that share is replaced.
 
 Affected assets: **A01**
 
@@ -402,11 +404,11 @@ A residual risk rating does not imply risk acceptance. This threat model does no
 | Threat | Likelihood | Impact | Residual risk | Controls | Basis |
 | --- | ---: | ---: | ---: | --- | --- |
 | **T01** Spoofed vault server | 1 | 5 | **5 Medium** | M03, M04 | HTTPS validation, canonical origins, blocked redirects, protected target binding |
-| **T02** Manipulated target binding | 1 | 5 | **5 Medium** | M04 | Authoritative profile stored with share and compared before submission |
+| **T02** Manipulated target binding | 1 | 5 | **5 Medium** | M04 | Protected profile ID and bound origin are compared before submission |
 | **T03** Biometric access-control bypass | 1 | 5 | **5 Medium** | M01, M02 | Device-bound Keychain protection and fresh Face ID context; physical-device validation still relevant |
 | **T04** Incorrect seal status | 2 | 3 | **6 Medium** | M05 | Typed, bounded, validated status with post-submit re-check; compromised server can still lie |
 | **T05** Local lifecycle state integrity failure | 2 | 3 | **6 Medium** | M08, M09 | Fail-closed lifecycle state, in-place replacement, bounded storage, and independent recovery |
-| **T06** Reuse of stolen share | 2 | 5 | **10 High** | M09 | Once copied, a Shamir share remains reusable outside Sealbreak until the vault replaces it |
+| **T06** Reuse of stolen share | 2 | 5 | **10 High** | M09 | Requires prior share compromise and reuse after reseal before the share is replaced |
 | **T07** Weak actor attribution | 3 | 2 | **6 Medium** | M12 | The vault receives no cryptographic proof of local Face ID or specific human identity |
 | **T08** External import/recovery copy stolen | 2 | 5 | **10 High** | M07, M09 | Explicit paste and clipboard clearing after successful validation reduce clipboard exposure; external or already synchronized copies remain outside app control |
 | **T09** Diagnostic leak | 1 | 5 | **5 Medium** | M06, M12 | No application logging or analytics; caches and response-body reflection disabled |
