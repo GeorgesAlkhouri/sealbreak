@@ -115,46 +115,17 @@ jobs:
         env:
           DEVELOPER_DIR: /Applications/Xcode_26.6.app/Contents/Developer
         run: |
-          python3 - <<'PY'
-          import re
-          import subprocess
-          from pathlib import Path
-
-          root = Path.cwd()
-          result = root / "build/AppModuleTests.xcresult"
-          paths = subprocess.check_output(
-              ["xcrun", "xccov", "view", "--archive", "--file-list", str(result)],
-              text=True,
-          ).splitlines()
-          records = []
-          file_count = 0
-          for source in paths:
-              path = Path(source)
-              if path.suffix != ".swift" or not path.is_relative_to(root / "Sources/SealbreakAppModule"):
-                  continue
-              lines = subprocess.check_output(
-                  ["xcrun", "xccov", "view", "--archive", "--file", source, str(result)],
-                  text=True,
-              ).splitlines()
-              hits = []
-              for line in lines:
-                  match = re.match(r"^\s*(\d+):\s*(\d+|\*)(?=\s|$)", line)
-                  if match and match[2] != "*":
-                      hits.append((int(match[1]), int(match[2])))
-              if hits:
-                  file_count += 1
-                  records.extend([
-                      f"SF:{path.relative_to(root).as_posix()}",
-                      *(f"DA:{number},{count}" for number, count in hits),
-                      f"LF:{len(hits)}",
-                      f"LH:{sum(count > 0 for _, count in hits)}",
-                      "end_of_record",
-                  ])
-          if not records:
-              raise SystemExit("No SealbreakAppModule coverage found in Xcode test results")
-          Path("appmodule-coverage.lcov").write_text("\n".join(records) + "\n")
-          print(f"Exported line coverage for {file_count} SealbreakAppModule files")
-          PY
+          set -euo pipefail
+          profile="$(find build/Simulator/Build/ProfileData -name Coverage.profdata -type f -print -quit)"
+          binary="build/Simulator/Build/Products/Debug-iphonesimulator/Sealbreak.app/Sealbreak.debug.dylib"
+          if [[ ! -f "$binary" ]]; then
+            binary="build/Simulator/Build/Products/Debug-iphonesimulator/Sealbreak.app/Sealbreak"
+          fi
+          test -n "$profile" && test -f "$binary"
+          xcrun llvm-cov export "$binary" -instr-profile "$profile" -format=lcov \
+            | awk '/^SF:/ { keep = index($0, "Sources/SealbreakAppModule/") > 0 } keep' \
+            > appmodule-coverage.lcov
+          grep -q '^SF:' appmodule-coverage.lcov
       - name: Upload AppModule coverage to Codecov
         uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
         with:
