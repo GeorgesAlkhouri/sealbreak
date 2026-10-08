@@ -100,7 +100,7 @@ jobs:
           exit 1
       - name: Compile complete iOS app for Simulator
         run: bash scripts/ci/build.sh simulator
-      - name: Run AppModule presentation tests with coverage
+      - name: Run hosted iOS security and presentation tests with coverage
         env:
           DEVELOPER_DIR: /Applications/Xcode_26.6.app/Contents/Developer
         run: |
@@ -111,7 +111,7 @@ jobs:
             -disableAutomaticPackageResolution \
             -skipMacroValidation CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO \
             DEVELOPMENT_TEAM= COMPILER_INDEX_STORE_ENABLE=NO
-      - name: Export AppModule coverage
+      - name: Export hosted iOS AppModule and Infrastructure coverage
         env:
           DEVELOPER_DIR: /Applications/Xcode_26.6.app/Contents/Developer
         run: |
@@ -123,13 +123,13 @@ jobs:
           fi
           test -n "$profile" && test -f "$binary"
           xcrun llvm-cov export "$binary" -instr-profile "$profile" -format=lcov \
-            | awk '/^SF:/ { keep = index($0, "Sources/SealbreakAppModule/") > 0 } keep' \
-            > appmodule-coverage.lcov
-          grep -q '^SF:' appmodule-coverage.lcov
-      - name: Upload AppModule coverage to Codecov
+            | awk '/^SF:/ { keep = index($0, "Sources/SealbreakAppModule/") > 0 || index($0, "Sources/SealbreakInfrastructure/") > 0 } keep' \
+            > ios-coverage.lcov
+          grep -q '^SF:' ios-coverage.lcov
+      - name: Upload hosted iOS coverage to Codecov
         uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
         with:
-          files: appmodule-coverage.lcov
+          files: ios-coverage.lcov
           disable_search: true
           fail_ci_if_error: true
           use_oidc: true

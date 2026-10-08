@@ -14,6 +14,10 @@ public struct SealbreakRootView: View {
         }
     }
 
+    init(store: StoreOf<AppFeature>) {
+        self.store = store
+    }
+
     public var body: some View {
         PrivacyGate(store: privacyStore) {
             NavigationStack {

@@ -71,14 +71,39 @@ extension SealbreakClient {
 }
 
 @MainActor
-private final class LiveSealbreakClientController {
+final class LiveSealbreakClientController {
     static let shared = LiveSealbreakClientController()
 
-    private let keychain = KeychainStore()
-    private let profiles = ProfileStore()
-    private let client = SealServerClient()
+    private let keychain: KeychainStore
+    private let profiles: ProfileStore
+    private let client: SealServerClient
     private let dnssecResolver = DNSSECResolver.live
+    private let makeContext: () -> LAContext
+    private let applicationState: () -> UIApplication.State
+    private let protectedDataAvailable: () -> Bool
+    private let sceneCaptured: @MainActor () -> Bool
+    private let sleep: (Duration) async throws -> Void
     private var activeContext: LAContext?
+
+    init(
+        keychain: KeychainStore = KeychainStore(),
+        profiles: ProfileStore = ProfileStore(),
+        client: SealServerClient = SealServerClient(),
+        makeContext: @escaping () -> LAContext = { LAContext() },
+        applicationState: @escaping () -> UIApplication.State = { UIApplication.shared.applicationState },
+        protectedDataAvailable: @escaping () -> Bool = { UIApplication.shared.isProtectedDataAvailable },
+        sceneCaptured: @escaping @MainActor () -> Bool = { LiveSealbreakClientController.isForegroundSceneCaptured },
+        sleep: @escaping (Duration) async throws -> Void = { try await Task.sleep(for: $0) }
+    ) {
+        self.keychain = keychain
+        self.profiles = profiles
+        self.client = client
+        self.makeContext = makeContext
+        self.applicationState = applicationState
+        self.protectedDataAvailable = protectedDataAvailable
+        self.sceneCaptured = sceneCaptured
+        self.sleep = sleep
+    }
 
     func loadLocalSetupState() throws -> LocalSetupState {
         try resolveLocalSetupState(
@@ -199,24 +224,24 @@ private final class LiveSealbreakClientController {
 
     func requireForeground() throws {
         try Task.checkCancellation()
-        guard UIApplication.shared.applicationState == .active else {
+        guard applicationState() == .active else {
             throw AppFailure(
                 LocalizedStringResource("Sealbreak is not the active app. Return to it after the system dialog closes, then retry.", bundle: .module)
             )
         }
-        guard UIApplication.shared.isProtectedDataAvailable else {
+        guard protectedDataAvailable() else {
             throw AppFailure(
                 LocalizedStringResource("Protected iPhone data is unavailable. Unlock the device and retry in Sealbreak.", bundle: .module)
             )
         }
-        guard !isForegroundSceneCaptured else {
+        guard !sceneCaptured() else {
             throw AppFailure(
                 LocalizedStringResource("iPhone screen capture or mirroring is active. Stop it and retry directly on the unlocked device.", bundle: .module)
             )
         }
     }
 
-    private var isForegroundSceneCaptured: Bool {
+    private static var isForegroundSceneCaptured: Bool {
         UIApplication.shared.connectedScenes
             .compactMap { $0 as? UIWindowScene }
             .filter { $0.activationState == .foregroundActive }
@@ -226,11 +251,11 @@ private final class LiveSealbreakClientController {
     func waitForForeground() async throws {
         for _ in 0..<50 {
             try Task.checkCancellation()
-            if UIApplication.shared.applicationState == .active {
+            if applicationState() == .active {
                 try requireForeground()
                 return
             }
-            try await Task.sleep(for: .milliseconds(100))
+            try await sleep(.milliseconds(100))
         }
         try requireForeground()
     }
@@ -278,7 +303,7 @@ private final class LiveSealbreakClientController {
     ) async throws -> Value {
         try requireForeground()
 
-        let context = LAContext()
+        let context = makeContext()
         context.localizedFallbackTitle = ""
         context.touchIDAuthenticationAllowableReuseDuration = 0
         activeContext = context

@@ -1,0 +1,5 @@
+This replaces only the locally stored share. It does not rotate server keys or change the configured target.
+Paste. Button.
+Replace local share. Heading.
+Cancel. Button.
+Local share. Heading.

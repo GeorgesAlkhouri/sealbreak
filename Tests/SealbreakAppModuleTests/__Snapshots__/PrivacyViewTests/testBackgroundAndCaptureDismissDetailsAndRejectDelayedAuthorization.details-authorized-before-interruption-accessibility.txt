@@ -1,0 +1,13 @@
+Name, P1 Synthetic Vault
+Origin, https://bao.example.com
+Share, Hide stored share fragment, 012 … def: 012 … def. Button.
+Initialized, Yes
+Seal, Sealed
+Type, shamir
+Threshold / shares, 3 / 5
+Unseal progress, 1 / 3
+Target. Heading.
+Stored share. Heading.
+Seal status. Heading.
+Done. Button.
+Server details. Heading.

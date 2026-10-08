@@ -1493,20 +1493,21 @@ struct FeatureTests {
             $0.sealbreakClient = client(spy)
             $0.continuousClock = clock
         }
-        store.exhaustivity = .off(showSkippedAssertions: false)
         let expected = ShareComparisonFragment(validatedShare: storedShare)
 
-        await store.send(.shareFragmentTapped)
-        #expect(store.state.isRevealingShare)
+        await store.send(.shareFragmentTapped) { $0.isRevealingShare = true }
 
-        await store.receive(.shareFragmentLoaded(expected))
-        #expect(!store.state.isRevealingShare)
-        #expect(store.state.shareFragment == expected)
+        await store.receive(.shareFragmentLoaded(expected)) {
+            $0.isRevealingShare = false
+            $0.shareFragment = expected
+        }
         #expect(store.state.shareFragment?.displayValue == "012 … def")
 
-        await clock.advance(by: .seconds(20))
-        await store.receive(.shareFragmentExpired)
-        #expect(store.state.shareFragment == nil)
+        await clock.advance(by: .seconds(19))
+        #expect(store.state.shareFragment == expected)
+        await clock.advance(by: .seconds(1))
+        await store.receive(.shareFragmentExpired) { $0.shareFragment = nil }
+        await store.finish()
     }
 
     @Test
@@ -1525,12 +1526,12 @@ struct FeatureTests {
         } withDependencies: {
             $0.sealbreakClient = client(spy)
         }
-        store.exhaustivity = .off(showSkippedAssertions: false)
 
         await store.send(.shareFragmentTapped)
 
         #expect(store.state.shareFragment == nil)
         #expect(!store.state.isRevealingShare)
+        await store.finish()
     }
 
     @Test
@@ -1550,14 +1551,12 @@ struct FeatureTests {
         } withDependencies: {
             $0.sealbreakClient = client(spy)
         }
-        store.exhaustivity = .off(showSkippedAssertions: false)
 
-        await store.send(.shareFragmentTapped)
-        #expect(store.state.isRevealingShare)
+        await store.send(.shareFragmentTapped) { $0.isRevealingShare = true }
 
-        await store.receive(.shareFragmentLoadFailed)
-        #expect(!store.state.isRevealingShare)
+        await store.receive(.shareFragmentLoadFailed) { $0.isRevealingShare = false }
         #expect(store.state.shareFragment == nil)
+        await store.finish()
     }
 
     @Test
@@ -1580,14 +1579,15 @@ struct FeatureTests {
             $0.sealbreakClient = client(spy)
             $0.continuousClock = clock
         }
-        store.exhaustivity = .off(showSkippedAssertions: false)
 
-        await store.send(.shareFragmentTapped)
-        await store.receive(.shareFragmentLoaded(ShareComparisonFragment(validatedShare: storedShare)))
-        #expect(store.state.shareFragment != nil)
-
-        await store.send(.shareFragmentTapped)
-        #expect(store.state.shareFragment == nil)
+        await store.send(.shareFragmentTapped) { $0.isRevealingShare = true }
+        await store.receive(.shareFragmentLoaded(ShareComparisonFragment(validatedShare: storedShare))) {
+            $0.isRevealingShare = false
+            $0.shareFragment = ShareComparisonFragment(validatedShare: storedShare)
+        }
+        await store.send(.shareFragmentTapped) { $0.shareFragment = nil }
+        await clock.advance(by: .seconds(20))
+        await store.finish()
     }
 
     @Test
