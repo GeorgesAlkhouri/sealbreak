@@ -75,6 +75,7 @@ jobs:
     timeout-minutes: 20
     permissions:
       contents: read
+      id-token: write
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
@@ -99,16 +100,68 @@ jobs:
           exit 1
       - name: Compile complete iOS app for Simulator
         run: bash scripts/ci/build.sh simulator
-      - name: Run AppModule presentation tests
+      - name: Run AppModule presentation tests with coverage
         env:
           DEVELOPER_DIR: /Applications/Xcode_26.6.app/Contents/Developer
         run: |
           xcodebuild test -project Sealbreak.xcodeproj -scheme Sealbreak \
             -configuration Debug -destination 'platform=iOS Simulator,name=iPhone 17,OS=26.5' \
             -derivedDataPath build/Simulator -only-testing:SealbreakAppModuleTests \
+            -enableCodeCoverage YES -resultBundlePath build/AppModuleTests.xcresult \
             -disableAutomaticPackageResolution \
             -skipMacroValidation CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO \
             DEVELOPMENT_TEAM= COMPILER_INDEX_STORE_ENABLE=NO
+      - name: Export AppModule coverage
+        env:
+          DEVELOPER_DIR: /Applications/Xcode_26.6.app/Contents/Developer
+        run: |
+          python3 - <<'PY'
+          import re
+          import subprocess
+          from pathlib import Path
+
+          root = Path.cwd()
+          result = root / "build/AppModuleTests.xcresult"
+          paths = subprocess.check_output(
+              ["xcrun", "xccov", "view", "--archive", "--file-list", str(result)],
+              text=True,
+          ).splitlines()
+          records = []
+          file_count = 0
+          for source in paths:
+              path = Path(source)
+              if path.suffix != ".swift" or not path.is_relative_to(root / "Sources/SealbreakAppModule"):
+                  continue
+              lines = subprocess.check_output(
+                  ["xcrun", "xccov", "view", "--archive", "--file", source, str(result)],
+                  text=True,
+              ).splitlines()
+              hits = []
+              for line in lines:
+                  match = re.match(r"^\s*(\d+):\s*(\d+|\*)(?=\s|$)", line)
+                  if match and match[2] != "*":
+                      hits.append((int(match[1]), int(match[2])))
+              if hits:
+                  file_count += 1
+                  records.extend([
+                      f"SF:{path.relative_to(root).as_posix()}",
+                      *(f"DA:{number},{count}" for number, count in hits),
+                      f"LF:{len(hits)}",
+                      f"LH:{sum(count > 0 for _, count in hits)}",
+                      "end_of_record",
+                  ])
+          if not records:
+              raise SystemExit("No SealbreakAppModule coverage found in Xcode test results")
+          Path("appmodule-coverage.lcov").write_text("\n".join(records) + "\n")
+          print(f"Exported line coverage for {file_count} SealbreakAppModule files")
+          PY
+      - name: Upload AppModule coverage to Codecov
+        uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
+        with:
+          files: appmodule-coverage.lcov
+          disable_search: true
+          fail_ci_if_error: true
+          use_oidc: true
       - name: Check localization catalog drift
         run: |
           python3 - <<'PYTHON'
