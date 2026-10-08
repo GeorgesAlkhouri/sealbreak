@@ -1,2 +1,20 @@
 ignore:
   - "Tests/**"
+
+comment:
+  layout: "header, diff, components, files"
+
+component_management:
+  individual_components:
+    - component_id: core
+      name: SealbreakCore
+      paths:
+        - "Sources/SealbreakCore/**"
+    - component_id: infrastructure
+      name: SealbreakInfrastructure
+      paths:
+        - "Sources/SealbreakInfrastructure/**"
+    - component_id: appmodule
+      name: SealbreakAppModule
+      paths:
+        - "Sources/SealbreakAppModule/**"
