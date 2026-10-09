@@ -105,10 +105,12 @@ jobs:
           exit 1
       - name: Compile complete iOS app for Simulator
         run: bash scripts/ci/build.sh simulator
-      - name: Run AppModule presentation tests with coverage
+      - name: Run hosted iOS security and presentation tests with coverage
+        id: hosted-security-tests
         env:
           DEVELOPER_DIR: /Applications/Xcode_26.6.app/Contents/Developer
         run: |
+          xcodebuild -version
           xcodebuild test -project Sealbreak.xcodeproj -scheme Sealbreak \
             -configuration Debug -destination 'platform=iOS Simulator,name=iPhone 17,OS=26.5' \
             -derivedDataPath build/Simulator -only-testing:SealbreakAppModuleTests \
@@ -116,7 +118,15 @@ jobs:
             -disableAutomaticPackageResolution \
             -skipMacroValidation CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO \
             DEVELOPMENT_TEAM= COMPILER_INDEX_STORE_ENABLE=NO
-      - name: Export AppModule coverage
+      - name: Upload hosted iOS test failure diagnostics
+        if: failure() && steps.hosted-security-tests.outcome == 'failure'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: hosted-ios-test-failure-${{ github.run_attempt }}
+          path: build/AppModuleTests.xcresult
+          if-no-files-found: error
+          retention-days: 7
+      - name: Export hosted iOS AppModule and Infrastructure coverage
         env:
           DEVELOPER_DIR: /Applications/Xcode_26.6.app/Contents/Developer
         run: |
@@ -128,13 +138,13 @@ jobs:
           fi
           test -n "$profile" && test -f "$binary"
           xcrun llvm-cov export "$binary" -instr-profile "$profile" -format=lcov \
-            | awk '/^SF:/ { keep = index($0, "Sources/SealbreakAppModule/") > 0 } keep' \
-            > appmodule-coverage.lcov
-          grep -q '^SF:' appmodule-coverage.lcov
-      - name: Upload AppModule coverage to Codecov
+            | awk '/^SF:/ { keep = index($0, "Sources/SealbreakAppModule/") > 0 || index($0, "Sources/SealbreakInfrastructure/") > 0 } keep' \
+            > ios-coverage.lcov
+          grep -q '^SF:' ios-coverage.lcov
+      - name: Upload hosted iOS coverage to Codecov
         uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
         with:
-          files: appmodule-coverage.lcov
+          files: ios-coverage.lcov
           disable_search: true
           fail_ci_if_error: true
           use_oidc: true
