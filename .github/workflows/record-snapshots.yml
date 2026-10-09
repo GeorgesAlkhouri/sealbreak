@@ -102,12 +102,14 @@ jobs:
   publish:
     name: Snapshots / update PR
     needs: record
+    outputs:
+      changes_detected: ${{ steps.commit.outputs.changes_detected }}
+      commit_hash: ${{ steps.commit.outputs.commit_hash }}
     runs-on: ubuntu-26.04
     timeout-minutes: 5
     permissions:
       contents: write # Commit verified PNGs to the PR branch.
-      pull-requests: write # Link the result and remove the request label.
-      actions: write # Request CI checks for the bot's commit.
+      pull-requests: read # Verify the requesting PR.
     env:
       GH_TOKEN: ${{ github.token }}
       GH_REPO: ${{ github.repository }}
@@ -148,19 +150,39 @@ jobs:
           echo 'changes_detected=true' >> "$GITHUB_OUTPUT"
           echo "commit_hash=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
 
+  finalize:
+    name: Snapshots / checks and review
+    needs: publish
+    runs-on: ubuntu-26.04
+    timeout-minutes: 5
+    permissions:
+      pull-requests: write # Comment and remove the recording label.
+      actions: write # Request CI checks for the snapshot commit.
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      PR_NUMBER: ${{ github.event.pull_request.number }}
+      PR_BRANCH: ${{ github.event.pull_request.head.ref }}
+      SOURCE_SHA: ${{ github.event.pull_request.head.sha }}
+      SNAPSHOT_SHA: ${{ needs.publish.outputs.commit_hash }}
+    steps:
+      - name: Require an open PR at the published revision
+        run: |
+          expected_sha="${SNAPSHOT_SHA:-$SOURCE_SHA}"
+          gh api "repos/$GH_REPO/pulls/$PR_NUMBER" | jq --exit-status \
+            --arg sha "$expected_sha" --arg repo "$GH_REPO" --arg branch "$PR_BRANCH" \
+            '.state == "open" and .head.sha == $sha and .head.repo.full_name == $repo and .head.ref == $branch and .base.ref == "main"'
+
       - name: Request normal checks for the snapshot commit
-        if: steps.commit.outputs.changes_detected == 'true'
+        if: needs.publish.outputs.changes_detected == 'true'
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
-          SNAPSHOT_SHA: ${{ steps.commit.outputs.commit_hash }}
         run: |
           gh workflow run ci.yml --ref "$PR_BRANCH" -f pr_number="$PR_NUMBER"
           gh workflow run dependency-review.yml --ref "$PR_BRANCH" \
             -f base_ref="$BASE_SHA" -f head_ref="$SNAPSHOT_SHA"
 
       - name: Request visual review and allow another recording request
-        env:
-          SNAPSHOT_SHA: ${{ steps.commit.outputs.commit_hash }}
         run: |
           cat > "$RUNNER_TEMP/snapshot-review.md" <<EOF
           Snapshot images were recorded and verified on iPhone 17 / iOS 26.5 with Xcode 26.6.
