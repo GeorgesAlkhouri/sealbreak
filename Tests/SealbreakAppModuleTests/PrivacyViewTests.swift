@@ -15,7 +15,8 @@ import XCTest
 @MainActor
 final class PrivacyViewTests: XCTestCase {
     override func invokeTest() {
-        withSnapshotTesting(record: .never) { super.invokeTest() }
+        let recording = ProcessInfo.processInfo.environment["SNAPSHOT_TESTING_RECORD"] == "all"
+        withSnapshotTesting(record: recording ? .all : .never) { super.invokeTest() }
     }
 
     func testPrivacyGateMapsPhaseAndCaptureEnvironmentToConcealment() async throws {
