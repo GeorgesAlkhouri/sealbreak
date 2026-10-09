@@ -188,7 +188,7 @@ jobs:
         server:
           - name: openbao
             # renovate: packageName=openbao/openbao
-            version: "2.7.0"
+            version: "2.7.1"
           - name: vault
             # renovate: packageName=hashicorp/vault
             version: "2.1.1"
