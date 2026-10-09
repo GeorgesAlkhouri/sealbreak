@@ -1,0 +1,164 @@
+name: Record Snapshots
+
+on:
+  pull_request:
+    branches: [main]
+    types: [labeled]
+
+permissions: {}
+
+concurrency:
+  group: record-snapshots-${{ github.event.pull_request.number }}
+  cancel-in-progress: false
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  record:
+    name: Snapshots / record and verify
+    if: >-
+      github.event.label.name == 'record-snapshots' &&
+      github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: macos-26
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    env:
+      # Keep this baseline aligned with the hosted tests in ci.yml.
+      DEVELOPER_DIR: /Applications/Xcode_26.6.app/Contents/Developer
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+
+      - name: Check recording prerequisites
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          test "$(gh api "repos/$GITHUB_REPOSITORY/collaborators/$GITHUB_ACTOR/permission" --jq '.user.permissions.push')" = true
+          test -f Tests/SealbreakAppModuleTests/PrivacyViewTests.swift
+          xcodebuild -version
+          touch "$RUNNER_TEMP/snapshot-recording-start"
+
+      - name: Record candidate images with Point-Free
+        # Point-Free deliberately fails assertions when recording references.
+        continue-on-error: true
+        env:
+          TEST_RUNNER_SNAPSHOT_TESTING_RECORD: all
+          SNAPSHOT_PHASE: record
+        run: &snapshot-tests |
+          xcodebuild test -project Sealbreak.xcodeproj -scheme Sealbreak \
+            -configuration Debug -destination 'platform=iOS Simulator,name=iPhone 17,OS=26.5' \
+            -derivedDataPath build/Simulator \
+            -only-testing:SealbreakAppModuleTests/PrivacyViewTests \
+            -enableCodeCoverage YES -resultBundlePath "build/Snapshots-$SNAPSHOT_PHASE.xcresult" \
+            -disableAutomaticPackageResolution -skipMacroValidation \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO \
+            DEVELOPMENT_TEAM= COMPILER_INDEX_STORE_ENABLE=NO
+
+      - name: Require new images and preserve accessibility references
+        run: |
+          test -n "$(find Tests/SealbreakAppModuleTests/__Snapshots__ -type f -name '*.png' \
+            -newer "$RUNNER_TEMP/snapshot-recording-start" -print -quit)" || {
+            echo '::error::No PNGs were recorded. The test helper must honor SNAPSHOT_TESTING_RECORD=all.'
+            exit 1
+          }
+          git restore --worktree -- ':(glob)Tests/SealbreakAppModuleTests/__Snapshots__/**/*.txt'
+          git clean -f -- ':(glob)Tests/SealbreakAppModuleTests/__Snapshots__/**/*.txt'
+
+      - name: Verify candidate images without recording
+        env:
+          TEST_RUNNER_SNAPSHOT_TESTING_RECORD: never
+          SNAPSHOT_PHASE: verify
+        run: *snapshot-tests
+
+      - name: Upload verified PNG candidates
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: snapshot-candidates-${{ github.run_attempt }}
+          path: Tests/SealbreakAppModuleTests/__Snapshots__/**/*.png
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Upload XCTest recording and verification diagnostics
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: snapshot-diagnostics-${{ github.run_attempt }}
+          path: |
+            build/Snapshots-record.xcresult
+            build/Snapshots-verify.xcresult
+          if-no-files-found: warn
+          retention-days: 7
+
+  publish:
+    name: Snapshots / update PR
+    needs: record
+    runs-on: ubuntu-26.04
+    timeout-minutes: 5
+    permissions:
+      contents: write # Commit verified PNGs to the PR branch.
+      pull-requests: write # Link the result and remove the request label.
+      actions: write # Request CI checks for the bot's commit.
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      PR_NUMBER: ${{ github.event.pull_request.number }}
+      PR_BRANCH: ${{ github.event.pull_request.head.ref }}
+      SOURCE_SHA: ${{ github.event.pull_request.head.sha }}
+    steps:
+      - name: Require an open PR at the recorded revision
+        run: |
+          gh api "repos/$GH_REPO/pulls/$PR_NUMBER" | jq --exit-status \
+            --arg sha "$SOURCE_SHA" --arg repo "$GH_REPO" --arg branch "$PR_BRANCH" \
+            '.state == "open" and .head.sha == $sha and .head.repo.full_name == $repo and .head.ref == $branch and .base.ref == "main"'
+
+      # This fresh job runs no PR code; only the commit action gets a writable checkout.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: true
+
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: snapshot-candidates-${{ github.run_attempt }}
+          path: Tests/SealbreakAppModuleTests/__Snapshots__
+
+      - name: Commit only snapshot PNGs
+        id: commit
+        uses: stefanzweifel/git-auto-commit-action@4a55954c782fc1ea30b9056cd3e7a2b40ca8887d # v7.2.0
+        with:
+          commit_message: "test: record CI snapshot references"
+          branch: refs/heads/${{ github.event.pull_request.head.ref }}
+          file_pattern: ':(glob)Tests/SealbreakAppModuleTests/__Snapshots__/**/*.png'
+          disable_globbing: true
+          # Keep the recorded parent SHA. A normal push rejects concurrent changes.
+          skip_fetch: true
+          skip_checkout: true
+
+      - name: Request normal checks for the snapshot commit
+        if: steps.commit.outputs.changes_detected == 'true'
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          SNAPSHOT_SHA: ${{ steps.commit.outputs.commit_hash }}
+        run: |
+          gh workflow run ci.yml --ref "$PR_BRANCH"
+          gh workflow run dependency-review.yml --ref "$PR_BRANCH" \
+            -f base_ref="$BASE_SHA" -f head_ref="$SNAPSHOT_SHA"
+
+      - name: Request visual review and allow another recording request
+        env:
+          SNAPSHOT_SHA: ${{ steps.commit.outputs.commit_hash }}
+        run: |
+          cat > "$RUNNER_TEMP/snapshot-review.md" <<EOF
+          Snapshot images were recorded and verified on iPhone 17 / iOS 26.5 with Xcode 26.6.
+
+          Review the [PNG changes]($GITHUB_SERVER_URL/$GH_REPO/pull/$PR_NUMBER/files) using GitHub's image comparison before merging. Accessibility text references were preserved.
+
+          [Recording and verification diagnostics]($GITHUB_SERVER_URL/$GH_REPO/actions/runs/$GITHUB_RUN_ID) are retained for seven days. Source: $SOURCE_SHA. Snapshot commit: ${SNAPSHOT_SHA:-no image changes}.
+          EOF
+          gh pr comment "$PR_NUMBER" --body-file "$RUNNER_TEMP/snapshot-review.md"
+          gh pr edit "$PR_NUMBER" --remove-label record-snapshots
