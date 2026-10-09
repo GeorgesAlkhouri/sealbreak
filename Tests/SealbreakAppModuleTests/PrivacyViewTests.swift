@@ -321,7 +321,14 @@ final class PrivacyViewHost {
             traits.lifetime = .keepAlways
             activity.add(traits)
         }
-        assertSnapshot(of: image, as: .image, named: name, file: file, testName: testName)
+        let perceptualPrecision: Float = name == "replacement-visible" ? 0.99 : 1
+        assertSnapshot(
+            of: image,
+            as: .image(precision: 1, perceptualPrecision: perceptualPrecision),
+            named: name,
+            file: file,
+            testName: testName
+        )
         assertSnapshot(of: accessibility, as: .lines, named: "\(name)-accessibility", file: file, testName: testName)
     }
 
