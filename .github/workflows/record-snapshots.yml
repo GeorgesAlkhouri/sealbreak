@@ -39,7 +39,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           test "$(gh api "repos/$GITHUB_REPOSITORY/collaborators/$GITHUB_ACTOR/permission" --jq '.user.permissions.push')" = true
-          test -f Tests/SealbreakAppModuleTests/PrivacyViewTests.swift
+          test -d Tests/SealbreakAppModuleTests
           xcodebuild -version
           touch "$RUNNER_TEMP/snapshot-recording-start"
 
@@ -53,7 +53,7 @@ jobs:
           xcodebuild test -project Sealbreak.xcodeproj -scheme Sealbreak \
             -configuration Debug -destination 'platform=iOS Simulator,name=iPhone 17,OS=26.5' \
             -derivedDataPath build/Simulator \
-            -only-testing:SealbreakAppModuleTests/PrivacyViewTests \
+            -only-testing:SealbreakAppModuleTests \
             -enableCodeCoverage YES -resultBundlePath "build/Snapshots-$SNAPSHOT_PHASE.xcresult" \
             -disableAutomaticPackageResolution -skipMacroValidation \
             CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO \
@@ -66,7 +66,9 @@ jobs:
             echo '::error::No PNGs were recorded. The test helper must honor SNAPSHOT_TESTING_RECORD=all.'
             exit 1
           }
-          git restore --worktree -- ':(glob)Tests/SealbreakAppModuleTests/__Snapshots__/**/*.txt'
+          if git ls-files --error-unmatch -- ':(glob)Tests/SealbreakAppModuleTests/__Snapshots__/**/*.txt' >/dev/null 2>&1; then
+            git restore --worktree -- ':(glob)Tests/SealbreakAppModuleTests/__Snapshots__/**/*.txt'
+          fi
           git clean -f -- ':(glob)Tests/SealbreakAppModuleTests/__Snapshots__/**/*.txt'
 
       - name: Verify candidate images without recording
@@ -116,7 +118,7 @@ jobs:
             --arg sha "$SOURCE_SHA" --arg repo "$GH_REPO" --arg branch "$PR_BRANCH" \
             '.state == "open" and .head.sha == $sha and .head.repo.full_name == $repo and .head.ref == $branch and .base.ref == "main"'
 
-      # This fresh job runs no PR code; only the commit action gets a writable checkout.
+      # This fresh job runs no PR code; only publishing gets a writable checkout.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           ref: ${{ github.event.pull_request.head.sha }}
@@ -129,15 +131,19 @@ jobs:
 
       - name: Commit only snapshot PNGs
         id: commit
-        uses: stefanzweifel/git-auto-commit-action@4a55954c782fc1ea30b9056cd3e7a2b40ca8887d # v7.2.0
-        with:
-          commit_message: "test: record CI snapshot references"
-          branch: refs/heads/${{ github.event.pull_request.head.ref }}
-          file_pattern: ':(glob)Tests/SealbreakAppModuleTests/__Snapshots__/**/*.png'
-          disable_globbing: true
+        run: |
+          git add -- ':(glob)Tests/SealbreakAppModuleTests/__Snapshots__/**/*.png'
+          if git diff --cached --quiet; then
+            echo 'changes_detected=false' >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          git -c user.name='github-actions[bot]' \
+            -c user.email='41898282+github-actions[bot]@users.noreply.github.com' \
+            commit -m 'test: record CI snapshot references'
           # Keep the recorded parent SHA. A normal push rejects concurrent changes.
-          skip_fetch: true
-          skip_checkout: true
+          git push origin "HEAD:refs/heads/$PR_BRANCH"
+          echo 'changes_detected=true' >> "$GITHUB_OUTPUT"
+          echo "commit_hash=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
 
       - name: Request normal checks for the snapshot commit
         if: steps.commit.outputs.changes_detected == 'true'

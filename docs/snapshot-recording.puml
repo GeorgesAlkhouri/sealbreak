@@ -6,14 +6,16 @@ if (Open PR to main from this repository?) then (yes)
   partition "macOS runner / contents: read" {
     :Check out the event's head SHA without credentials;
     :Require repository write access for the requester;
-    :Run PrivacyViewTests with Point-Free record=all;
+    :Run all SealbreakAppModuleTests with Point-Free record=all;
     note right
       Xcode 26.6 / iPhone 17 / iOS 26.5.
-      Test helper must honor SNAPSHOT_TESTING_RECORD.
+      Snapshot test helpers must honor SNAPSHOT_TESTING_RECORD.
+      New test classes use the same target and reference directory.
       Recording assertions intentionally fail.
     end note
     :Require freshly written PNGs;
-    :Restore original accessibility text references;
+    :Restore tracked accessibility text references if present;
+    :Remove newly recorded accessibility text references;
     :Run the same tests with record=never;
     if (Verification passes?) then (yes)
       :Upload PNG candidates;
@@ -25,9 +27,10 @@ if (Open PR to main from this repository?) then (yes)
   partition "Fresh Ubuntu runner / repository writes" {
     :Require the PR still open at the same head SHA;
     :Check out that SHA and download PNG candidates;
-    :git-auto-commit stages only snapshot PNGs;
-    :Push normally; reject concurrent branch changes;
+    :git add stages only snapshot PNGs;
     if (Images changed?) then (yes)
+      :git commit as github-actions bot;
+      :git push normally; reject concurrent branch changes;
       :Request existing CI and dependency checks;
     endif
     :Link images and diagnostics from the PR;
