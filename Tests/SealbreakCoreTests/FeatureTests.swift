@@ -446,7 +446,6 @@ struct FeatureTests {
     @Test
     func appWelcomeSetUpOpensSetup() async {
         var initialState = AppFeature.State()
-        initialState.isLoading = false
         initialState.welcome = WelcomeFeature.State()
 
         let store = TestStore(initialState: initialState) {
@@ -464,7 +463,6 @@ struct FeatureTests {
     @Test
     func appSetupCancellationReturnsToWelcome() async {
         var initialState = AppFeature.State()
-        initialState.isLoading = false
         initialState.didLoad = true
         initialState.setup = SetupFeature.State()
 
@@ -851,7 +849,6 @@ struct FeatureTests {
         #expect(store.state.home == nil)
         #expect(store.state.setup == nil)
         #expect(store.state.welcome != nil)
-        #expect(!store.state.isLoading)
     }
 
     @Test
@@ -861,7 +858,6 @@ struct FeatureTests {
         let spy = ClientSpy()
         await spy.setStatusQueue([.success(checked)])
         var initial = AppFeature.State()
-        initial.isLoading = false
         initial.didLoad = true
         initial.setup = SetupFeature.State()
         let store = TestStore(initialState: initial) {
@@ -898,7 +894,6 @@ struct FeatureTests {
     @Test
     func appRoutesSetupRecoveryDelegateToResetWelcome() async {
         var initialState = AppFeature.State()
-        initialState.isLoading = false
         initialState.didLoad = true
         initialState.setup = SetupFeature.State()
 
@@ -925,7 +920,6 @@ struct FeatureTests {
         let homeSpy = ClientSpy()
         await homeSpy.setStatusQueue([.success(refreshed)])
         var homeInitial = AppFeature.State()
-        homeInitial.isLoading = false
         homeInitial.didLoad = true
         homeInitial.home = HomeFeature.State(profile: target, status: status())
         let homeStore = TestStore(initialState: homeInitial) {
@@ -947,7 +941,6 @@ struct FeatureTests {
 
         let setupSpy = ClientSpy()
         var setupInitial = AppFeature.State()
-        setupInitial.isLoading = false
         setupInitial.didLoad = true
         setupInitial.setup = SetupFeature.State()
         let setupStore = TestStore(initialState: setupInitial) {
@@ -1264,7 +1257,6 @@ struct FeatureTests {
     func appPrivacyInterruptionOnWelcomeDoesNotCancelSensitiveWork() async {
         let spy = ClientSpy()
         var initialState = AppFeature.State()
-        initialState.isLoading = false
         initialState.welcome = WelcomeFeature.State()
 
         let store = TestStore(initialState: initialState) {
@@ -1408,7 +1400,6 @@ struct FeatureTests {
         await spy.setDeleteProfileError(AppFailure("delete profile failed"))
 
         var initialState = AppFeature.State()
-        initialState.isLoading = false
         initialState.didLoad = true
         initialState.home = HomeFeature.State(profile: first, status: status())
 
