@@ -50,7 +50,8 @@ package struct AppFeature {
                     }
                 }
 
-            case .localSetupStateLoaded(.success(.empty)):
+            case .localSetupStateLoaded(.success(.empty)),
+                 .setup(.delegate(.cancelled)):
                 state.home = nil
                 state.setup = nil
                 state.welcome = WelcomeFeature.State()
@@ -115,12 +116,6 @@ package struct AppFeature {
                 }
                 state.welcome = nil
                 state.setup = SetupFeature.State()
-                return .none
-
-            case .setup(.delegate(.cancelled)):
-                state.home = nil
-                state.setup = nil
-                state.welcome = WelcomeFeature.State()
                 return .none
 
             case .setup(.delegate(.localResetRequired(let feedback))):
