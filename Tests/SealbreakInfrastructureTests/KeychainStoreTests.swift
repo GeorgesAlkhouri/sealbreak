@@ -40,6 +40,9 @@ struct KeychainStoreTests {
             stub.lastCopyRequest?[kSecAttrAccount as String] as? String
                 == "share.\(record.profileID.uuidString.lowercased())"
         )
+        #expect(stub.lastCopyRequest?[kSecAttrSynchronizable as String] as? Bool == false)
+        #expect(stub.lastCopyRequest?[kSecClass as String] as? String == kSecClassGenericPassword as String)
+        #expect(stub.lastCopyRequest?[kSecMatchLimit as String] as? String == kSecMatchLimitOne as String)
         #expect(stub.lastCopyRequest?[kSecReturnData as String] as? Bool == true)
         #expect(stub.lastCopyRequest?[kSecUseAuthenticationContext as String] as? LAContext === context)
     }
@@ -115,6 +118,7 @@ struct KeychainStoreTests {
             stub.lastAddRequest?[kSecAttrAccount as String] as? String
                 == "share.\(record.profileID.uuidString.lowercased())"
         )
+        #expect(stub.lastAddRequest?[kSecAttrSynchronizable as String] as? Bool == false)
         #expect(stub.lastAddRequest?[kSecAttrAccessControl as String] != nil)
         #expect(stub.lastAddRequest?[kSecUseAuthenticationContext as String] as? LAContext === context)
 
@@ -140,6 +144,10 @@ struct KeychainStoreTests {
                 == "share.\(record.profileID.uuidString.lowercased())"
         )
         #expect(stub.lastUpdateRequest?[kSecUseAuthenticationContext as String] as? LAContext === context)
+        #expect(stub.lastUpdateRequest?[kSecAttrSynchronizable as String] as? Bool == false)
+        #expect(Set(stub.lastUpdateAttributes?.keys.map { $0 } ?? []) == [kSecValueData as String])
+        #expect(stub.lastUpdateRequest?[kSecAttrAccessControl as String] == nil)
+        #expect(stub.lastUpdateRequest?[kSecAttrAccessible as String] == nil)
 
         stub.updateStatus = errSecAuthFailed
         #expect(throws: AppFailure.self) { try store.replace(record, context: context) }
@@ -159,6 +167,7 @@ struct KeychainStoreTests {
                 == "share.\(profileID.uuidString.lowercased())"
         )
         #expect(stub.lastDeleteRequest?[kSecUseAuthenticationContext as String] as? LAContext === context)
+        #expect(stub.lastDeleteRequest?[kSecAttrSynchronizable as String] as? Bool == false)
 
         stub.deleteStatus = errSecItemNotFound
         try store.delete(profileID: profileID, context: context)

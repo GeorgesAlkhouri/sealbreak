@@ -1,0 +1,5 @@
+Sealbreak
+UNSEAL COMPANION
+More options. Button.
+P1 Synthetic Vault, bao.example.com, SEALED, 1 of 3 shares submitted, Shamir seal
+Unseal with Face ID. Button.

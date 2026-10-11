@@ -19,6 +19,13 @@
 		000000000000000000000614 /* SealStatusMotionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000604 /* SealStatusMotionTests.swift */; };
 		000000000000000000000617 /* SharePasteControlTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000609 /* SharePasteControlTests.swift */; };
 		DA9922F8306BBD960003AF6F /* AppIcon.icon in Resources */ = {isa = PBXBuildFile; fileRef = DA9922F2306BBD960003AF6F /* AppIcon.icon */; };
+		000000000000000000000630 /* LiveSealbreakClientTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000631 /* LiveSealbreakClientTests.swift */; };
+		000000000000000000000632 /* LiveSealbreakResetTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000633 /* LiveSealbreakResetTests.swift */; };
+		000000000000000000000634 /* ProfileStorePlatformTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000635 /* ProfileStorePlatformTests.swift */; };
+		000000000000000000000640 /* SnapshotTesting in Frameworks */ = {isa = PBXBuildFile; productRef = 000000000000000000000644 /* SnapshotTesting */; };
+		000000000000000000000641 /* AccessibilitySnapshot in Frameworks */ = {isa = PBXBuildFile; productRef = 000000000000000000000645 /* AccessibilitySnapshot */; };
+		000000000000000000000650 /* PrivacyViewTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000651 /* PrivacyViewTests.swift */; };
+		000000000000000000000652 /* PrivacyReducerIntegrationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000653 /* PrivacyReducerIntegrationTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -45,6 +52,11 @@
 		000000000000000000000604 /* SealStatusMotionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SealStatusMotionTests.swift; sourceTree = "<group>"; };
 		000000000000000000000609 /* SharePasteControlTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SharePasteControlTests.swift; sourceTree = "<group>"; };
 		DA9922F2306BBD960003AF6F /* AppIcon.icon */ = {isa = PBXFileReference; lastKnownFileType = folder.iconcomposer.icon; path = Resources/AppIcon.icon; sourceTree = "<group>"; };
+		000000000000000000000631 /* LiveSealbreakClientTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveSealbreakClientTests.swift; sourceTree = "<group>"; };
+		000000000000000000000633 /* LiveSealbreakResetTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveSealbreakResetTests.swift; sourceTree = "<group>"; };
+		000000000000000000000635 /* ProfileStorePlatformTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ../SealbreakInfrastructureTests/ProfileStorePlatformTests.swift; sourceTree = "<group>"; };
+		000000000000000000000651 /* PrivacyViewTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PrivacyViewTests.swift; sourceTree = "<group>"; };
+		000000000000000000000653 /* PrivacyReducerIntegrationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PrivacyReducerIntegrationTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -69,6 +81,8 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				000000000000000000000640 /* SnapshotTesting in Frameworks */,
+				000000000000000000000641 /* AccessibilitySnapshot in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -130,6 +144,11 @@
 				000000000000000000000603 /* HomeViewStateTests.swift */,
 				000000000000000000000604 /* SealStatusMotionTests.swift */,
 				000000000000000000000609 /* SharePasteControlTests.swift */,
+				000000000000000000000631 /* LiveSealbreakClientTests.swift */,
+				000000000000000000000651 /* PrivacyViewTests.swift */,
+				000000000000000000000653 /* PrivacyReducerIntegrationTests.swift */,
+				000000000000000000000633 /* LiveSealbreakResetTests.swift */,
+				000000000000000000000635 /* ProfileStorePlatformTests.swift */,
 			);
 			path = Tests/SealbreakAppModuleTests;
 			sourceTree = "<group>";
@@ -193,6 +212,8 @@
 			);
 			name = SealbreakAppModuleTests;
 			packageProductDependencies = (
+				000000000000000000000644 /* SnapshotTesting */,
+				000000000000000000000645 /* AccessibilitySnapshot */,
 			);
 			productName = SealbreakAppModuleTests;
 			productReference = 000000000000000000000601 /* SealbreakAppModuleTests.xctest */;
@@ -230,6 +251,8 @@
 			mainGroup = 000000000000000000000003;
 			packageReferences = (
 				000000000000000000000400 /* XCLocalSwiftPackageReference "." */,
+				000000000000000000000642 /* XCRemoteSwiftPackageReference "swift-snapshot-testing" */,
+				000000000000000000000643 /* XCRemoteSwiftPackageReference "AccessibilitySnapshot" */,
 			);
 			productRefGroup = 000000000000000000000005 /* Products */;
 			projectDirPath = "";
@@ -294,6 +317,11 @@
 				000000000000000000000613 /* HomeViewStateTests.swift in Sources */,
 				000000000000000000000614 /* SealStatusMotionTests.swift in Sources */,
 				000000000000000000000617 /* SharePasteControlTests.swift in Sources */,
+				000000000000000000000630 /* LiveSealbreakClientTests.swift in Sources */,
+				000000000000000000000650 /* PrivacyViewTests.swift in Sources */,
+				000000000000000000000652 /* PrivacyReducerIntegrationTests.swift in Sources */,
+				000000000000000000000632 /* LiveSealbreakResetTests.swift in Sources */,
+				000000000000000000000634 /* ProfileStorePlatformTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -602,6 +630,19 @@
 		};
 /* End XCLocalSwiftPackageReference section */
 
+/* Begin XCRemoteSwiftPackageReference section */
+		000000000000000000000642 /* XCRemoteSwiftPackageReference "swift-snapshot-testing" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/pointfreeco/swift-snapshot-testing";
+			requirement = {kind = exactVersion; version = 1.19.6; };
+		};
+		000000000000000000000643 /* XCRemoteSwiftPackageReference "AccessibilitySnapshot" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/cashapp/AccessibilitySnapshot";
+			requirement = {kind = exactVersion; version = 0.13.1; };
+		};
+/* End XCRemoteSwiftPackageReference section */
+
 /* Begin XCSwiftPackageProductDependency section */
 		000000000000000000000401 /* SealbreakAppModule */ = {
 			isa = XCSwiftPackageProductDependency;
@@ -617,6 +658,16 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 000000000000000000000400 /* XCLocalSwiftPackageReference "." */;
 			productName = SealbreakInfrastructure;
+		};
+		000000000000000000000644 /* SnapshotTesting */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 000000000000000000000642 /* XCRemoteSwiftPackageReference "swift-snapshot-testing" */;
+			productName = SnapshotTesting;
+		};
+		000000000000000000000645 /* AccessibilitySnapshot */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 000000000000000000000643 /* XCRemoteSwiftPackageReference "AccessibilitySnapshot" */;
+			productName = AccessibilitySnapshot;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

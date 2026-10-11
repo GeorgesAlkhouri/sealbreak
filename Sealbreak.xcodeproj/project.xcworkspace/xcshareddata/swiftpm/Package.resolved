@@ -1,6 +1,15 @@
 {
-  "originHash" : "bae6e814936ec10a26aafe299483317f68be97cde87029c382d4f7800076a7bd",
+  "originHash" : "f06f95fcb7af7d126cac80524b0f19ee6d391d188dfee347eed6f4082ac567a3",
   "pins" : [
+    {
+      "identity" : "accessibilitysnapshot",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/cashapp/AccessibilitySnapshot",
+      "state" : {
+        "revision" : "7a1d34aea8966c10b5002e17df954a171d6c3149",
+        "version" : "0.13.1"
+      }
+    },
     {
       "identity" : "combine-schedulers",
       "kind" : "remoteSourceControl",
@@ -8,6 +17,15 @@
       "state" : {
         "revision" : "114354e8c1667a2edc4993700fb9fa4f90157b56",
         "version" : "1.2.2"
+      }
+    },
+    {
+      "identity" : "ios-snapshot-test-case",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/uber/ios-snapshot-test-case.git",
+      "state" : {
+        "revision" : "7b10770333a961be6e5a41c9ce04b8c6d3990126",
+        "version" : "8.0.0"
       }
     },
     {
@@ -107,6 +125,15 @@
       "state" : {
         "revision" : "3552faf8a6c18ce896ec5a72bd8c34755f0f03e0",
         "version" : "2.10.1"
+      }
+    },
+    {
+      "identity" : "swift-snapshot-testing",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/pointfreeco/swift-snapshot-testing",
+      "state" : {
+        "revision" : "28e5de025e3fd98991791bfbf83023ab3708da03",
+        "version" : "1.19.6"
       }
     },
     {
