@@ -100,7 +100,6 @@ struct PrivacyReducerIntegrationTests {
     private func initialState(_ profile: ServerProfile) -> AppFeature.State {
         var state = AppFeature.State()
         state.didLoad = true
-        state.isLoading = false
         state.privacy.phase = .active
         state.home = HomeFeature.State(profile: profile, status: PrivacyRootFixture.status)
         return state
