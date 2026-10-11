@@ -250,7 +250,7 @@ TEST_RUNNER_SEALBREAK_INTEGRATION_SHARE_1="$first_share" \
 TEST_RUNNER_SEALBREAK_INTEGRATION_SHARE_2="$second_share" \
 xcodebuild \
   -project Sealbreak.xcodeproj \
-  -scheme Sealbreak \
+  -scheme SealbreakIntegration \
   -disableAutomaticPackageResolution \
   -configuration Debug \
   -destination "platform=iOS Simulator,id=$simulator_udid" \
