@@ -13,7 +13,6 @@ package struct AppFeature {
         package var welcome: WelcomeFeature.State?
         package var home: HomeFeature.State?
         package var setup: SetupFeature.State?
-        var isLoading = true
         var didLoad = false
     }
 
