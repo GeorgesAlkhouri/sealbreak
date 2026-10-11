@@ -1,5 +1,4 @@
 import ComposableArchitecture
-import Foundation
 import SealbreakCore
 import SwiftUI
 
@@ -28,12 +27,7 @@ public struct SealbreakRootView: View {
                 } else if let welcomeStore = store.scope(state: \.welcome, action: \.welcome) {
                     WelcomeView(store: welcomeStore)
                 } else {
-                    ZStack {
-                        PapercutPalette.sky.ignoresSafeArea()
-                        ProgressView(LocalizedStringResource("Loading protected profile…", bundle: .module))
-                            .tint(PapercutPalette.cream)
-                            .foregroundStyle(PapercutPalette.cream)
-                    }
+                    PapercutPalette.sky.ignoresSafeArea()
                 }
             }
         }
