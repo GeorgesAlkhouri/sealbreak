@@ -112,7 +112,10 @@ final class HomeLayoutTests: XCTestCase {
             elements.first(where: { $0.label == label }),
             "Expected primary home action labeled \(label)."
         )
-        return button.activationPoint
+        return CGPoint(
+            x: button.activationPoint.x,
+            y: button.activationPoint.y
+        )
     }
 }
 
