@@ -49,13 +49,39 @@ Sleep -> Clock: Register suspension
 Test -> Clock: Advance 5 s only after wait starts
 loop TestClock yields between 50 bounded sleeps
   Clock --> Controller: Resume wait
-  Controller -> Sleep: Next 100 ms sleep request
-  Sleep -> Clock: Register suspension
+  opt More foreground waits remain
+    Controller -> Sleep: Next 100 ms sleep request
+    Sleep -> Clock: Register suspension
+  end
 end
 Controller --> Test: AppFailure after 50 waits
 note over Test, Controller
   Assert zero storage access and invalidated context.
   Active-but-locked/captured gates fail without sleep.
   Tests preserve the production authorization checks.
+end note
+@enduml
+
+@startuml presented_material_stability
+title Native sheet snapshots: wait for rendered stability
+participant "Privacy test" as Test
+participant "Hosted sheet\nUIKit / SwiftUI" as Sheet
+participant "Snapshot renderer" as Renderer
+
+Test -> Sheet: Present sheet / update disabled controls
+Test -> Sheet: Wait for semantic state and transition completion
+loop At most 8 captures, separated by a run-loop turn
+  Test -> Sheet: Layout and freeze native spinners
+  Sheet -> Renderer: Render current window
+  Renderer --> Test: Complete PNG pixels
+  Test -> Test: Compare successive renders exactly
+  break At least 4 captures and 3 consecutive identical renders
+    Test -> Test: Continue with exact golden image comparison
+  end
+end
+note over Test
+  Fail if native rendering does not settle.
+  Keep golden-image precision and privacy assertions unchanged.
+  Do not advance the feature's virtual clock during settling.
 end note
 @enduml

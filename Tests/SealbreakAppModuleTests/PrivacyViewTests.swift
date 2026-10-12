@@ -332,16 +332,28 @@ final class PrivacyViewHost {
     }
 
     func preparePresentedMaterials() async throws {
-        // Prime the presented native materials before taking the comparison image.
-        // Discard the preparatory render and let the next run loop draw settle.
-        var rendered = false
-        _ = makeRenderer().image { _ in
-            rendered = window.drawHierarchy(in: window.bounds, afterScreenUpdates: true)
+        // Native toolbar text can finish rasterizing after the sheet transition.
+        // A single warm-up and fixed delay are insufficient on a busy CI simulator.
+        // Require stable rendered pixels, while keeping the golden comparison exact.
+        var previous: Data?
+        var unchanged = 0
+        for capture in 0..<8 {
+            window.layoutIfNeeded()
+            freezeSpinners(in: window)
+            var rendered = false
+            let image = makeRenderer().image { _ in
+                rendered = window.drawHierarchy(in: window.bounds, afterScreenUpdates: true)
+            }
+            _ = try XCTUnwrap(rendered ? true : nil, "UIKit must prepare the presented sheet's materials.")
+            let pixels = try XCTUnwrap(image.pngData())
+            unchanged = pixels == previous ? unchanged + 1 : 0
+            previous = pixels
+            if capture >= 3, unchanged >= 2 { return }
+            await Task.yield()
+            try await Task.sleep(for: .milliseconds(60))
         }
-        _ = try XCTUnwrap(rendered ? true : nil, "UIKit must prepare the presented sheet's materials.")
-        await Task.yield()
-        window.layoutIfNeeded()
-        try await Task.sleep(for: .milliseconds(60))
+        XCTFail("Presented sheet rendering did not settle within eight captures.")
+        throw NSError(domain: "PrivacyViewHost", code: 1)
     }
 
     private func makeRenderer() -> UIGraphicsImageRenderer {
