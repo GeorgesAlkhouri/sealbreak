@@ -10,6 +10,7 @@ struct UnsealButton: View {
             HStack(spacing: 14) {
                 Image(systemName: state.systemImage)
                     .font(.system(size: 26, weight: .medium))
+                    .frame(width: 30, height: 30)
 
                 Text(state.title)
                     .font(.headline.weight(.bold))
@@ -34,6 +35,9 @@ struct UnsealButton: View {
             .shadow(color: .black.opacity(0.38), radius: 10, y: 10)
         }
         .buttonStyle(.plain)
+        // Avoid inherited status animations moving the icon or label independently
+        // of the button background when the action switches to or from working.
+        .transaction { $0.animation = nil }
         .disabled(!state.enabled)
         .opacity(state.enabled ? 1 : 0.58)
     }
