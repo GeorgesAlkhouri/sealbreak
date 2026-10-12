@@ -1,7 +1,7 @@
 import AccessibilitySnapshotParser
 import ComposableArchitecture
 import Foundation
-import SealbreakCore
+@testable import SealbreakCore
 import SwiftUI
 import UIKit
 import XCTest
