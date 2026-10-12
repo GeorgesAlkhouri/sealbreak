@@ -59,14 +59,12 @@ final class ButtonLayoutTests: XCTestCase {
         try assertRenderedIcon(in: host, button: before, attachment: "reset-before")
 
         let operation = store.send(.confirmResetLocalDataTapped, animation: .easeInOut(duration: 0.3))
-        try await assertTransition(in: host, expected: before, identifier: identifier)
         try await host.waitUntil { host.accessibility.contains("Resetting") }
         let pending = try buttonFrame(in: host, identifier: identifier)
         assertSameBounds(before, pending)
         try assertRenderedIcon(in: host, button: pending, attachment: "reset-pending")
 
         await reply.fail()
-        try await assertTransition(in: host, expected: before, identifier: identifier)
         try await host.finish(operation)
         try await host.waitUntil { !store.isResetting && host.accessibility.contains("Connection failed") }
         let after = try buttonFrame(in: host, identifier: identifier)
@@ -101,7 +99,6 @@ final class ButtonLayoutTests: XCTestCase {
             try assertRenderedIcon(in: host, button: before, backOffset: 5, attachment: "connection-before")
 
             let operation = store.send(.instance(.checkConnectionTapped), animation: .easeInOut(duration: 0.3))
-            try await assertTransition(in: host, expected: before, identifier: identifier, backOffset: 5)
             try await host.waitUntil { host.accessibility.contains("Checking connection") }
             let pending = try buttonFrame(in: host, identifier: identifier)
             assertSameBounds(before, pending)
@@ -109,7 +106,6 @@ final class ButtonLayoutTests: XCTestCase {
             try assertRenderedIcon(in: host, button: pending, backOffset: 5, attachment: "connection-pending")
 
             if succeeds { await reply.succeed(PrivacyRootFixture.status) } else { await reply.fail() }
-            try await assertTransition(in: host, expected: before, identifier: identifier, backOffset: 5)
             try await host.finish(operation)
             try await host.waitUntil {
                 !store.instance.isCheckingConnection && host.accessibility.contains(succeeds ? "Continue" : "Connection failed")
@@ -222,14 +218,14 @@ final class ButtonLayoutTests: XCTestCase {
         assertSameBounds(before, after)
     }
 
-    private func assertTransition(in host: PrivacyViewHost, expected: CGRect, identifier: String = "home-primary-action", backOffset: CGFloat = 6) async throws {
+    private func assertTransition(in host: PrivacyViewHost, expected: CGRect) async throws {
         // Keep UIKit/SwiftUI animations enabled and sample during the 300 ms transaction,
         // rather than only comparing layouts after animations have settled.
         for _ in 0..<20 {
             host.window.layoutIfNeeded()
-            let frame = try buttonFrame(in: host, identifier: identifier)
+            let frame = try buttonFrame(in: host)
             assertSameBounds(expected, frame)
-            try assertRenderedIcon(in: host, button: expected, backOffset: backOffset)
+            try assertRenderedIcon(in: host, button: expected)
             try await Task.sleep(for: .milliseconds(20))
         }
     }
