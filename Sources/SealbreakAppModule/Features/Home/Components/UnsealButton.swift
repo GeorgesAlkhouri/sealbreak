@@ -5,6 +5,8 @@ struct UnsealButton: View {
     let state: HomeViewState.PrimaryAction
     let action: () -> Void
 
+    @ScaledMetric(relativeTo: .headline) private var actionHeight: CGFloat = 74
+
     var body: some View {
         Button(action: action) {
             HStack(spacing: 14) {
@@ -21,7 +23,9 @@ struct UnsealButton: View {
             .padding(.horizontal, 16)
             .padding(.vertical, 14)
             .frame(maxWidth: .infinity)
-            .frame(minHeight: 74)
+            // Keep the control's bounds stable when the activity label changes.
+            // Scale the fixed height with Dynamic Type for accessibility.
+            .frame(height: actionHeight)
             .background {
                 ZStack {
                     RoundedRectangle(cornerRadius: 24, style: .continuous)
