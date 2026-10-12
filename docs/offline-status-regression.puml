@@ -30,6 +30,34 @@ note over Geometry
 end note
 @enduml
 
+@startuml other_primary_actions
+title Other primary actions: stable label and feedback layout
+participant "Hosted Welcome / InstanceSetup\nAppModule" as View
+participant "Feature store\nCore" as Feature
+participant "Controlled client reply\nTest double" as Client
+participant "Rendered geometry\nTest observer" as Geometry
+
+note over View, Geometry
+  Reset: idle -> resetting -> failure.
+  Connection: failure -> checking -> failure or Continue.
+  Keep the action above variable feedback / connection results.
+  Reserve a fixed icon column beside flexible text.
+  Content above the action and its bounds stay unchanged.
+  Field-validation errors may still expand their corresponding field.
+  Details: the native LabeledContent row keeps its bounds
+  while a spinner replaces the hidden-share label.
+  Native Done / Cancel / Paste controls keep their bounds while disabled.
+end note
+View -> Geometry: Measure initial action and icon
+View -> Feature: Start action
+Feature -> Client: Request reset / connection check
+Feature -> View: Disable action while pending
+View -> Geometry: Check pending bounds and icon column
+Client --> Feature: Failure / connected profile
+Feature -> View: Update title; show feedback / result below action
+View -> Geometry: Check final bounds and icon column
+@enduml
+
 @startuml authorization_clock_synchronization
 title Authorization gate: deterministic virtual time
 participant "Client test" as Test
@@ -70,6 +98,11 @@ participant "Snapshot renderer" as Renderer
 
 Test -> Sheet: Present sheet / update disabled controls
 Test -> Sheet: Wait for semantic state and transition completion
+note over Test, Sheet
+  Pending authorization: verify button traits and Hidden value.
+  Native spinners may add an In progress accessibility label;
+  readiness does not depend on the complete generated sentence.
+end note
 loop At most 8 captures, separated by a run-loop turn
   Test -> Sheet: Layout and freeze native spinners
   Sheet -> Renderer: Render current window

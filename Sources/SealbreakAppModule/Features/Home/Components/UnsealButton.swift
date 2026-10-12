@@ -42,9 +42,6 @@ struct UnsealButton: View {
         .buttonStyle(.plain)
         .accessibilityLabel(Text(state.title))
         .accessibilityIdentifier("home-primary-action")
-        // Avoid inherited status animations moving the icon or label independently
-        // of the button background when the action switches to or from working.
-        .transaction { $0.animation = nil; $0.disablesAnimations = true }
         .disabled(!state.enabled)
         .opacity(state.enabled ? 1 : 0.58)
     }

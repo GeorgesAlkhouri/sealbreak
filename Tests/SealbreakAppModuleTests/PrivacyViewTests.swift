@@ -262,14 +262,16 @@ final class PrivacyViewHost {
         controller.view.layoutIfNeeded()
     }
 
-    var accessibility: String {
+    var accessibilityElements: [AccessibilityElement] {
         AccessibilityHierarchyParser().parseAccessibilityHierarchy(in: window).flattenToElements()
-            .map(\.description).joined(separator: "\n") + "\n"
+    }
+
+    var accessibility: String {
+        accessibilityElements.map(\.description).joined(separator: "\n") + "\n"
     }
 
     var pasteControlIsEnabled: Bool {
-        let elements = AccessibilityHierarchyParser().parseAccessibilityHierarchy(in: window).flattenToElements()
-        guard let paste = elements.first(where: { $0.label == "Paste" }) else { return false }
+        guard let paste = accessibilityElements.first(where: { $0.label == "Paste" }) else { return false }
         // Read the real UIKit control at the parser's public activation point.
         // This is a readiness check; it does not activate the accessibility element.
         var view = window.hitTest(CGPoint(x: paste.activationPoint.x, y: paste.activationPoint.y), with: nil)
@@ -280,10 +282,14 @@ final class PrivacyViewHost {
         return false
     }
 
-    func waitUntil(_ condition: () -> Bool) async throws {
+    func waitUntil(_ condition: () -> Bool, file: StaticString = #filePath, line: UInt = #line) async throws {
         let deadline = ContinuousClock.now.advanced(by: .seconds(3))
         while !condition() {
-            _ = try XCTUnwrap(ContinuousClock.now < deadline ? true : nil, "Expected real view state did not appear.")
+            _ = try XCTUnwrap(
+                ContinuousClock.now < deadline ? true : nil,
+                "Expected real view state did not appear. Accessibility: \(accessibility)",
+                file: file, line: line
+            )
             try await Task.sleep(for: .milliseconds(10))
         }
         window.layoutIfNeeded()
@@ -456,11 +462,15 @@ final class PrivacyRootFixture {
 
     func waitForPendingFragment() async throws {
         try await host.waitUntil {
-            let accessibility = host.accessibility
+            let elements = host.accessibilityElements
+            let done = elements.first { $0.label == "Done" }
+            let reveal = elements.first { $0.label?.contains("Show stored share fragment") == true }
             return probe.pendingCount == 1
-                && accessibility.contains("Done. Dimmed. Button.")
-                && accessibility.contains("Show stored share fragment: Hidden. Dimmed. Button.")
-                && !accessibility.contains(fragment.displayValue)
+                && store.home?.serverDetails?.isRevealingShare == true
+                && done?.traits.contains([.button, .notEnabled]) == true
+                && reveal?.traits.contains([.button, .notEnabled]) == true
+                && reveal?.value == "Hidden"
+                && !elements.contains { $0.description.contains(fragment.displayValue) }
         }
         // Commit the actual disabled, concealed view before releasing authorization.
         try await host.preparePresentedMaterials()

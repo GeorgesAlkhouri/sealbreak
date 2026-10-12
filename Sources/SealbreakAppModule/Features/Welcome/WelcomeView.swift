@@ -62,14 +62,6 @@ struct WelcomeView: View {
                                 LocalizedStringResource("Works with OpenBao, Vault, and compatible Shamir seal servers.", bundle: .module)
                             )
 
-                        if let feedback = store.feedback {
-                            PapercutFeedback(feedback: feedback)
-                                .frame(maxWidth: 330)
-                                .padding(.top, 18)
-                        }
-
-                        Spacer(minLength: 34)
-
                         if store.requiresLocalReset {
                             Button {
                                 store.send(.resetLocalDataTapped)
@@ -82,7 +74,9 @@ struct WelcomeView: View {
                                 )
                             }
                             .buttonStyle(.plain)
+                            .accessibilityIdentifier("welcome-primary-action")
                             .frame(maxWidth: 335)
+                            .padding(.top, 34)
                             .disabled(store.isResetting)
                         } else {
                             Button {
@@ -94,7 +88,15 @@ struct WelcomeView: View {
                                 )
                             }
                             .buttonStyle(.plain)
+                            .accessibilityIdentifier("welcome-primary-action")
                             .frame(maxWidth: 335)
+                            .padding(.top, 34)
+                        }
+
+                        if let feedback = store.feedback {
+                            PapercutFeedback(feedback: feedback)
+                                .frame(maxWidth: 330)
+                                .padding(.top, 18)
                         }
 
                         Spacer()
@@ -140,11 +142,13 @@ struct WelcomeView: View {
         HStack(spacing: 12) {
             Image(systemName: icon)
                 .font(.system(size: 22, weight: .semibold))
+                .frame(width: 30, height: 30)
 
             Text(title)
                 .font(.headline)
                 .multilineTextAlignment(.center)
                 .fixedSize(horizontal: false, vertical: true)
+                .frame(maxWidth: .infinity)
         }
         .foregroundStyle(PapercutPalette.cream)
         .padding(.horizontal, 16)

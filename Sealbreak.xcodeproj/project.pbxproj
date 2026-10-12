@@ -25,7 +25,7 @@
 		000000000000000000000640 /* SnapshotTesting in Frameworks */ = {isa = PBXBuildFile; productRef = 000000000000000000000644 /* SnapshotTesting */; };
 		000000000000000000000641 /* AccessibilitySnapshot in Frameworks */ = {isa = PBXBuildFile; productRef = 000000000000000000000645 /* AccessibilitySnapshot */; };
 		000000000000000000000650 /* PrivacyViewTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000651 /* PrivacyViewTests.swift */; };
-		000000000000000000000654 /* HomeLayoutTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000655 /* HomeLayoutTests.swift */; };
+		000000000000000000000654 /* ButtonLayoutTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000655 /* ButtonLayoutTests.swift */; };
 		000000000000000000000652 /* PrivacyReducerIntegrationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000653 /* PrivacyReducerIntegrationTests.swift */; };
 /* End PBXBuildFile section */
 
@@ -57,7 +57,7 @@
 		000000000000000000000633 /* LiveSealbreakResetTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveSealbreakResetTests.swift; sourceTree = "<group>"; };
 		000000000000000000000635 /* ProfileStorePlatformTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ../SealbreakInfrastructureTests/ProfileStorePlatformTests.swift; sourceTree = "<group>"; };
 		000000000000000000000651 /* PrivacyViewTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PrivacyViewTests.swift; sourceTree = "<group>"; };
-		000000000000000000000655 /* HomeLayoutTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeLayoutTests.swift; sourceTree = "<group>"; };
+		000000000000000000000655 /* ButtonLayoutTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ButtonLayoutTests.swift; sourceTree = "<group>"; };
 		000000000000000000000653 /* PrivacyReducerIntegrationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PrivacyReducerIntegrationTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -148,7 +148,7 @@
 				000000000000000000000609 /* SharePasteControlTests.swift */,
 				000000000000000000000631 /* LiveSealbreakClientTests.swift */,
 				000000000000000000000651 /* PrivacyViewTests.swift */,
-				000000000000000000000655 /* HomeLayoutTests.swift */,
+				000000000000000000000655 /* ButtonLayoutTests.swift */,
 				000000000000000000000653 /* PrivacyReducerIntegrationTests.swift */,
 				000000000000000000000633 /* LiveSealbreakResetTests.swift */,
 				000000000000000000000635 /* ProfileStorePlatformTests.swift */,
@@ -322,7 +322,7 @@
 				000000000000000000000617 /* SharePasteControlTests.swift in Sources */,
 				000000000000000000000630 /* LiveSealbreakClientTests.swift in Sources */,
 				000000000000000000000650 /* PrivacyViewTests.swift in Sources */,
-				000000000000000000000654 /* HomeLayoutTests.swift in Sources */,
+				000000000000000000000654 /* ButtonLayoutTests.swift in Sources */,
 				000000000000000000000652 /* PrivacyReducerIntegrationTests.swift in Sources */,
 				000000000000000000000632 /* LiveSealbreakResetTests.swift in Sources */,
 				000000000000000000000634 /* ProfileStorePlatformTests.swift in Sources */,
