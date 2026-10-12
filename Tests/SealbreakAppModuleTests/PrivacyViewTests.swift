@@ -249,14 +249,14 @@ final class PrivacyViewHost {
     let controller: UIHostingController<AnyView>
     private let previousAnimations = UIView.areAnimationsEnabled
 
-    init<Content: View>(@ViewBuilder content: () -> Content) throws {
+    init<Content: View>(animationsEnabled: Bool = false, @ViewBuilder content: () -> Content) throws {
         let scene = try XCTUnwrap(UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }.first)
         window = UIWindow(windowScene: scene)
         window.frame = CGRect(x: 0, y: 0, width: 402, height: 874)
         window.overrideUserInterfaceStyle = .light
         controller = UIHostingController(rootView: AnyView(content()))
         window.rootViewController = controller
-        UIView.setAnimationsEnabled(false)
+        UIView.setAnimationsEnabled(animationsEnabled)
         UIPasteboard.general.string = PrivacyRootFixture.share
         window.makeKeyAndVisible()
         controller.view.layoutIfNeeded()

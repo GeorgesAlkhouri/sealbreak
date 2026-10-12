@@ -22,15 +22,13 @@ struct ServerStatusCard: View {
                     .fixedSize(horizontal: false, vertical: true)
                     .frame(maxWidth: .infinity, alignment: .center)
                     .padding(.top, 4)
-
-                Spacer(minLength: 18)
+                    .padding(.bottom, 18)
 
                 SealStatusIndicator(
                     status: state.status,
                     interactionTrigger: interactionTrigger
                 )
-
-                Spacer(minLength: 10)
+                .padding(.bottom, 10)
 
                 Text(state.status.title)
                     .font(.system(size: statusTitleSize, weight: .bold))
@@ -58,9 +56,12 @@ struct ServerStatusCard: View {
             .multilineTextAlignment(.center)
             .padding(.horizontal, 24)
             .padding(.vertical, 28)
+            .frame(minHeight: 460)
         }
+        // The card's decorative shapes must not absorb space released by feedback.
+        // Let its content grow for Dynamic Type, while preserving its intrinsic height.
+        .fixedSize(horizontal: false, vertical: true)
         .frame(maxWidth: .infinity)
-        .frame(minHeight: 460)
         .accessibilityElement(children: .combine)
     }
 }

@@ -1,0 +1,61 @@
+@startuml offline_status_geometry
+title Offline status refresh: presentation regression
+participant "Hosted HomeView\nAppModule" as View
+participant "HomeFeature\nCore" as Home
+participant "Controlled offline reply\nTest double" as Offline
+participant "Rendered geometry\nTest observer" as Geometry
+
+note over View, Geometry
+  Initial status: unknown, sealed, or unsealed.
+  Error visible; animations enabled during measurement.
+  Measure the button's bounds (frame or path bounds),
+  and the rendered icon inside its fixed column.
+  VoiceOver activation points are not layout centers.
+  Intrinsic vertical sizing and fixed gaps in the status card prevent it from
+  growing when the feedback below the button disappears.
+  A flexible text column keeps the action icon's x position fixed.
+end note
+View -> Geometry: Record initial button and icon position
+View -> Home: refreshTapped (animated transaction)
+Home -> View: checkingStatus; hide feedback
+Home -> Offline: status(profile)
+View -> Geometry: Sample the transition and pending layout
+Offline --> Home: Connection failure
+Home -> View: unknown status; show error
+View -> Geometry: Sample the transition and final layout
+note over Geometry
+  Button bounds remain fixed.
+  Icon stays in the same column, centered vertically,
+  and inside the button throughout both transitions.
+end note
+@enduml
+
+@startuml authorization_clock_synchronization
+title Authorization gate: deterministic virtual time
+participant "Client test" as Test
+participant "Live controller\nAppModule" as Controller
+participant "Controlled Face ID" as FaceID
+participant "Controlled foreground sleep" as Sleep
+participant "TestClock" as Clock
+
+Test -> Controller: Start protected operation
+Controller -> FaceID: Request authorization
+Test -> Test: Apply inactive/background gate
+Test -> FaceID: Complete authorization
+FaceID --> Controller: Success
+Controller -> Sleep: First 100 ms sleep request
+Sleep --> Test: Signal first sleep request
+Sleep -> Clock: Register suspension
+Test -> Clock: Advance 5 s only after wait starts
+loop TestClock yields between 50 bounded sleeps
+  Clock --> Controller: Resume wait
+  Controller -> Sleep: Next 100 ms sleep request
+  Sleep -> Clock: Register suspension
+end
+Controller --> Test: AppFailure after 50 waits
+note over Test, Controller
+  Assert zero storage access and invalidated context.
+  Active-but-locked/captured gates fail without sleep.
+  Tests preserve the production authorization checks.
+end note
+@enduml
