@@ -9,6 +9,42 @@ import XCTest
 
 @MainActor
 final class ButtonLayoutTests: XCTestCase {
+    func testAnimationCaptureDoesNotRenderFutureFrames() async throws {
+        let host = try PrivacyViewHost(animationsEnabled: true) {
+            Color.blue.ignoresSafeArea()
+        }
+        let marker = UIView(frame: CGRect(x: 40, y: 100, width: 20, height: 20))
+        marker.backgroundColor = .white
+        host.window.addSubview(marker)
+        defer {
+            marker.layer.removeAllAnimations()
+            host.close()
+        }
+        try await host.waitUntil { marker.layer.presentation() != nil }
+
+        // A slow UIKit animation leaves time to sample even on a busy simulator.
+        // The model immediately reaches x=250; the presentation moves from x=50.
+        UIView.animate(withDuration: 10, delay: 0, options: .curveLinear) {
+            marker.center.x = 250
+        }
+        var sampledAnimation = false
+        var capturedMovement = false
+        for _ in 0..<20 {
+            let image = try captureWindow(in: host)
+            let visibleX = try XCTUnwrap(marker.layer.presentation()).position.x
+            let bounds = try renderedIconBounds(try XCTUnwrap(image.cgImage))
+            XCTAssertFalse(bounds.isNull, "The visible marker must be captured.")
+            // Read presentation immediately after capture: its position is an
+            // upper bound for the earlier captured frame, with pixel rounding.
+            XCTAssertLessThanOrEqual(bounds.midX, visibleX + 2, "The snapshot must not render a future animation frame.")
+            sampledAnimation = sampledAnimation || (visibleX > 50 && visibleX < 250)
+            capturedMovement = capturedMovement || bounds.midX > 52
+            try await Task.sleep(for: .milliseconds(20))
+        }
+        XCTAssertTrue(sampledAnimation, "The capture must observe an animation in progress.")
+        XCTAssertTrue(capturedMovement, "The snapshots must include the marker's visible movement.")
+    }
+
     func testDetailsControlsKeepTheirBoundsDuringAuthorization() async throws {
         let fixture = try PrivacyRootFixture()
         defer { fixture.close() }
@@ -225,7 +261,8 @@ final class ButtonLayoutTests: XCTestCase {
             host.window.layoutIfNeeded()
             let frame = try buttonFrame(in: host)
             assertSameBounds(expected, frame)
-            try assertRenderedIcon(in: host, button: expected)
+            // Observe the visible frame without flushing and retiming the animation.
+            try assertRenderedIcon(in: host, button: expected, afterScreenUpdates: false)
             try await Task.sleep(for: .milliseconds(20))
         }
     }
@@ -237,15 +274,8 @@ final class ButtonLayoutTests: XCTestCase {
         XCTAssertEqual(expected.height, actual.height, accuracy: 1, file: file, line: line)
     }
 
-    private func assertRenderedIcon(in host: PrivacyViewHost, button: CGRect, backOffset: CGFloat = 6, attachment: String? = nil) throws {
-        let format = UIGraphicsImageRendererFormat()
-        format.scale = 1
-        format.preferredRange = .standard
-        var rendered = false
-        let image = UIGraphicsImageRenderer(size: host.window.bounds.size, format: format).image { _ in
-            rendered = host.window.drawHierarchy(in: host.window.bounds, afterScreenUpdates: true)
-        }
-        _ = try XCTUnwrap(rendered ? true : nil, "The hosted window must render successfully.")
+    private func assertRenderedIcon(in host: PrivacyViewHost, button: CGRect, backOffset: CGFloat = 6, attachment: String? = nil, afterScreenUpdates: Bool = true) throws {
+        let image = try captureWindow(in: host, afterScreenUpdates: afterScreenUpdates)
         if let attachment {
             let screenshot = XCTAttachment(image: image)
             screenshot.name = attachment
@@ -263,9 +293,35 @@ final class ButtonLayoutTests: XCTestCase {
         let crop = try XCTUnwrap(source.cropping(to: column.integral))
         let width = crop.width
         let height = crop.height
+        let bounds = try renderedIconBounds(crop)
+        XCTAssertFalse(bounds.isNull, "The rendered icon must be present in its fixed column.")
+        guard !bounds.isNull else { return }
+        XCTAssertGreaterThan(bounds.width, 10)
+        XCTAssertGreaterThan(bounds.height, 10)
+        XCTAssertLessThanOrEqual(bounds.width, 30)
+        XCTAssertLessThanOrEqual(bounds.height, 30, "The icon must remain inside the button.")
+        XCTAssertEqual(bounds.midX, CGFloat(width) / 2, accuracy: 2)
+        XCTAssertEqual(bounds.midY, CGFloat(height) / 2, accuracy: 2, "The rendered icon must not jump vertically.")
+    }
+
+    private func captureWindow(in host: PrivacyViewHost, afterScreenUpdates: Bool = false) throws -> UIImage {
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = 1
+        format.preferredRange = .standard
+        var rendered = false
+        let image = UIGraphicsImageRenderer(size: host.window.bounds.size, format: format).image { _ in
+            rendered = host.window.drawHierarchy(in: host.window.bounds, afterScreenUpdates: afterScreenUpdates)
+        }
+        _ = try XCTUnwrap(rendered ? true : nil, "The hosted window must render successfully.")
+        return image
+    }
+
+    private func renderedIconBounds(_ crop: CGImage) throws -> CGRect {
+        let width = crop.width
+        let height = crop.height
         var pixels = [UInt8](repeating: 0, count: width * height * 4)
         let colorSpace = try XCTUnwrap(CGColorSpace(name: CGColorSpace.sRGB))
-        let bounds = try pixels.withUnsafeMutableBytes { buffer in
+        return try pixels.withUnsafeMutableBytes { buffer in
             let context = try XCTUnwrap(CGContext(
                 data: buffer.baseAddress, width: width, height: height, bitsPerComponent: 8,
                 bytesPerRow: width * 4, space: colorSpace,
@@ -291,14 +347,6 @@ final class ButtonLayoutTests: XCTestCase {
             }
             return bounds
         }
-        XCTAssertFalse(bounds.isNull, "The rendered icon must be present in its fixed column.")
-        guard !bounds.isNull else { return }
-        XCTAssertGreaterThan(bounds.width, 10)
-        XCTAssertGreaterThan(bounds.height, 10)
-        XCTAssertLessThanOrEqual(bounds.width, 30)
-        XCTAssertLessThanOrEqual(bounds.height, 30, "The icon must remain inside the button.")
-        XCTAssertEqual(bounds.midX, CGFloat(width) / 2, accuracy: 2)
-        XCTAssertEqual(bounds.midY, CGFloat(height) / 2, accuracy: 2, "The rendered icon must not jump vertically.")
     }
 
     private func buttonFrame(in host: PrivacyViewHost, identifier: String? = "home-primary-action", label: String? = nil) throws -> CGRect {
