@@ -228,7 +228,8 @@ final class ButtonLayoutTests: XCTestCase {
 
         // The reducer removes the error message while the network request is pending.
         let refresh = homeStore.send(.refreshTapped, animation: .easeInOut(duration: 0.3))
-        try await assertTransition(in: host, expected: before)
+        let statusName = initialStatus.map { $0.sealed ? "sealed" : "unsealed" } ?? "unknown"
+        try await assertTransition(in: host, expected: before, context: "\(statusName): refresh started")
         try await host.waitUntil {
             homeStore.operation == .checkingStatus
                 && host.accessibility.contains("Checking seal status")
@@ -238,7 +239,7 @@ final class ButtonLayoutTests: XCTestCase {
         try assertRenderedIcon(in: host, button: pending, attachment: "offline-checking")
 
         await offline.fail()
-        try await assertTransition(in: host, expected: before)
+        try await assertTransition(in: host, expected: before, context: "\(statusName): refresh failed")
         await refresh.finish()
         try await host.waitUntil {
             homeStore.operation == nil
@@ -254,15 +255,19 @@ final class ButtonLayoutTests: XCTestCase {
         assertSameBounds(before, after)
     }
 
-    private func assertTransition(in host: PrivacyViewHost, expected: CGRect) async throws {
+    private func assertTransition(in host: PrivacyViewHost, expected: CGRect, context: String) async throws {
         // Keep UIKit/SwiftUI animations enabled and sample during the 300 ms transaction,
         // rather than only comparing layouts after animations have settled.
-        for _ in 0..<20 {
+        let start = ContinuousClock.now
+        for sample in 0..<20 {
             host.window.layoutIfNeeded()
             let frame = try buttonFrame(in: host)
             assertSameBounds(expected, frame)
             // Observe the visible frame without flushing and retiming the animation.
-            try assertRenderedIcon(in: host, button: expected, afterScreenUpdates: false)
+            try assertRenderedIcon(
+                in: host, button: expected, afterScreenUpdates: false,
+                context: "\(context), sample \(sample + 1)/20, elapsed \(start.duration(to: .now))"
+            )
             try await Task.sleep(for: .milliseconds(20))
         }
     }
@@ -274,8 +279,10 @@ final class ButtonLayoutTests: XCTestCase {
         XCTAssertEqual(expected.height, actual.height, accuracy: 1, file: file, line: line)
     }
 
-    private func assertRenderedIcon(in host: PrivacyViewHost, button: CGRect, backOffset: CGFloat = 6, attachment: String? = nil, afterScreenUpdates: Bool = true) throws {
+    private func assertRenderedIcon(in host: PrivacyViewHost, button: CGRect, backOffset: CGFloat = 6, attachment: String? = nil, afterScreenUpdates: Bool = true, context: String? = nil) throws {
+        let captureStart = ContinuousClock.now
         let image = try captureWindow(in: host, afterScreenUpdates: afterScreenUpdates)
+        let captureDuration = captureStart.duration(to: .now)
         if let attachment {
             let screenshot = XCTAttachment(image: image)
             screenshot.name = attachment
@@ -294,6 +301,33 @@ final class ButtonLayoutTests: XCTestCase {
         let width = crop.width
         let height = crop.height
         let bounds = try renderedIconBounds(crop)
+        let failuresBefore = testRun?.failureCount
+        defer {
+            if testRun?.failureCount != failuresBefore {
+                let frame = XCTAttachment(image: image)
+                frame.name = "failed-icon-animation-frame"
+                frame.lifetime = .keepAlways
+                add(frame)
+                let icon = XCTAttachment(image: UIImage(cgImage: crop))
+                icon.name = "failed-icon-crop"
+                icon.lifetime = .keepAlways
+                add(icon)
+                let measurements = XCTAttachment(string: """
+                Context: \(context ?? attachment ?? "static icon check")
+                Capture duration: \(captureDuration)
+                Button: \(button)
+                Crop: \(column.integral), pixels: \(width)x\(height)
+                Detected icon: \(bounds)
+                Expected center: \(CGFloat(width) / 2), \(CGFloat(height) / 2)
+                afterScreenUpdates: \(afterScreenUpdates)
+                Renderer scale: \(image.scale), display scale: \(host.window.traitCollection.displayScale)
+                Accessibility: \(host.accessibility)
+                """)
+                measurements.name = "failed-icon-measurements"
+                measurements.lifetime = .keepAlways
+                add(measurements)
+            }
+        }
         XCTAssertFalse(bounds.isNull, "The rendered icon must be present in its fixed column.")
         guard !bounds.isNull else { return }
         XCTAssertGreaterThan(bounds.width, 10)
