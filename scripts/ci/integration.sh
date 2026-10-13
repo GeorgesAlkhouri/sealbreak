@@ -12,6 +12,9 @@ cd "$repo_root"
 
 server="$1"
 version="$2"
+test_results_path="${SEALBREAK_TEST_RESULTS_PATH:-build/test-results/integration-${server}.junit.xml}"
+mkdir -p "$(dirname "$test_results_path")"
+rm -f "$test_results_path"
 temp_root="${RUNNER_TEMP:-${TMPDIR:-/tmp}}"
 work_dir="$(mktemp -d "$temp_root/sealbreak-integration.XXXXXX")"
 bin_dir="$work_dir/bin"
@@ -244,6 +247,7 @@ xcrun simctl boot "$simulator_udid"
 xcrun simctl bootstatus "$simulator_udid" -b
 xcrun simctl keychain "$simulator_udid" add-root-cert "$tls_dir/ca.crt"
 
+test_status=0
 TEST_RUNNER_SEALBREAK_INTEGRATION_SERVER_URL="https://127.0.0.1:8200" \
 TEST_RUNNER_SEALBREAK_INTEGRATION_SERVER_PRODUCT="$server" \
 TEST_RUNNER_SEALBREAK_INTEGRATION_SHARE_1="$first_share" \
@@ -263,7 +267,29 @@ xcodebuild \
   COMPILER_INDEX_STORE_ENABLE=NO \
   -skipMacroValidation \
   -only-testing:SealbreakIntegrationTests \
-  test
+  test || test_status=$?
+
+# Export before cleanup removes the result bundle. GitHub log masking does not
+# redact uploaded files, so remove the two temporary shares from JUnit as well.
+report_status=0
+if [[ -d "$work_dir/integration.xcresult" ]]; then
+  xcresultparser -o junit "$work_dir/integration.xcresult" \
+    | sed -e "s|$first_share|[REDACTED]|g" -e "s|$second_share|[REDACTED]|g" \
+    > "$work_dir/integration.junit.xml" \
+    && xmllint --noout "$work_dir/integration.junit.xml" \
+    && cp "$work_dir/integration.junit.xml" "$test_results_path" \
+    || report_status=$?
+fi
+
+if [[ "$test_status" -ne 0 ]]; then
+  exit "$test_status"
+fi
+
+if [[ "$report_status" -ne 0 ]]; then
+  exit "$report_status"
+fi
+
+test -s "$test_results_path"
 
 if ! xcrun xcresulttool get test-results summary \
   --path "$work_dir/integration.xcresult" |

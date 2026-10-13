@@ -60,13 +60,26 @@ jobs:
           persist-credentials: false
       - name: Run tests with coverage
         run: |
+          mkdir -p build/test-results
           cp Sealbreak.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved Package.resolved
           swift build --force-resolved-versions --product SealbreakPackageTests --enable-code-coverage -Xswiftc -warnings-as-errors
-          swift test --force-resolved-versions --skip-build --enable-code-coverage -Xswiftc -warnings-as-errors
+          # SwiftPM requires parallel mode to write the XCTest XML report.
+          swift test --force-resolved-versions --skip-build --enable-code-coverage -Xswiftc -warnings-as-errors \
+            --parallel --xunit-output build/test-results/package.junit.xml
           profile="$(find .build -name default.profdata -type f -print -quit)"
           binary="$(find .build -type f -name 'SealbreakPackageTests' -perm -111 -print -quit)"
           test -n "$profile" && test -n "$binary"
           xcrun llvm-cov export "$binary" -instr-profile "$profile" -format=lcov > coverage.lcov
+      - name: Upload Core and Infrastructure test results to Codecov
+        if: ${{ !cancelled() && hashFiles('build/test-results/package.junit.xml', 'build/test-results/package.junit-swift-testing.xml') != '' }}
+        uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
+        with:
+          files: build/test-results/package.junit.xml,build/test-results/package.junit-swift-testing.xml
+          report_type: test_results
+          flags: swift-package
+          disable_search: true
+          fail_ci_if_error: true
+          use_oidc: true
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
         with:
@@ -105,6 +118,8 @@ jobs:
           exit 1
       - name: Compile complete iOS app for Simulator
         run: bash scripts/ci/build.sh simulator
+      - name: Install Xcode test report converter
+        run: brew install xcresultparser
       - name: Run hosted iOS security and presentation tests with coverage
         id: hosted-security-tests
         env:
@@ -118,6 +133,25 @@ jobs:
             -disableAutomaticPackageResolution \
             -skipMacroValidation CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO \
             DEVELOPMENT_TEAM= COMPILER_INDEX_STORE_ENABLE=NO
+      - name: Export hosted iOS AppModule test results
+        if: ${{ !cancelled() && (steps.hosted-security-tests.outcome == 'success' || hashFiles('build/AppModuleTests.xcresult/Info.plist') != '') }}
+        env:
+          DEVELOPER_DIR: /Applications/Xcode_26.6.app/Contents/Developer
+        run: |
+          mkdir -p build/test-results
+          xcresultparser -o junit build/AppModuleTests.xcresult > build/test-results/appmodule.junit.xml.tmp
+          xmllint --noout build/test-results/appmodule.junit.xml.tmp
+          mv build/test-results/appmodule.junit.xml.tmp build/test-results/appmodule.junit.xml
+      - name: Upload hosted iOS AppModule test results to Codecov
+        if: ${{ !cancelled() && hashFiles('build/test-results/appmodule.junit.xml') != '' }}
+        uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
+        with:
+          files: build/test-results/appmodule.junit.xml
+          report_type: test_results
+          flags: appmodule-ios-26.5
+          disable_search: true
+          fail_ci_if_error: true
+          use_oidc: true
       - name: Upload hosted iOS test failure diagnostics
         if: failure() && steps.hosted-security-tests.outcome == 'failure'
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
@@ -192,6 +226,7 @@ jobs:
     timeout-minutes: 20
     permissions:
       contents: read
+      id-token: write
     strategy:
       fail-fast: false
       matrix:
@@ -235,10 +270,22 @@ jobs:
           key: swiftpm-integration-${{ runner.os }}-${{ runner.arch }}-${{ matrix.platform.xcode }}-${{ hashFiles('Sealbreak.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved') }}
           restore-keys: |
             swiftpm-integration-${{ runner.os }}-${{ runner.arch }}-${{ matrix.platform.xcode }}-
+      - name: Install Xcode test report converter
+        run: brew install xcresultparser
       - name: Run real ${{ matrix.server.name }} Shamir integration
         env:
           SEALBREAK_SOURCE_PACKAGES_DIR: ${{ runner.temp }}/sealbreak-source-packages
         run: bash scripts/ci/integration.sh "${{ matrix.server.name }}" "${{ matrix.server.version }}"
+      - name: Upload integration test results to Codecov
+        if: ${{ !cancelled() && hashFiles(format('build/test-results/integration-{0}.junit.xml', matrix.server.name)) != '' }}
+        uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
+        with:
+          files: build/test-results/integration-${{ matrix.server.name }}.junit.xml
+          report_type: test_results
+          flags: integration-${{ matrix.server.name }}-ios-${{ matrix.platform.ios }}
+          disable_search: true
+          fail_ci_if_error: true
+          use_oidc: true
 
   sonar:
     name: CI / sonar
