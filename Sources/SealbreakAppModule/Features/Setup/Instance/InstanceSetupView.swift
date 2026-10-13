@@ -41,25 +41,30 @@ struct InstanceSetupView: View {
                         keyboardType: .URL,
                         error: store.addressValidationError
                     )
-
-                    if store.isCheckingConnection
-                        || store.dnssecStatus != nil
-                        || store.checkedProfile != nil
-                        || store.feedback != nil {
-                        Divider()
-                            .overlay(PapercutPalette.ring)
-
-                        connectionStatus
-                    }
                 }
                 .padding(24)
             }
+            .fixedSize(horizontal: false, vertical: true)
             .frame(maxWidth: 335)
             .padding(.horizontal, 6)
 
             primaryButton
                 .frame(maxWidth: 335)
                 .padding(.horizontal, 6)
+
+            if store.isCheckingConnection
+                || store.dnssecStatus != nil
+                || store.checkedProfile != nil
+                || store.feedback != nil {
+                PapercutCard {
+                    connectionStatus
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(24)
+                }
+                .fixedSize(horizontal: false, vertical: true)
+                .frame(maxWidth: 335)
+                .padding(.horizontal, 6)
+            }
 
             Text("Sealbreak checks the server using normal iOS certificate validation. DNSSEC is reported separately when the hostname can be validated.", bundle: .module)
                 .font(.caption)
@@ -203,15 +208,18 @@ struct InstanceSetupView: View {
                         : "checkmark.shield.fill"
                 )
                 .font(.system(size: 20, weight: .semibold))
+                .frame(width: 30, height: 30)
 
                 Text(primaryButtonTitle)
                     .font(.headline)
                     .multilineTextAlignment(.center)
                     .fixedSize(horizontal: false, vertical: true)
+                    .frame(maxWidth: .infinity)
             }
             .papercutPrimaryButtonAppearance()
         }
         .buttonStyle(.plain)
+        .accessibilityIdentifier("instance-primary-action")
         .accessibilityValue(
             LocalizedStringResource("Checking connection…", bundle: .module),
             isEnabled: store.isCheckingConnection

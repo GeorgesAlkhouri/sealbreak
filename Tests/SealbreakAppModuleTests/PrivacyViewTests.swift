@@ -249,27 +249,29 @@ final class PrivacyViewHost {
     let controller: UIHostingController<AnyView>
     private let previousAnimations = UIView.areAnimationsEnabled
 
-    init<Content: View>(@ViewBuilder content: () -> Content) throws {
+    init<Content: View>(animationsEnabled: Bool = false, @ViewBuilder content: () -> Content) throws {
         let scene = try XCTUnwrap(UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }.first)
         window = UIWindow(windowScene: scene)
         window.frame = CGRect(x: 0, y: 0, width: 402, height: 874)
         window.overrideUserInterfaceStyle = .light
         controller = UIHostingController(rootView: AnyView(content()))
         window.rootViewController = controller
-        UIView.setAnimationsEnabled(false)
+        UIView.setAnimationsEnabled(animationsEnabled)
         UIPasteboard.general.string = PrivacyRootFixture.share
         window.makeKeyAndVisible()
         controller.view.layoutIfNeeded()
     }
 
-    var accessibility: String {
+    var accessibilityElements: [AccessibilityElement] {
         AccessibilityHierarchyParser().parseAccessibilityHierarchy(in: window).flattenToElements()
-            .map(\.description).joined(separator: "\n") + "\n"
+    }
+
+    var accessibility: String {
+        accessibilityElements.map(\.description).joined(separator: "\n") + "\n"
     }
 
     var pasteControlIsEnabled: Bool {
-        let elements = AccessibilityHierarchyParser().parseAccessibilityHierarchy(in: window).flattenToElements()
-        guard let paste = elements.first(where: { $0.label == "Paste" }) else { return false }
+        guard let paste = accessibilityElements.first(where: { $0.label == "Paste" }) else { return false }
         // Read the real UIKit control at the parser's public activation point.
         // This is a readiness check; it does not activate the accessibility element.
         var view = window.hitTest(CGPoint(x: paste.activationPoint.x, y: paste.activationPoint.y), with: nil)
@@ -280,10 +282,14 @@ final class PrivacyViewHost {
         return false
     }
 
-    func waitUntil(_ condition: () -> Bool) async throws {
+    func waitUntil(_ condition: () -> Bool, file: StaticString = #filePath, line: UInt = #line) async throws {
         let deadline = ContinuousClock.now.advanced(by: .seconds(3))
         while !condition() {
-            _ = try XCTUnwrap(ContinuousClock.now < deadline ? true : nil, "Expected real view state did not appear.")
+            _ = try XCTUnwrap(
+                ContinuousClock.now < deadline ? true : nil,
+                "Expected real view state did not appear. Accessibility: \(accessibility)",
+                file: file, line: line
+            )
             try await Task.sleep(for: .milliseconds(10))
         }
         window.layoutIfNeeded()
@@ -332,16 +338,28 @@ final class PrivacyViewHost {
     }
 
     func preparePresentedMaterials() async throws {
-        // Prime the presented native materials before taking the comparison image.
-        // Discard the preparatory render and let the next run loop draw settle.
-        var rendered = false
-        _ = makeRenderer().image { _ in
-            rendered = window.drawHierarchy(in: window.bounds, afterScreenUpdates: true)
+        // Native toolbar text can finish rasterizing after the sheet transition.
+        // A single warm-up and fixed delay are insufficient on a busy CI simulator.
+        // Require stable rendered pixels, while keeping the golden comparison exact.
+        var previous: Data?
+        var unchanged = 0
+        for capture in 0..<8 {
+            window.layoutIfNeeded()
+            freezeSpinners(in: window)
+            var rendered = false
+            let image = makeRenderer().image { _ in
+                rendered = window.drawHierarchy(in: window.bounds, afterScreenUpdates: true)
+            }
+            _ = try XCTUnwrap(rendered ? true : nil, "UIKit must prepare the presented sheet's materials.")
+            let pixels = try XCTUnwrap(image.pngData())
+            unchanged = pixels == previous ? unchanged + 1 : 0
+            previous = pixels
+            if capture >= 3, unchanged >= 2 { return }
+            await Task.yield()
+            try await Task.sleep(for: .milliseconds(60))
         }
-        _ = try XCTUnwrap(rendered ? true : nil, "UIKit must prepare the presented sheet's materials.")
-        await Task.yield()
-        window.layoutIfNeeded()
-        try await Task.sleep(for: .milliseconds(60))
+        XCTFail("Presented sheet rendering did not settle within eight captures.")
+        throw NSError(domain: "PrivacyViewHost", code: 1)
     }
 
     private func makeRenderer() -> UIGraphicsImageRenderer {
@@ -443,11 +461,15 @@ final class PrivacyRootFixture {
 
     func waitForPendingFragment() async throws {
         try await host.waitUntil {
-            let accessibility = host.accessibility
+            let elements = host.accessibilityElements
+            let done = elements.first { $0.label == "Done" }
+            let reveal = elements.first { $0.label?.contains("Show stored share fragment") == true }
             return probe.pendingCount == 1
-                && accessibility.contains("Done. Dimmed. Button.")
-                && accessibility.contains("Show stored share fragment: Hidden. Dimmed. Button.")
-                && !accessibility.contains(fragment.displayValue)
+                && store.home?.serverDetails?.isRevealingShare == true
+                && done?.traits.contains([.button, .notEnabled]) == true
+                && reveal?.traits.contains([.button, .notEnabled]) == true
+                && reveal?.value == "Hidden"
+                && !elements.contains { $0.description.contains(fragment.displayValue) }
         }
         // Commit the actual disabled, concealed view before releasing authorization.
         try await host.preparePresentedMaterials()

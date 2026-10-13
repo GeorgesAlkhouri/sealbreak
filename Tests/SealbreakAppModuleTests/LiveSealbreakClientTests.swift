@@ -119,7 +119,10 @@ struct LiveSealbreakClientTests {
             try await context.waitForEvaluation()
             fixture.platform.block(gate)
             context.complete(success: true)
-            await fixture.clock.advance(by: .seconds(5))
+            if gate == .inactive || gate == .background {
+                try await fixture.platform.waitForSleep()
+                await fixture.clock.advance(by: .seconds(5))
+            }
         }
 
         await #expect(throws: AppFailure.self) { try await task.value }
@@ -127,6 +130,7 @@ struct LiveSealbreakClientTests {
         #expect(try fixture.profiles.loadAll().isEmpty)
         #expect(fixture.factory.created.count == (afterAuthorization ? 1 : 0))
         #expect(context.invalidationCount == (afterAuthorization ? 1 : 0))
+        #expect(fixture.platform.sleepCount == (afterAuthorization && (gate == .inactive || gate == .background) ? 50 : 0))
     }
 
     @Test
@@ -216,6 +220,7 @@ struct LiveSealbreakClientTests {
         try await context.waitForEvaluation()
         fixture.platform.state = .inactive
         context.complete(success: true)
+        try await fixture.platform.waitForSleep()
         await fixture.clock.advance(by: .milliseconds(400))
         #expect(fixture.access.calls.isEmpty)
         #expect(context.invalidationCount == 0)
@@ -231,6 +236,7 @@ struct LiveSealbreakClientTests {
         defer { fixture.cleanUp() }
         let task = fixture.start { try await fixture.controller.waitForForeground() }
         fixture.platform.state = .inactive
+        try await fixture.platform.waitForSleep()
         await fixture.clock.advance(by: .milliseconds(4900))
         #expect(fixture.platform.sleepCount == 50)
         #expect(fixture.access.calls.isEmpty)
@@ -248,6 +254,7 @@ struct LiveSealbreakClientTests {
         try await context.waitForEvaluation()
         fixture.platform.state = .inactive
         context.complete(success: true)
+        try await fixture.platform.waitForSleep()
         await fixture.clock.advance(by: .milliseconds(100))
         task.cancel()
         await #expect(throws: CancellationError.self) { try await task.value }
@@ -349,7 +356,18 @@ final class ControllerPlatform {
     var state: UIApplication.State = .active
     var protectedDataAvailable = true
     var captured = false
-    var sleepCount = 0
+    private(set) var sleepCount = 0
+    private let sleepStarted = XCTestExpectation(description: "Controller starts foreground wait")
+
+    func recordSleep() {
+        sleepCount += 1
+        if sleepCount == 1 { sleepStarted.fulfill() }
+    }
+
+    func waitForSleep() async throws {
+        let result = await XCTWaiter.fulfillment(of: [sleepStarted], timeout: 3)
+        try #require(result == .completed, "Controller did not start its foreground wait after authorization.")
+    }
 
     func block(_ gate: PlatformGate) {
         switch gate {
@@ -397,7 +415,7 @@ final class ControllerFixture {
             protectedDataAvailable: { platform.protectedDataAvailable },
             sceneCaptured: { platform.captured },
             sleep: {
-                platform.sleepCount += 1
+                platform.recordSleep()
                 try await clock.sleep(for: $0)
             }
         )

@@ -30,8 +30,7 @@ struct HomeView: View {
                             }
                         }
                         .padding(.horizontal, 24)
-
-                        Spacer(minLength: 28)
+                        .padding(.bottom, 28)
 
                         ServerStatusCard(
                             state: viewState,
@@ -39,8 +38,7 @@ struct HomeView: View {
                         )
                             .frame(maxWidth: 335)
                             .padding(.horizontal, 29)
-
-                        Spacer(minLength: 26)
+                            .padding(.bottom, 26)
 
                         UnsealButton(state: viewState.primaryAction) {
                             switch viewState.primaryAction {
@@ -68,7 +66,7 @@ struct HomeView: View {
                     }
                     .padding(.top, 10)
                     .frame(maxWidth: .infinity)
-                    .frame(minHeight: proxy.size.height)
+                    .frame(minHeight: proxy.size.height, alignment: .top)
                 }
                 .scrollBounceBehavior(.basedOnSize)
             }
