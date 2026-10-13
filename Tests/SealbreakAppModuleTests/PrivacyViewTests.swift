@@ -417,7 +417,6 @@ final class PrivacyRootFixture {
     init() throws {
         profile = try ServerProfile(id: UUID(), name: "P1 Synthetic Vault", address: "https://bao.example.com", product: .openBao)
         var initial = AppFeature.State()
-        initial.isLoading = false
         initial.didLoad = true
         initial.privacy.phase = .active
         initial.home = HomeFeature.State(profile: profile, status: Self.status)

@@ -13,7 +13,6 @@ package struct AppFeature {
         package var welcome: WelcomeFeature.State?
         package var home: HomeFeature.State?
         package var setup: SetupFeature.State?
-        var isLoading = true
         var didLoad = false
     }
 
@@ -38,7 +37,6 @@ package struct AppFeature {
             case .task:
                 guard !state.didLoad else { return .none }
                 state.didLoad = true
-                state.isLoading = true
                 return .run { send in
                     do {
                         let localSetupState = try await client.loadLocalSetupState()
@@ -52,22 +50,20 @@ package struct AppFeature {
                     }
                 }
 
-            case .localSetupStateLoaded(.success(.empty)):
-                state.isLoading = false
+            case .localSetupStateLoaded(.success(.empty)),
+                 .setup(.delegate(.cancelled)):
                 state.home = nil
                 state.setup = nil
                 state.welcome = WelcomeFeature.State()
                 return .none
 
             case .localSetupStateLoaded(.success(.ready(let profile))):
-                state.isLoading = false
                 state.welcome = nil
                 state.setup = nil
                 state.home = HomeFeature.State(profile: profile)
                 return .send(.home(.refreshRequested))
 
             case .localSetupStateLoaded(.success(.recoveryRequired(let notice))):
-                state.isLoading = false
                 state.home = nil
                 state.setup = nil
                 state.welcome = WelcomeFeature.State(
@@ -77,7 +73,6 @@ package struct AppFeature {
                 return .none
 
             case .localSetupStateLoaded(.failure):
-                state.isLoading = false
                 state.home = nil
                 state.setup = nil
                 state.welcome = WelcomeFeature.State(
@@ -121,12 +116,6 @@ package struct AppFeature {
                 }
                 state.welcome = nil
                 state.setup = SetupFeature.State()
-                return .none
-
-            case .setup(.delegate(.cancelled)):
-                state.home = nil
-                state.setup = nil
-                state.welcome = WelcomeFeature.State()
                 return .none
 
             case .setup(.delegate(.localResetRequired(let feedback))):
