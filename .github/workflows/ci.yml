@@ -161,8 +161,7 @@ jobs:
             -configuration Debug -destination 'platform=iOS Simulator,name=iPhone 17,OS=26.5' \
             -derivedDataPath build/Simulator -only-testing:SealbreakAppModuleTests \
             -enableCodeCoverage YES -resultBundlePath build/AppModuleTests.xcresult \
-            -test-timeouts-enabled YES -default-test-execution-time-allowance 60 \
-            -maximum-test-execution-time-allowance 60 -collect-test-diagnostics on-failure \
+            -test-timeouts-enabled YES -collect-test-diagnostics on-failure \
             "$@" \
             -disableAutomaticPackageResolution \
             -skipMacroValidation CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO \
