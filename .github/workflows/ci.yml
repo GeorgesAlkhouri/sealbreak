@@ -120,8 +120,14 @@ jobs:
           git diff -- \
             Sealbreak.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved
           exit 1
-      - name: Compile complete iOS app for Simulator
-        run: bash scripts/ci/build.sh simulator
+      - name: Build complete iOS app and hosted tests with coverage
+        run: |
+          xcodebuild build-for-testing -project Sealbreak.xcodeproj -scheme Sealbreak \
+            -configuration Debug -destination 'platform=iOS Simulator,name=iPhone 17,OS=26.5' \
+            -derivedDataPath build/Simulator -only-testing:SealbreakAppModuleTests \
+            -enableCodeCoverage YES -disableAutomaticPackageResolution \
+            -skipMacroValidation CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO \
+            DEVELOPMENT_TEAM= COMPILER_INDEX_STORE_ENABLE=NO SWIFT_EMIT_LOC_STRINGS=YES
       - name: Run hosted iOS security and presentation tests with coverage
         id: hosted-security-tests
         env:
@@ -135,7 +141,7 @@ jobs:
             *) echo '::error::Unsupported hosted test iteration count'; exit 1 ;;
           esac
           xcodebuild -version
-          xcodebuild test -project Sealbreak.xcodeproj -scheme Sealbreak \
+          xcodebuild test-without-building -project Sealbreak.xcodeproj -scheme Sealbreak \
             -configuration Debug -destination 'platform=iOS Simulator,name=iPhone 17,OS=26.5' \
             -derivedDataPath build/Simulator -only-testing:SealbreakAppModuleTests \
             -enableCodeCoverage YES -resultBundlePath build/AppModuleTests.xcresult \
