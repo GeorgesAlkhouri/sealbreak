@@ -384,7 +384,6 @@ final class PrivacyViewHost {
         // Use the same perceptual comparison as the snapshot assertion: harmless
         // glass color variations must not keep the preparation loop running.
         var previous: UIImage?
-        var captures: [UIImage] = []
         var matchingCaptures = 0
         for capture in 0..<8 {
             window.layoutIfNeeded()
@@ -394,21 +393,12 @@ final class PrivacyViewHost {
                 rendered = window.drawHierarchy(in: window.bounds, afterScreenUpdates: true)
             }
             _ = try XCTUnwrap(rendered ? true : nil, "UIKit must prepare the presented sheet's materials.")
-            captures.append(image)
             let matchesPrevious = previous.map { Self.imageStrategy.diffing.diffV2($0, image) == nil } ?? false
             matchingCaptures = matchesPrevious ? matchingCaptures + 1 : 0
             previous = image
             if capture >= 3, matchingCaptures >= 2 { return }
             await Task.yield()
             try await Task.sleep(for: .milliseconds(60))
-        }
-        XCTContext.runActivity(named: "Unstable presented sheet") { activity in
-            for (index, image) in captures.enumerated() {
-                let attachment = XCTAttachment(image: image)
-                attachment.name = "unsettled-sheet-frame-\(index)"
-                attachment.lifetime = .keepAlways
-                activity.add(attachment)
-            }
         }
         XCTFail("Presented sheet rendering did not settle within eight captures.")
         throw NSError(domain: "PrivacyViewHost", code: 1)

@@ -11,20 +11,6 @@ on:
         description: PR number for manually dispatched PR checks
         required: false
         type: string
-      hosted_test_iterations:
-        description: Repeat the complete hosted iOS suite until its first failure
-        type: choice
-        default: '1'
-        options: ['1', '5', '10']
-      record_hosted_video:
-        description: Record the simulator display alongside hosted test screenshots
-        required: false
-        type: boolean
-        default: false
-      hosted_baseline_ref:
-        description: Optional commit SHA for a second hosted suite with identical CI settings
-        required: false
-        type: string
 
 permissions:
   contents: read
@@ -91,11 +77,7 @@ jobs:
           use_oidc: true
 
   build:
-    name: ${{ matrix.source == 'baseline' && 'CI / iOS app / baseline' || 'CI / iOS app' }}
-    strategy:
-      fail-fast: false
-      matrix:
-        source: ${{ fromJSON(inputs.hosted_baseline_ref && '["current", "baseline"]' || '["current"]') }}
+    name: CI / iOS app
     runs-on: macos-26
     timeout-minutes: 30
     permissions:
@@ -106,16 +88,8 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
-          ref: ${{ matrix.source == 'baseline' && inputs.hosted_baseline_ref || github.event.pull_request.head.sha || github.sha }}
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
           persist-credentials: false
-      - name: Record tested source and toolchain
-        run: |
-          mkdir -p build
-          {
-            git rev-parse HEAD
-            xcodebuild -version
-            sw_vers
-          } | tee build/hosted-test-environment.txt
       - name: Restore Swift package sources
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
         with:
@@ -151,73 +125,23 @@ jobs:
             DEVELOPMENT_TEAM= COMPILER_INDEX_STORE_ENABLE=NO SWIFT_EMIT_LOC_STRINGS=YES
       - name: Run hosted iOS security and presentation tests with coverage
         id: hosted-security-tests
-        env:
-          TEST_ITERATIONS: ${{ inputs.hosted_test_iterations || '1' }}
-          RECORD_VIDEO: ${{ inputs.record_hosted_video || false }}
         run: |
           set -euo pipefail
-          set --
-          case "$TEST_ITERATIONS" in
-            1) ;;
-            5|10) set -- -test-iterations "$TEST_ITERATIONS" -run-tests-until-failure -test-repetition-relaunch-enabled YES ;;
-            *) echo '::error::Unsupported hosted test iteration count'; exit 1 ;;
-          esac
-          destination='platform=iOS Simulator,name=iPhone 17,OS=26.5'
-          if [[ "$RECORD_VIDEO" == true ]]; then
-            simulator_id="$(xcrun simctl list devices available -j | jq -er '
-              [.devices["com.apple.CoreSimulator.SimRuntime.iOS-26-5"][] |
-               select(.name == "iPhone 17") | .udid] |
-              if length == 1 then .[0] else error("Expected one iPhone 17 simulator") end')"
-            destination="platform=iOS Simulator,id=$simulator_id"
-            xcrun simctl bootstatus "$simulator_id" -b
-            xcrun simctl io "$simulator_id" recordVideo --codec=h264 \
-              build/hosted-tests.mp4 > build/hosted-video.log 2>&1 &
-            video_pid=$!
-            stop_video() {
-              kill -INT "$video_pid" 2>/dev/null || true
-              wait "$video_pid" || true
-            }
-            trap stop_video EXIT
-            for _ in {1..30}; do
-              if grep -q 'Recording started' build/hosted-video.log; then break; fi
-              kill -0 "$video_pid"
-              sleep 1
-            done
-            if ! grep -q 'Recording started' build/hosted-video.log; then
-              cat build/hosted-video.log
-              exit 1
-            fi
-          fi
           xcodebuild -version
           xcodebuild test-without-building -project Sealbreak.xcodeproj -scheme Sealbreak \
-            -configuration Debug -destination "$destination" \
+            -configuration Debug -destination 'platform=iOS Simulator,name=iPhone 17,OS=26.5' \
             -derivedDataPath build/Simulator -only-testing:SealbreakAppModuleTests \
             -enableCodeCoverage YES -resultBundlePath build/AppModuleTests.xcresult \
             -test-timeouts-enabled YES -collect-test-diagnostics on-failure \
-            "$@" \
             -disableAutomaticPackageResolution \
             -skipMacroValidation CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO \
             DEVELOPMENT_TEAM= COMPILER_INDEX_STORE_ENABLE=NO
-      - name: Package CI-built tests for local reproduction
-        if: >-
-          !cancelled() && github.event_name == 'workflow_dispatch' &&
-          (steps.hosted-security-tests.outcome == 'success' || steps.hosted-security-tests.outcome == 'failure')
-        run: tar -czf build/hosted-test-products.tar.gz -C build/Simulator/Build Products
-      - name: Upload hosted iOS test diagnostics
-        if: >-
-          !cancelled() &&
-          (steps.hosted-security-tests.outcome == 'failure' ||
-           (steps.hosted-security-tests.outcome == 'success' &&
-            github.event_name == 'workflow_dispatch'))
+      - name: Upload hosted iOS test failure diagnostics
+        if: failure() && steps.hosted-security-tests.outcome == 'failure'
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: hosted-ios-tests-${{ matrix.source }}-${{ github.run_attempt }}
-          path: |
-            build/AppModuleTests.xcresult
-            build/hosted-test-environment.txt
-            build/hosted-test-products.tar.gz
-            build/hosted-tests.mp4
-            build/hosted-video.log
+          name: hosted-ios-test-failure-${{ github.run_attempt }}
+          path: build/AppModuleTests.xcresult
           if-no-files-found: error
           retention-days: 7
       - name: Export hosted iOS AppModule and Infrastructure coverage
@@ -234,7 +158,6 @@ jobs:
             > ios-coverage.lcov
           grep -q '^SF:' ios-coverage.lcov
       - name: Upload hosted iOS coverage to Codecov
-        if: matrix.source == 'current'
         uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
         with:
           files: ios-coverage.lcov
