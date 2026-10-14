@@ -282,7 +282,8 @@ jobs:
   integration:
     name: CI / integration / ${{ matrix.server.name }} / iOS ${{ matrix.platform.ios }}
     runs-on: ${{ matrix.platform.runner }}
-    timeout-minutes: 20
+    # A cold Xcode 27 build can consume almost 20 minutes before cleanup.
+    timeout-minutes: 30
     permissions:
       contents: read
     strategy:
