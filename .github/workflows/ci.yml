@@ -11,6 +11,11 @@ on:
         description: PR number for manually dispatched PR checks
         required: false
         type: string
+      animation_diagnosis:
+        description: Repeat only the hosted icon animation test
+        required: false
+        default: false
+        type: boolean
 
 permissions:
   contents: read
@@ -20,7 +25,41 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
+  animation-diagnosis:
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.animation_diagnosis }}
+    name: Repeat hosted icon animation test
+    runs-on: macos-26
+    timeout-minutes: 30
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_26.6.app/Contents/Developer
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - name: Repeat the original animation test until failure
+        run: |
+          xcodebuild -version
+          xcodebuild test -project Sealbreak.xcodeproj -scheme Sealbreak \
+            -configuration Debug -destination 'platform=iOS Simulator,name=iPhone 17,OS=26.5' \
+            -derivedDataPath build/Simulator \
+            -only-testing:SealbreakAppModuleTests/ButtonLayoutTests/testOfflineStatusRefreshKeepsPrimaryActionPositionForEveryStatus \
+            -test-iterations 25 -run-tests-until-failure \
+            -test-repetition-relaunch-enabled YES \
+            -enableCodeCoverage YES -resultBundlePath build/IconAnimationTests.xcresult \
+            -disableAutomaticPackageResolution -skipMacroValidation \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO \
+            DEVELOPMENT_TEAM= COMPILER_INDEX_STORE_ENABLE=NO
+      - name: Retain measured animation frames and test results
+        if: ${{ always() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: icon-animation-diagnosis-${{ github.run_attempt }}
+          path: build/IconAnimationTests.xcresult
+          if-no-files-found: error
+          retention-days: 7
+
   quality:
+    if: ${{ !inputs.animation_diagnosis }}
     name: CI / quality
     runs-on: macos-26
     timeout-minutes: 20
@@ -47,6 +86,7 @@ jobs:
         run: pre-commit run --all-files --show-diff-on-failure
 
   tests:
+    if: ${{ !inputs.animation_diagnosis }}
     name: CI / Swift package tests
     runs-on: macos-26
     timeout-minutes: 20
@@ -75,6 +115,7 @@ jobs:
           use_oidc: true
 
   build:
+    if: ${{ !inputs.animation_diagnosis }}
     name: CI / iOS app
     runs-on: macos-26
     timeout-minutes: 30
@@ -187,6 +228,7 @@ jobs:
           exit 1
 
   integration:
+    if: ${{ !inputs.animation_diagnosis }}
     name: CI / integration / ${{ matrix.server.name }} / iOS ${{ matrix.platform.ios }}
     runs-on: ${{ matrix.platform.runner }}
     timeout-minutes: 20
@@ -241,6 +283,7 @@ jobs:
         run: bash scripts/ci/integration.sh "${{ matrix.server.name }}" "${{ matrix.server.version }}"
 
   sonar:
+    if: ${{ !inputs.animation_diagnosis }}
     name: CI / sonar
     runs-on: ubuntu-26.04
     timeout-minutes: 20
@@ -265,7 +308,7 @@ jobs:
 
   ready:
     name: CI / ready
-    if: ${{ always() }}
+    if: ${{ always() && !inputs.animation_diagnosis }}
     needs: [quality, tests, build, integration, sonar]
     runs-on: ubuntu-26.04
     timeout-minutes: 5
