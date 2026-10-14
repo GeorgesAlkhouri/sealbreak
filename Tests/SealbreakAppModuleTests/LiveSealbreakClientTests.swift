@@ -116,29 +116,33 @@ extension SerialExecutorTests {
 
         @Test(arguments: PlatformGate.allCases, [false, true])
         func platformGatesPreventStorageBeforeAndAfterAuthorization(gate: PlatformGate, afterAuthorization: Bool) async throws {
-            // These cases only inspect the final rejection. Advance each sleep
-            // immediately instead of racing a bulk TestClock advance against 50 polls.
-            let clock = ImmediateClock<Duration>()
-            let start = clock.now
-            let fixture = try ControllerFixture(sleep: { try await clock.sleep(for: $0) })
-            defer { fixture.cleanUp() }
-            let context = fixture.factory.next
-            if !afterAuthorization { fixture.platform.block(gate) }
-            let task = fixture.start { try await fixture.perform(.create) }
-            if afterAuthorization {
-                try await context.waitForEvaluation()
-                fixture.platform.block(gate)
-                context.complete(success: true)
-            }
+            try await withMainSerialExecutor {
+                // ImmediateClock also yields through the global executor. Keep those
+                // yields on the serial executor instead of racing background scheduling.
+                // These cases only inspect the final rejection. Advance each sleep
+                // immediately instead of racing a bulk TestClock advance against 50 polls.
+                let clock = ImmediateClock<Duration>()
+                let start = clock.now
+                let fixture = try ControllerFixture(sleep: { try await clock.sleep(for: $0) })
+                defer { fixture.cleanUp() }
+                let context = fixture.factory.next
+                if !afterAuthorization { fixture.platform.block(gate) }
+                let task = fixture.start { try await fixture.perform(.create) }
+                if afterAuthorization {
+                    try await context.waitForEvaluation()
+                    fixture.platform.block(gate)
+                    context.complete(success: true)
+                }
 
-            await #expect(throws: AppFailure.self) { try await task.value }
-            #expect(fixture.access.calls.isEmpty)
-            #expect(try fixture.profiles.loadAll().isEmpty)
-            #expect(fixture.factory.created.count == (afterAuthorization ? 1 : 0))
-            #expect(context.invalidationCount == (afterAuthorization ? 1 : 0))
-            let waitsForForeground = afterAuthorization && (gate == .inactive || gate == .background)
-            #expect(fixture.platform.sleepCount == (waitsForForeground ? 50 : 0))
-            #expect(start.duration(to: clock.now) == (waitsForForeground ? .seconds(5) : .zero))
+                await #expect(throws: AppFailure.self) { try await task.value }
+                #expect(fixture.access.calls.isEmpty)
+                #expect(try fixture.profiles.loadAll().isEmpty)
+                #expect(fixture.factory.created.count == (afterAuthorization ? 1 : 0))
+                #expect(context.invalidationCount == (afterAuthorization ? 1 : 0))
+                let waitsForForeground = afterAuthorization && (gate == .inactive || gate == .background)
+                #expect(fixture.platform.sleepCount == (waitsForForeground ? 50 : 0))
+                #expect(start.duration(to: clock.now) == (waitsForForeground ? .seconds(5) : .zero))
+            }
         }
 
         @Test
