@@ -9,278 +9,293 @@ import XCTest
 @testable import SealbreakCore
 @testable import SealbreakInfrastructure
 
-@Suite(.timeLimit(.minutes(1)))
-@MainActor
-struct LiveSealbreakClientTests {
-    @Test(arguments: ProtectedAction.allCases)
-    func protectedActionsWaitForFreshFaceIDBeforeStorage(action: ProtectedAction) async throws {
-        let fixture = try ControllerFixture(ready: action.requiresReadyProfile)
-        defer { fixture.cleanUp() }
-        let context = fixture.factory.next
-        let task = fixture.start { try await fixture.perform(action) }
-        try await context.waitForEvaluation()
+// TestStore and withMainSerialExecutor both change Swift's process-wide executor hook.
+// Keep their owning suites in one serialized scope so restoration cannot overlap.
+@Suite(.serialized)
+struct SerialExecutorTests {}
 
-        #expect(fixture.access.calls.isEmpty)
-        #expect(context.availabilityPolicies == [.deviceOwnerAuthenticationWithBiometrics])
-        #expect(context.evaluationPolicies == [.deviceOwnerAuthenticationWithBiometrics])
-        #expect(context.reasons == ["Synthetic authorization"])
-        #expect(context.localizedFallbackTitle == "")
-        #expect(context.touchIDAuthenticationAllowableReuseDuration == 0)
-        #expect(context.invalidationCount == 0)
-        if !action.requiresReadyProfile {
-            #expect(try fixture.profiles.loadAll().isEmpty)
-        }
-
-        context.complete(success: true)
-        try await task.value
-
-        #expect(fixture.access.calls.map(\.operation) == action.expectedCalls)
-        #expect(fixture.access.calls.allSatisfy { $0.context === context && $0.interactionNotAllowed })
-        #expect(context.invalidationCount == 1)
-        if action == .create {
-            #expect(fixture.lastOutcome == .completed)
-            #expect(try fixture.profiles.loadAll().map(\.state) == [.ready])
-        } else if action == .remove {
-            #expect(fixture.lastOutcome == .completed)
-            #expect(try fixture.profiles.loadAll().isEmpty)
-        }
-        fixture.controller.cancelSensitiveOperation()
-        #expect(context.invalidationCount == 1, "Completed context must no longer be active.")
-    }
-
-    @Test
-    func eachProtectedReadUsesANewContextAndFragmentIsMinimized() async throws {
-        let fixture = try ControllerFixture()
-        defer { fixture.cleanUp() }
-        let first = fixture.factory.next
-        let read = fixture.start {
-            try await fixture.controller.readShare(profileID: fixture.profile.id, reason: ControllerFixture.reason)
-        }
-        try await first.waitForEvaluation()
-        first.complete(success: true)
-        #expect(try await read.value == fixture.record)
-
-        let second = fixture.factory.next
-        let reveal = fixture.start {
-            try await fixture.controller.readShareFragment(profileID: fixture.profile.id, reason: ControllerFixture.reason)
-        }
-        try await second.waitForEvaluation()
-        #expect(first !== second)
-        #expect(first.invalidationCount == 1)
-        #expect(fixture.access.calls.count == 1)
-        second.complete(success: true)
-        #expect(try await reveal.value == ShareComparisonFragment(validatedShare: fixture.record.share))
-        #expect(second.invalidationCount == 1)
-        #expect(fixture.access.calls.map(\.context) == [first, second])
-    }
-
-    @Test(arguments: AvailabilityFailure.allCases)
-    func unavailableOrNonFaceIDCannotAccessStorage(failure: AvailabilityFailure) async throws {
-        let fixture = try ControllerFixture()
-        defer { fixture.cleanUp() }
-        let context = fixture.factory.next
-        context.available = failure == .touchID
-        context.availabilityError = failure.error
-        context.biometry = failure == .touchID ? .touchID : .faceID
-
-        let task = fixture.start { try await fixture.perform(.read) }
-        let error = await #expect(throws: AppFailure.self) { try await task.value }
-        #expect(error?.feedback.level == .error)
-        #expect(String(localized: try #require(error).feedback.text).contains(failure.expectedMessage))
-        #expect(context.evaluationPolicies.isEmpty)
-        #expect(context.invalidationCount == 1)
-        #expect(fixture.access.calls.isEmpty)
-    }
-
-    @Test(arguments: EvaluationFailure.allCases)
-    func unsuccessfulEvaluationNeverAccessesStorage(failure: EvaluationFailure) async throws {
-        let fixture = try ControllerFixture(ready: true)
-        defer { fixture.cleanUp() }
-        let context = fixture.factory.next
-        let task = fixture.start { try await fixture.perform(.replace) }
-        try await context.waitForEvaluation()
-        context.complete(success: false, error: failure.error)
-
-        let error = await #expect(throws: AppFailure.self) { try await task.value }
-        #expect(error?.feedback.level == failure.expectedLevel)
-        #expect(context.invalidationCount == 1)
-        #expect(fixture.access.calls.isEmpty)
-        #expect(try fixture.profiles.loadAll().map(\.state) == [.ready])
-    }
-
-    @Test(arguments: PlatformGate.allCases, [false, true])
-    func platformGatesPreventStorageBeforeAndAfterAuthorization(gate: PlatformGate, afterAuthorization: Bool) async throws {
-        let fixture = try ControllerFixture()
-        defer { fixture.cleanUp() }
-        let context = fixture.factory.next
-        if !afterAuthorization { fixture.platform.block(gate) }
-        let task = fixture.start { try await fixture.perform(.create) }
-        if afterAuthorization {
+extension SerialExecutorTests {
+    @Suite(.timeLimit(.minutes(1)))
+    @MainActor
+    struct LiveSealbreakClientTests {
+        @Test(arguments: ProtectedAction.allCases)
+        func protectedActionsWaitForFreshFaceIDBeforeStorage(action: ProtectedAction) async throws {
+            let fixture = try ControllerFixture(ready: action.requiresReadyProfile)
+            defer { fixture.cleanUp() }
+            let context = fixture.factory.next
+            let task = fixture.start { try await fixture.perform(action) }
             try await context.waitForEvaluation()
-            fixture.platform.block(gate)
+
+            #expect(fixture.access.calls.isEmpty)
+            #expect(context.availabilityPolicies == [.deviceOwnerAuthenticationWithBiometrics])
+            #expect(context.evaluationPolicies == [.deviceOwnerAuthenticationWithBiometrics])
+            #expect(context.reasons == ["Synthetic authorization"])
+            #expect(context.localizedFallbackTitle == "")
+            #expect(context.touchIDAuthenticationAllowableReuseDuration == 0)
+            #expect(context.invalidationCount == 0)
+            if !action.requiresReadyProfile {
+                #expect(try fixture.profiles.loadAll().isEmpty)
+            }
+
             context.complete(success: true)
-            if gate == .inactive || gate == .background {
+            try await task.value
+
+            #expect(fixture.access.calls.map(\.operation) == action.expectedCalls)
+            #expect(fixture.access.calls.allSatisfy { $0.context === context && $0.interactionNotAllowed })
+            #expect(context.invalidationCount == 1)
+            if action == .create {
+                #expect(fixture.lastOutcome == .completed)
+                #expect(try fixture.profiles.loadAll().map(\.state) == [.ready])
+            } else if action == .remove {
+                #expect(fixture.lastOutcome == .completed)
+                #expect(try fixture.profiles.loadAll().isEmpty)
+            }
+            fixture.controller.cancelSensitiveOperation()
+            #expect(context.invalidationCount == 1, "Completed context must no longer be active.")
+        }
+
+        @Test
+        func eachProtectedReadUsesANewContextAndFragmentIsMinimized() async throws {
+            let fixture = try ControllerFixture()
+            defer { fixture.cleanUp() }
+            let first = fixture.factory.next
+            let read = fixture.start {
+                try await fixture.controller.readShare(profileID: fixture.profile.id, reason: ControllerFixture.reason)
+            }
+            try await first.waitForEvaluation()
+            first.complete(success: true)
+            #expect(try await read.value == fixture.record)
+
+            let second = fixture.factory.next
+            let reveal = fixture.start {
+                try await fixture.controller.readShareFragment(profileID: fixture.profile.id, reason: ControllerFixture.reason)
+            }
+            try await second.waitForEvaluation()
+            #expect(first !== second)
+            #expect(first.invalidationCount == 1)
+            #expect(fixture.access.calls.count == 1)
+            second.complete(success: true)
+            #expect(try await reveal.value == ShareComparisonFragment(validatedShare: fixture.record.share))
+            #expect(second.invalidationCount == 1)
+            #expect(fixture.access.calls.map(\.context) == [first, second])
+        }
+
+        @Test(arguments: AvailabilityFailure.allCases)
+        func unavailableOrNonFaceIDCannotAccessStorage(failure: AvailabilityFailure) async throws {
+            let fixture = try ControllerFixture()
+            defer { fixture.cleanUp() }
+            let context = fixture.factory.next
+            context.available = failure == .touchID
+            context.availabilityError = failure.error
+            context.biometry = failure == .touchID ? .touchID : .faceID
+
+            let task = fixture.start { try await fixture.perform(.read) }
+            let error = await #expect(throws: AppFailure.self) { try await task.value }
+            #expect(error?.feedback.level == .error)
+            #expect(String(localized: try #require(error).feedback.text).contains(failure.expectedMessage))
+            #expect(context.evaluationPolicies.isEmpty)
+            #expect(context.invalidationCount == 1)
+            #expect(fixture.access.calls.isEmpty)
+        }
+
+        @Test(arguments: EvaluationFailure.allCases)
+        func unsuccessfulEvaluationNeverAccessesStorage(failure: EvaluationFailure) async throws {
+            let fixture = try ControllerFixture(ready: true)
+            defer { fixture.cleanUp() }
+            let context = fixture.factory.next
+            let task = fixture.start { try await fixture.perform(.replace) }
+            try await context.waitForEvaluation()
+            context.complete(success: false, error: failure.error)
+
+            let error = await #expect(throws: AppFailure.self) { try await task.value }
+            #expect(error?.feedback.level == failure.expectedLevel)
+            #expect(context.invalidationCount == 1)
+            #expect(fixture.access.calls.isEmpty)
+            #expect(try fixture.profiles.loadAll().map(\.state) == [.ready])
+        }
+
+        @Test(arguments: PlatformGate.allCases, [false, true])
+        func platformGatesPreventStorageBeforeAndAfterAuthorization(gate: PlatformGate, afterAuthorization: Bool) async throws {
+            // These cases only inspect the final rejection. Advance each sleep
+            // immediately instead of racing a bulk TestClock advance against 50 polls.
+            let clock = ImmediateClock<Duration>()
+            let start = clock.now
+            let fixture = try ControllerFixture(sleep: { try await clock.sleep(for: $0) })
+            defer { fixture.cleanUp() }
+            let context = fixture.factory.next
+            if !afterAuthorization { fixture.platform.block(gate) }
+            let task = fixture.start { try await fixture.perform(.create) }
+            if afterAuthorization {
+                try await context.waitForEvaluation()
+                fixture.platform.block(gate)
+                context.complete(success: true)
+            }
+
+            await #expect(throws: AppFailure.self) { try await task.value }
+            #expect(fixture.access.calls.isEmpty)
+            #expect(try fixture.profiles.loadAll().isEmpty)
+            #expect(fixture.factory.created.count == (afterAuthorization ? 1 : 0))
+            #expect(context.invalidationCount == (afterAuthorization ? 1 : 0))
+            let waitsForForeground = afterAuthorization && (gate == .inactive || gate == .background)
+            #expect(fixture.platform.sleepCount == (waitsForForeground ? 50 : 0))
+            #expect(start.duration(to: clock.now) == (waitsForForeground ? .seconds(5) : .zero))
+        }
+
+        @Test
+        func replacementRechecksPrivacyAfterReadingBeforeUpdating() async throws {
+            let fixture = try ControllerFixture(ready: true)
+            defer { fixture.cleanUp() }
+            fixture.access.beforeCall = { operation in
+                if operation == "read" { fixture.platform.captured = true }
+            }
+            let context = fixture.factory.next
+            let task = fixture.start { try await fixture.perform(.replace) }
+            try await context.waitForEvaluation()
+            context.complete(success: true)
+            await #expect(throws: AppFailure.self) { try await task.value }
+            #expect(fixture.access.calls.map(\.operation) == ["read"])
+            #expect(context.invalidationCount == 1)
+        }
+
+        @Test
+        func cancellationBeforeStartingDoesNotCreateAContext() async throws {
+            let fixture = try ControllerFixture()
+            defer { fixture.cleanUp() }
+            let task = fixture.start { try await fixture.perform(.read) }
+            task.cancel()
+            await #expect(throws: CancellationError.self) { try await task.value }
+            #expect(fixture.factory.created.isEmpty)
+            #expect(fixture.access.calls.isEmpty)
+        }
+
+        @Test
+        func taskCancellationDuringEvaluationBlocksStorageAndInvalidatesContext() async throws {
+            let fixture = try ControllerFixture()
+            defer { fixture.cleanUp() }
+            let context = fixture.factory.next
+            let task = fixture.start { try await fixture.perform(.fragment) }
+            try await context.waitForEvaluation()
+            task.cancel()
+            #expect(fixture.access.calls.isEmpty)
+            context.complete(success: true)
+            await #expect(throws: CancellationError.self) { try await task.value }
+            #expect(context.invalidationCount == 1)
+            #expect(fixture.access.calls.isEmpty)
+        }
+
+        @Test
+        func explicitlyInvalidatedLateSuccessCannotAccessStorage() async throws {
+            let fixture = try ControllerFixture()
+            defer { fixture.cleanUp() }
+            let context = fixture.factory.next
+            let task = fixture.start { try await fixture.perform(.read) }
+            try await context.waitForEvaluation()
+            fixture.controller.cancelSensitiveOperation()
+            #expect(context.invalidationCount == 1)
+            context.complete(success: true)
+            await #expect(throws: CancellationError.self) { try await task.value }
+            #expect(fixture.access.calls.isEmpty)
+        }
+
+        @Test
+        func replacedLateSuccessCannotAccessStorageOrClearTheNewerContext() async throws {
+            let fixture = try ControllerFixture()
+            defer { fixture.cleanUp() }
+            let older = fixture.factory.next
+            let oldTask = fixture.start { try await fixture.perform(.read) }
+            try await older.waitForEvaluation()
+            let newer = fixture.factory.next
+            let newTask = fixture.start { try await fixture.perform(.fragment) }
+            try await newer.waitForEvaluation()
+
+            older.complete(success: true)
+            await #expect(throws: CancellationError.self) { try await oldTask.value }
+            #expect(older.invalidationCount == 1)
+            #expect(newer.invalidationCount == 0)
+            #expect(fixture.access.calls.isEmpty)
+            newer.complete(success: true)
+            try await newTask.value
+            #expect(fixture.access.calls.map(\.context) == [newer])
+            #expect(newer.invalidationCount == 1)
+        }
+
+        @Test
+        func transientInactivityWaitsAndThenUsesTheAuthorizedContext() async throws {
+            try await withMainSerialExecutor {
+                let fixture = try ControllerFixture()
+                defer { fixture.cleanUp() }
+                let context = fixture.factory.next
+                let task = fixture.start { try await fixture.perform(.read) }
+                try await context.waitForEvaluation()
+                fixture.platform.state = .inactive
+                context.complete(success: true)
                 try await fixture.platform.waitForSleep()
-                await fixture.clock.advance(by: .seconds(5))
+                await fixture.clock.advance(by: .milliseconds(400))
+                #expect(fixture.access.calls.isEmpty)
+                #expect(context.invalidationCount == 0)
+                fixture.platform.state = .active
+                await fixture.clock.advance(by: .milliseconds(100))
+                try await task.value
+                #expect(fixture.access.calls.map(\.context) == [context])
             }
         }
 
-        await #expect(throws: AppFailure.self) { try await task.value }
-        #expect(fixture.access.calls.isEmpty)
-        #expect(try fixture.profiles.loadAll().isEmpty)
-        #expect(fixture.factory.created.count == (afterAuthorization ? 1 : 0))
-        #expect(context.invalidationCount == (afterAuthorization ? 1 : 0))
-        #expect(fixture.platform.sleepCount == (afterAuthorization && (gate == .inactive || gate == .background) ? 50 : 0))
-    }
-
-    @Test
-    func replacementRechecksPrivacyAfterReadingBeforeUpdating() async throws {
-        let fixture = try ControllerFixture(ready: true)
-        defer { fixture.cleanUp() }
-        fixture.access.beforeCall = { operation in
-            if operation == "read" { fixture.platform.captured = true }
+        @Test
+        func foregroundWaitHasABoundedTimeout() async throws {
+            try await withMainSerialExecutor {
+                let fixture = try ControllerFixture()
+                defer { fixture.cleanUp() }
+                let task = fixture.start { try await fixture.controller.waitForForeground() }
+                fixture.platform.state = .inactive
+                try await fixture.platform.waitForSleep()
+                await fixture.clock.advance(by: .milliseconds(4900))
+                #expect(fixture.platform.sleepCount == 50)
+                #expect(fixture.access.calls.isEmpty)
+                await fixture.clock.advance(by: .milliseconds(100))
+                await #expect(throws: AppFailure.self) { try await task.value }
+                #expect(fixture.platform.sleepCount == 50)
+            }
         }
-        let context = fixture.factory.next
-        let task = fixture.start { try await fixture.perform(.replace) }
-        try await context.waitForEvaluation()
-        context.complete(success: true)
-        await #expect(throws: AppFailure.self) { try await task.value }
-        #expect(fixture.access.calls.map(\.operation) == ["read"])
-        #expect(context.invalidationCount == 1)
-    }
 
-    @Test
-    func cancellationBeforeStartingDoesNotCreateAContext() async throws {
-        let fixture = try ControllerFixture()
-        defer { fixture.cleanUp() }
-        let task = fixture.start { try await fixture.perform(.read) }
-        task.cancel()
-        await #expect(throws: CancellationError.self) { try await task.value }
-        #expect(fixture.factory.created.isEmpty)
-        #expect(fixture.access.calls.isEmpty)
-    }
-
-    @Test
-    func taskCancellationDuringEvaluationBlocksStorageAndInvalidatesContext() async throws {
-        let fixture = try ControllerFixture()
-        defer { fixture.cleanUp() }
-        let context = fixture.factory.next
-        let task = fixture.start { try await fixture.perform(.fragment) }
-        try await context.waitForEvaluation()
-        task.cancel()
-        #expect(fixture.access.calls.isEmpty)
-        context.complete(success: true)
-        await #expect(throws: CancellationError.self) { try await task.value }
-        #expect(context.invalidationCount == 1)
-        #expect(fixture.access.calls.isEmpty)
-    }
-
-    @Test
-    func explicitlyInvalidatedLateSuccessCannotAccessStorage() async throws {
-        let fixture = try ControllerFixture()
-        defer { fixture.cleanUp() }
-        let context = fixture.factory.next
-        let task = fixture.start { try await fixture.perform(.read) }
-        try await context.waitForEvaluation()
-        fixture.controller.cancelSensitiveOperation()
-        #expect(context.invalidationCount == 1)
-        context.complete(success: true)
-        await #expect(throws: CancellationError.self) { try await task.value }
-        #expect(fixture.access.calls.isEmpty)
-    }
-
-    @Test
-    func replacedLateSuccessCannotAccessStorageOrClearTheNewerContext() async throws {
-        let fixture = try ControllerFixture()
-        defer { fixture.cleanUp() }
-        let older = fixture.factory.next
-        let oldTask = fixture.start { try await fixture.perform(.read) }
-        try await older.waitForEvaluation()
-        let newer = fixture.factory.next
-        let newTask = fixture.start { try await fixture.perform(.fragment) }
-        try await newer.waitForEvaluation()
-
-        older.complete(success: true)
-        await #expect(throws: CancellationError.self) { try await oldTask.value }
-        #expect(older.invalidationCount == 1)
-        #expect(newer.invalidationCount == 0)
-        #expect(fixture.access.calls.isEmpty)
-        newer.complete(success: true)
-        try await newTask.value
-        #expect(fixture.access.calls.map(\.context) == [newer])
-        #expect(newer.invalidationCount == 1)
-    }
-
-    @Test
-    func transientInactivityWaitsAndThenUsesTheAuthorizedContext() async throws {
-        let fixture = try ControllerFixture()
-        defer { fixture.cleanUp() }
-        let context = fixture.factory.next
-        let task = fixture.start { try await fixture.perform(.read) }
-        try await context.waitForEvaluation()
-        fixture.platform.state = .inactive
-        context.complete(success: true)
-        try await fixture.platform.waitForSleep()
-        await fixture.clock.advance(by: .milliseconds(400))
-        #expect(fixture.access.calls.isEmpty)
-        #expect(context.invalidationCount == 0)
-        fixture.platform.state = .active
-        await fixture.clock.advance(by: .milliseconds(100))
-        try await task.value
-        #expect(fixture.access.calls.map(\.context) == [context])
-    }
-
-    @Test
-    func foregroundWaitHasABoundedTimeout() async throws {
-        let fixture = try ControllerFixture()
-        defer { fixture.cleanUp() }
-        let task = fixture.start { try await fixture.controller.waitForForeground() }
-        fixture.platform.state = .inactive
-        try await fixture.platform.waitForSleep()
-        await fixture.clock.advance(by: .milliseconds(4900))
-        #expect(fixture.platform.sleepCount == 50)
-        #expect(fixture.access.calls.isEmpty)
-        await fixture.clock.advance(by: .milliseconds(100))
-        await #expect(throws: AppFailure.self) { try await task.value }
-        #expect(fixture.platform.sleepCount == 50)
-    }
-
-    @Test
-    func cancellationWhileWaitingForForegroundStopsWithoutStorage() async throws {
-        let fixture = try ControllerFixture()
-        defer { fixture.cleanUp() }
-        let context = fixture.factory.next
-        let task = fixture.start { try await fixture.perform(.read) }
-        try await context.waitForEvaluation()
-        fixture.platform.state = .inactive
-        context.complete(success: true)
-        try await fixture.platform.waitForSleep()
-        await fixture.clock.advance(by: .milliseconds(100))
-        task.cancel()
-        await #expect(throws: CancellationError.self) { try await task.value }
-        #expect(context.invalidationCount == 1)
-        #expect(fixture.access.calls.isEmpty)
-        try await fixture.clock.checkSuspension()
-    }
-
-    @Test(arguments: [ProtectedAction.read, .replace, .create, .remove])
-    func storageFailureInvalidatesAndTransactionsRemainInRecovery(action: ProtectedAction) async throws {
-        let fixture = try ControllerFixture(ready: action.requiresReadyProfile)
-        defer { fixture.cleanUp() }
-        fixture.access.status = errSecAuthFailed
-        let context = fixture.factory.next
-        let task = fixture.start { try await fixture.perform(action) }
-        try await context.waitForEvaluation()
-        context.complete(success: true)
-        if action == .create || action == .remove {
-            try await task.value
-            #expect(fixture.lastOutcome?.requiresRecovery == true)
-            #expect(try fixture.profiles.loadAll().map(\.state) == [action == .create ? .creating : .removing])
-        } else {
-            await #expect(throws: AppFailure.self) { try await task.value }
+        @Test
+        func cancellationWhileWaitingForForegroundStopsWithoutStorage() async throws {
+            try await withMainSerialExecutor {
+                let fixture = try ControllerFixture()
+                defer { fixture.cleanUp() }
+                let context = fixture.factory.next
+                let task = fixture.start { try await fixture.perform(.read) }
+                try await context.waitForEvaluation()
+                fixture.platform.state = .inactive
+                context.complete(success: true)
+                try await fixture.platform.waitForSleep()
+                await fixture.clock.advance(by: .milliseconds(100))
+                task.cancel()
+                await #expect(throws: CancellationError.self) { try await task.value }
+                #expect(context.invalidationCount == 1)
+                #expect(fixture.access.calls.isEmpty)
+                try await fixture.clock.checkSuspension()
+            }
         }
-        #expect(context.invalidationCount == 1)
-        #expect(fixture.access.calls.count == 1)
+
+        @Test(arguments: [ProtectedAction.read, .replace, .create, .remove])
+        func storageFailureInvalidatesAndTransactionsRemainInRecovery(action: ProtectedAction) async throws {
+            let fixture = try ControllerFixture(ready: action.requiresReadyProfile)
+            defer { fixture.cleanUp() }
+            fixture.access.status = errSecAuthFailed
+            let context = fixture.factory.next
+            let task = fixture.start { try await fixture.perform(action) }
+            try await context.waitForEvaluation()
+            context.complete(success: true)
+            if action == .create || action == .remove {
+                try await task.value
+                #expect(fixture.lastOutcome?.requiresRecovery == true)
+                #expect(try fixture.profiles.loadAll().map(\.state) == [action == .create ? .creating : .removing])
+            } else {
+                await #expect(throws: AppFailure.self) { try await task.value }
+            }
+            #expect(context.invalidationCount == 1)
+            #expect(fixture.access.calls.count == 1)
+        }
     }
 }
 
@@ -394,7 +409,11 @@ final class ControllerFixture {
     var lastOutcome: LocalPersistenceOutcome?
     private var cancelTasks: [() -> Void] = []
 
-    init(ready: Bool = false, client: SealServerClient = SealServerClient()) throws {
+    init(
+        ready: Bool = false,
+        client: SealServerClient = SealServerClient(),
+        sleep: ((Duration) async throws -> Void)? = nil
+    ) throws {
         profile = try ServerProfile(id: UUID(), name: "Synthetic", address: "https://bao.example.com", product: .openBao)
         record = try ShareRecord(profile: profile, input: "0123456789abcdef0123456789abcdef")
         profiles = ProfileStore(baseDirectory: root)
@@ -416,7 +435,11 @@ final class ControllerFixture {
             sceneCaptured: { platform.captured },
             sleep: {
                 platform.recordSleep()
-                try await clock.sleep(for: $0)
+                if let sleep {
+                    try await sleep($0)
+                } else {
+                    try await clock.sleep(for: $0)
+                }
             }
         )
     }

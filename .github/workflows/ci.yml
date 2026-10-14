@@ -53,6 +53,8 @@ jobs:
     permissions:
       contents: read
       id-token: write
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_26.6.app/Contents/Developer
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
@@ -81,19 +83,29 @@ jobs:
     permissions:
       contents: read
       id-token: write
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_26.6.app/Contents/Developer
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
           persist-credentials: false
+      - name: Restore Swift package sources
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+        with:
+          path: build/Simulator/SourcePackages
+          key: swiftpm-ios-${{ runner.os }}-${{ runner.arch }}-26.6-${{ hashFiles('Sealbreak.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved') }}
+          restore-keys: |
+            swiftpm-ios-${{ runner.os }}-${{ runner.arch }}-26.6-
       - name: Verify Swift package lockfile
-        env:
-          DEVELOPER_DIR: /Applications/Xcode_26.6.app/Contents/Developer
         run: |
           set -euo pipefail
+          xcodebuild -version
           xcodebuild \
             -project Sealbreak.xcodeproj \
             -scheme Sealbreak \
+            -derivedDataPath build/Simulator \
+            -skipPackageUpdates \
             -resolvePackageDependencies
           if git diff --quiet -- \
             Sealbreak.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved; then
@@ -107,8 +119,6 @@ jobs:
         run: bash scripts/ci/build.sh simulator
       - name: Run hosted iOS security and presentation tests with coverage
         id: hosted-security-tests
-        env:
-          DEVELOPER_DIR: /Applications/Xcode_26.6.app/Contents/Developer
         run: |
           xcodebuild -version
           xcodebuild test -project Sealbreak.xcodeproj -scheme Sealbreak \
@@ -127,8 +137,6 @@ jobs:
           if-no-files-found: error
           retention-days: 7
       - name: Export hosted iOS AppModule and Infrastructure coverage
-        env:
-          DEVELOPER_DIR: /Applications/Xcode_26.6.app/Contents/Developer
         run: |
           set -euo pipefail
           profile="$(find build/Simulator/Build/ProfileData -name Coverage.profdata -type f -print -quit)"

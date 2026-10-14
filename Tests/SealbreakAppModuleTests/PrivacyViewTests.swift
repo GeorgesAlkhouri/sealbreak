@@ -16,7 +16,44 @@ import XCTest
 final class PrivacyViewTests: XCTestCase {
     override func invokeTest() {
         let recording = ProcessInfo.processInfo.environment["SNAPSHOT_TESTING_RECORD"] == "all"
-        withSnapshotTesting(record: recording ? .all : .never) { super.invokeTest() }
+        withMainSerialExecutor {
+            withSnapshotTesting(record: recording ? .all : .never) { super.invokeTest() }
+        }
+    }
+
+    func testImmediateHideCancelsExpiryBeforeItsSleepStarts() async throws {
+        let profile = try ServerProfile(id: UUID(), name: "Synthetic", address: "https://bao.example.com")
+        let fragment = ShareComparisonFragment(validatedShare: PrivacyRootFixture.share)
+        let clock = TestClock<Duration>()
+        let probe = PrivacyClientProbe()
+        defer { probe.close() }
+        let store = Store(initialState: ServerDetailsFeature.State(profile: profile, isBusy: false)) {
+            ServerDetailsFeature()
+        } withDependencies: {
+            $0.continuousClock = clock
+            $0.sealbreakClient = PrivacyRootFixture.client(probe)
+        }
+        let reveal = store.send(.shareFragmentTapped)
+        defer { reveal.cancel() }
+        let deadline = ContinuousClock.now.advanced(by: .seconds(3))
+        while probe.pendingCount == 0 {
+            if ContinuousClock.now >= deadline { XCTFail("Authorization did not start"); return }
+            await Task.yield()
+        }
+        probe.succeed(fragment)
+        // Hide as soon as state is published, before giving the expiry task time to start.
+        while store.shareFragment == nil {
+            if ContinuousClock.now >= deadline { XCTFail("Fragment did not appear"); return }
+            await Task.yield()
+        }
+        store.send(.shareFragmentTapped)
+        XCTAssertNil(store.shareFragment)
+        await clock.advance()
+        do {
+            try await clock.checkSuspension()
+        } catch {
+            XCTFail("Hiding the fragment must leave no expiry sleep: \(String(reflecting: type(of: error)))")
+        }
     }
 
     func testPrivacyGateMapsPhaseAndCaptureEnvironmentToConcealment() async throws {
@@ -342,6 +379,7 @@ final class PrivacyViewHost {
         // A single warm-up and fixed delay are insufficient on a busy CI simulator.
         // Require stable rendered pixels, while keeping the golden comparison exact.
         var previous: Data?
+        var captures: [UIImage] = []
         var unchanged = 0
         for capture in 0..<8 {
             window.layoutIfNeeded()
@@ -351,12 +389,21 @@ final class PrivacyViewHost {
                 rendered = window.drawHierarchy(in: window.bounds, afterScreenUpdates: true)
             }
             _ = try XCTUnwrap(rendered ? true : nil, "UIKit must prepare the presented sheet's materials.")
+            captures.append(image)
             let pixels = try XCTUnwrap(image.pngData())
             unchanged = pixels == previous ? unchanged + 1 : 0
             previous = pixels
             if capture >= 3, unchanged >= 2 { return }
             await Task.yield()
             try await Task.sleep(for: .milliseconds(60))
+        }
+        XCTContext.runActivity(named: "Unstable presented sheet") { activity in
+            for (index, image) in captures.enumerated() {
+                let attachment = XCTAttachment(image: image)
+                attachment.name = "unsettled-sheet-frame-\(index)"
+                attachment.lifetime = .keepAlways
+                activity.add(attachment)
+            }
         }
         XCTFail("Presented sheet rendering did not settle within eight captures.")
         throw NSError(domain: "PrivacyViewHost", code: 1)
