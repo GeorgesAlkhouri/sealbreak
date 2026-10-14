@@ -282,6 +282,10 @@ private struct NativeButtonProbe: UIViewRepresentable {
 
 @MainActor
 final class PrivacyViewHost {
+    // SnapshotTesting documents 98–99% perceptual precision for small color variations.
+    // Keep every pixel within that limit, including when waiting for glass to settle.
+    static let imageStrategy: Snapshotting<UIImage, UIImage> = .image(precision: 1, perceptualPrecision: 0.98)
+
     let window: UIWindow
     let controller: UIHostingController<AnyView>
     private let previousAnimations = UIView.areAnimationsEnabled
@@ -366,7 +370,7 @@ final class PrivacyViewHost {
         }
         assertSnapshot(
             of: image,
-            as: .image(precision: 1, perceptualPrecision: 0.99),
+            as: Self.imageStrategy,
             named: name,
             file: file,
             testName: testName
@@ -377,10 +381,11 @@ final class PrivacyViewHost {
     func preparePresentedMaterials() async throws {
         // Native toolbar text can finish rasterizing after the sheet transition.
         // A single warm-up and fixed delay are insufficient on a busy CI simulator.
-        // Require stable rendered pixels, while keeping the golden comparison exact.
-        var previous: Data?
+        // Use the same perceptual comparison as the snapshot assertion: harmless
+        // glass color variations must not keep the preparation loop running.
+        var previous: UIImage?
         var captures: [UIImage] = []
-        var unchanged = 0
+        var matchingCaptures = 0
         for capture in 0..<8 {
             window.layoutIfNeeded()
             freezeSpinners(in: window)
@@ -390,10 +395,10 @@ final class PrivacyViewHost {
             }
             _ = try XCTUnwrap(rendered ? true : nil, "UIKit must prepare the presented sheet's materials.")
             captures.append(image)
-            let pixels = try XCTUnwrap(image.pngData())
-            unchanged = pixels == previous ? unchanged + 1 : 0
-            previous = pixels
-            if capture >= 3, unchanged >= 2 { return }
+            let matchesPrevious = previous.map { Self.imageStrategy.diffing.diffV2($0, image) == nil } ?? false
+            matchingCaptures = matchesPrevious ? matchingCaptures + 1 : 0
+            previous = image
+            if capture >= 3, matchingCaptures >= 2 { return }
             await Task.yield()
             try await Task.sleep(for: .milliseconds(60))
         }
@@ -411,7 +416,7 @@ final class PrivacyViewHost {
 
     private func makeRenderer() -> UIGraphicsImageRenderer {
         let format = UIGraphicsImageRendererFormat(for: window.traitCollection)
-        // Fix the capture's color range before exact pixel comparison.
+        // Fix the capture's color range before image comparison.
         format.preferredRange = .standard
         return UIGraphicsImageRenderer(bounds: window.bounds, format: format)
     }
