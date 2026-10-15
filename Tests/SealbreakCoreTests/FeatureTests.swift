@@ -1088,6 +1088,36 @@ struct FeatureTests {
     }
 
     @Test
+    func setupRequiresHTTPSWhenDNSSECIsUnavailable() async {
+        for serverReachable in [true, false] {
+            let spy = ClientSpy()
+            await spy.setDNSSECStatus(.unavailable)
+            await spy.setStatusQueue([
+                serverReachable ? .success(status()) : .failure(AppFailure("server unavailable"))
+            ])
+
+            let store = TestStore(initialState: InstanceSetupFeature.State()) {
+                InstanceSetupFeature()
+            } withDependencies: {
+                $0.sealbreakClient = client(spy)
+                $0.uuid = .incrementing
+            }
+            store.exhaustivity = .off(showSkippedAssertions: false)
+
+            await store.send(.addressChanged(origin))
+            await store.send(.checkConnectionTapped).finish()
+            await store.skipReceivedActions()
+
+            #expect(store.state.dnssecStatus == .unavailable)
+            #expect(!store.state.isCheckingConnection)
+            #expect(store.state.canContinue == serverReachable)
+            #expect((store.state.checkedProfile != nil) == serverReachable)
+            #expect(await spy.statusCalls == 1)
+            #expect(await spy.detectProductCalls == (serverReachable ? 1 : 0))
+        }
+    }
+
+    @Test
     func setupBlocksBogusDNSSECBeforeContactingServer() async {
         let spy = ClientSpy()
         await spy.setDNSSECStatus(.bogus)
@@ -1109,6 +1139,7 @@ struct FeatureTests {
         #expect(store.state.checkedProfile == nil)
         #expect(localizedContains(store.state.feedback, "DNSSEC validation failed"))
         #expect(!store.state.canContinue)
+        #expect(await spy.statusCalls == 0)
         #expect(await spy.detectProductCalls == 0)
     }
 

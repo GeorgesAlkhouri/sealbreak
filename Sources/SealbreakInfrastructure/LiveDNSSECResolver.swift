@@ -1,55 +1,140 @@
+import Dispatch
+import Foundation
 import SealbreakCore
 import dnssd
 
 extension DNSSECResolver {
-    package static let live = Self { host in
-        await Task.detached(priority: .userInitiated) {
-            LiveDNSSECResolver.resolve(host: host)
-        }.value
+    package static let live = makeLive()
+
+    static func makeLive(
+        timeout: TimeInterval = 2,
+        service: DNSSECService = .live
+    ) -> Self {
+        Self { host in
+            await LiveDNSSECQuery(timeout: timeout, client: service).resolve(host: host)
+        }
     }
 }
 
-private enum LiveDNSSECResolver {
-    static func resolve(host: String) -> DNSSECStatus {
-        var service: DNSServiceRef?
-        let result = ResultBox()
-        let context = Unmanaged.passUnretained(result).toOpaque()
-        let flags = kDNSServiceFlagsValidate | kDNSServiceFlagsTimeout
-        let protocols = DNSServiceProtocol(kDNSServiceProtocol_IPv4 | kDNSServiceProtocol_IPv6)
+// Keep the C service boundary injectable so missing callbacks and cancellation
+// can be exercised without relying on the current network's DNSSEC support.
+struct DNSSECService: Sendable {
+    var start: @Sendable (
+        UnsafeMutablePointer<DNSServiceRef?>,
+        String,
+        DNSServiceGetAddrInfoReply,
+        UnsafeMutableRawPointer
+    ) -> DNSServiceErrorType
+    var schedule: @Sendable (DNSServiceRef, DispatchQueue) -> DNSServiceErrorType
+    var deallocate: @Sendable (DNSServiceRef) -> Void
 
-        let startError = host.withCString { hostname in
-            DNSServiceGetAddrInfo(
-                &service,
-                flags,
-                0,
-                protocols,
-                hostname,
-                dnssecGetAddrInfoReply,
-                context
-            )
-        }
+    static let live = Self(
+        start: { service, host, callback, context in
+            host.withCString { hostname in
+                DNSServiceGetAddrInfo(
+                    service,
+                    kDNSServiceFlagsValidate | kDNSServiceFlagsTimeout,
+                    0,
+                    DNSServiceProtocol(kDNSServiceProtocol_IPv4 | kDNSServiceProtocol_IPv6),
+                    hostname,
+                    callback,
+                    context
+                )
+            }
+        },
+        schedule: { DNSServiceSetDispatchQueue($0, $1) },
+        deallocate: { DNSServiceRefDeallocate($0) }
+    )
+}
 
-        guard startError == kDNSServiceErr_NoError,
-              let service else {
-            return .unavailable
-        }
-        defer {
-            DNSServiceRefDeallocate(service)
-        }
+// All mutable state and C service access are confined to queue. The async call
+// retains this object until its continuation completes, including cancellation.
+private final class LiveDNSSECQuery: @unchecked Sendable {
+    private let queue = DispatchQueue(label: "app.sealbreak.dnssec")
+    private let timeout: TimeInterval
+    private let client: DNSSECService
+    private var service: DNSServiceRef?
+    private var timer: DispatchSourceTimer?
+    private var continuation: CheckedContinuation<DNSSECStatus, Never>?
+    private var isFinished = false
 
-        while result.status == nil {
-            let processError = DNSServiceProcessResult(service)
-            guard processError == kDNSServiceErr_NoError else {
-                return .unavailable
+    init(timeout: TimeInterval, client: DNSSECService) {
+        self.timeout = timeout
+        self.client = client
+    }
+
+    func resolve(host: String) async -> DNSSECStatus {
+        await withTaskCancellationHandler {
+            await withCheckedContinuation { continuation in
+                queue.async {
+                    self.start(host: host, continuation: continuation)
+                }
+            }
+        } onCancel: {
+            self.queue.async {
+                self.finish(.unavailable)
             }
         }
-
-        return result.status ?? .unavailable
     }
-}
 
-private final class ResultBox {
-    var status: DNSSECStatus?
+    private func start(host: String, continuation: CheckedContinuation<DNSSECStatus, Never>) {
+        guard !isFinished else {
+            continuation.resume(returning: .unavailable)
+            return
+        }
+        self.continuation = continuation
+
+        let startError = client.start(
+            &service,
+            host,
+            dnssecGetAddrInfoReply,
+            Unmanaged.passUnretained(self).toOpaque()
+        )
+        guard startError == kDNSServiceErr_NoError,
+              let service else {
+            finish(.unavailable)
+            return
+        }
+        guard client.schedule(service, queue) == kDNSServiceErr_NoError else {
+            finish(.unavailable)
+            return
+        }
+
+        let timer = DispatchSource.makeTimerSource(queue: queue)
+        timer.schedule(deadline: .now() + timeout)
+        timer.setEventHandler { [weak self] in
+            self?.finish(.unavailable)
+        }
+        self.timer = timer
+        timer.resume()
+    }
+
+    func receive(flags: DNSServiceFlags, errorCode: DNSServiceErrorType) {
+        dispatchPrecondition(condition: .onQueue(queue))
+        guard errorCode == kDNSServiceErr_NoError else {
+            finish(.unavailable)
+            return
+        }
+        if let status = dnssecStatus(from: flags) {
+            finish(status)
+        }
+    }
+
+    private func finish(_ status: DNSSECStatus) {
+        guard !isFinished else { return }
+        isFinished = true
+        timer?.cancel()
+        timer = nil
+        if let service {
+            // dnssd requires deallocation on the callback queue. This also
+            // prevents further callbacks from using the unretained context.
+            client.deallocate(service)
+            self.service = nil
+        }
+        let continuation = self.continuation
+        self.continuation = nil
+        continuation?.resume(returning: status)
+    }
 }
 
 private let dnssecGetAddrInfoReply: DNSServiceGetAddrInfoReply = {
@@ -58,16 +143,10 @@ private let dnssecGetAddrInfoReply: DNSServiceGetAddrInfoReply = {
         return
     }
 
-    let result = Unmanaged<ResultBox>
+    let query = Unmanaged<LiveDNSSECQuery>
         .fromOpaque(context)
         .takeUnretainedValue()
-
-    guard errorCode == kDNSServiceErr_NoError else {
-        result.status = .unavailable
-        return
-    }
-
-    result.status = dnssecStatus(from: flags)
+    query.receive(flags: flags, errorCode: errorCode)
 }
 
 private func dnssecStatus(from flags: DNSServiceFlags) -> DNSSECStatus? {
