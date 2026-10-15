@@ -32,6 +32,31 @@ struct DNSSECResolverTests {
     }
 
     @Test
+    func liveServiceSchedulesAndReleasesLocalConnection() async {
+        let queue = DispatchQueue(label: "app.sealbreak.dnssec.tests")
+        let errors: (start: DNSServiceErrorType, schedule: DNSServiceErrorType?) =
+            await withCheckedContinuation { continuation in
+                queue.async {
+                    // Connect only to the local DNS daemon; no DNS lookup is sent.
+                    var service: DNSServiceRef?
+                    let startError = DNSServiceCreateConnection(&service)
+                    guard startError == kDNSServiceErr_NoError, let service else {
+                        continuation.resume(returning: (startError, nil))
+                        return
+                    }
+
+                    let scheduleError = DNSSECService.live.schedule(service, queue)
+                    // DNS-SD requires cleanup on the queue used for callbacks.
+                    DNSSECService.live.deallocate(service)
+                    continuation.resume(returning: (startError, scheduleError))
+                }
+            }
+
+        #expect(errors.start == kDNSServiceErr_NoError)
+        #expect(errors.schedule == DNSServiceErrorType(kDNSServiceErr_NoError))
+    }
+
+    @Test
     func normalHostIsNormalizedAndForwardedToResolver() async {
         let recorder = HostRecorder()
         let resolver = DNSSECResolver { host in
