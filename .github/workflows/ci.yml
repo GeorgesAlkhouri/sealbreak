@@ -253,7 +253,7 @@ jobs:
             version: "2.7.1"
           - name: vault
             # renovate: packageName=hashicorp/vault
-            version: "2.1.1"
+            version: "2.1.2"
         platform:
           - ios: "26.5"
             xcode: "26.6"
