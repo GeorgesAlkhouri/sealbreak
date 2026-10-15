@@ -25,7 +25,9 @@
         "github-tags",
         "github-releases",
         "github-digest",
-        "pypi"
+        "pypi",
+        "rubygems",
+        "ruby-version"
       ],
       "minimumReleaseAge": "7 days",
       "internalChecksFilter": "strict"
