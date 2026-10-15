@@ -29,7 +29,7 @@ package struct ServerDetailsFeature {
     }
 
     private enum CancelID: Hashable {
-        case shareFragmentExpiry
+        case shareFragment
     }
 
     @Dependency(\.continuousClock) private var clock
@@ -47,7 +47,7 @@ package struct ServerDetailsFeature {
             case .shareFragmentTapped:
                 if state.shareFragment != nil {
                     state.shareFragment = nil
-                    return .cancel(id: CancelID.shareFragmentExpiry)
+                    return .cancel(id: CancelID.shareFragment)
                 }
 
                 guard !state.isBusy, !state.isRevealingShare else {
@@ -57,6 +57,9 @@ package struct ServerDetailsFeature {
                 state.isRevealingShare = true
                 let profileID = state.profile.id
                 let client = self.client
+                let clock = self.clock
+                // Register cancellation before publishing the fragment, so an immediate
+                // hide also cancels an expiry sleep that has not started yet.
                 return .run { send in
                     do {
                         let fragment = try await client.readShareFragment(
@@ -66,18 +69,17 @@ package struct ServerDetailsFeature {
                         await send(.shareFragmentLoaded(fragment))
                     } catch {
                         await send(.shareFragmentLoadFailed)
+                        return
                     }
+                    try await clock.sleep(for: .seconds(20))
+                    await send(.shareFragmentExpired)
                 }
+                .cancellable(id: CancelID.shareFragment, cancelInFlight: true)
 
             case .shareFragmentLoaded(let fragment):
                 state.isRevealingShare = false
                 state.shareFragment = fragment
-                let clock = self.clock
-                return .run { send in
-                    try await clock.sleep(for: .seconds(20))
-                    await send(.shareFragmentExpired)
-                }
-                .cancellable(id: CancelID.shareFragmentExpiry, cancelInFlight: true)
+                return .none
 
             case .shareFragmentLoadFailed:
                 state.isRevealingShare = false

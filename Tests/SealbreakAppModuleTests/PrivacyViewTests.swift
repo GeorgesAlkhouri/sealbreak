@@ -16,7 +16,44 @@ import XCTest
 final class PrivacyViewTests: XCTestCase {
     override func invokeTest() {
         let recording = ProcessInfo.processInfo.environment["SNAPSHOT_TESTING_RECORD"] == "all"
-        withSnapshotTesting(record: recording ? .all : .never) { super.invokeTest() }
+        withMainSerialExecutor {
+            withSnapshotTesting(record: recording ? .all : .never) { super.invokeTest() }
+        }
+    }
+
+    func testImmediateHideCancelsExpiryBeforeItsSleepStarts() async throws {
+        let profile = try ServerProfile(id: UUID(), name: "Synthetic", address: "https://bao.example.com")
+        let fragment = ShareComparisonFragment(validatedShare: PrivacyRootFixture.share)
+        let clock = TestClock<Duration>()
+        let probe = PrivacyClientProbe()
+        defer { probe.close() }
+        let store = Store(initialState: ServerDetailsFeature.State(profile: profile, isBusy: false)) {
+            ServerDetailsFeature()
+        } withDependencies: {
+            $0.continuousClock = clock
+            $0.sealbreakClient = PrivacyRootFixture.client(probe)
+        }
+        let reveal = store.send(.shareFragmentTapped)
+        defer { reveal.cancel() }
+        let deadline = ContinuousClock.now.advanced(by: .seconds(3))
+        while probe.pendingCount == 0 {
+            if ContinuousClock.now >= deadline { XCTFail("Authorization did not start"); return }
+            await Task.yield()
+        }
+        probe.succeed(fragment)
+        // Hide as soon as state is published, before giving the expiry task time to start.
+        while store.shareFragment == nil {
+            if ContinuousClock.now >= deadline { XCTFail("Fragment did not appear"); return }
+            await Task.yield()
+        }
+        store.send(.shareFragmentTapped)
+        XCTAssertNil(store.shareFragment)
+        await clock.advance()
+        do {
+            try await clock.checkSuspension()
+        } catch {
+            XCTFail("Hiding the fragment must leave no expiry sleep: \(String(reflecting: type(of: error)))")
+        }
     }
 
     func testPrivacyGateMapsPhaseAndCaptureEnvironmentToConcealment() async throws {
@@ -245,6 +282,10 @@ private struct NativeButtonProbe: UIViewRepresentable {
 
 @MainActor
 final class PrivacyViewHost {
+    // SnapshotTesting documents 98–99% perceptual precision for small color variations.
+    // Keep every pixel within that limit, including when waiting for glass to settle.
+    static let imageStrategy: Snapshotting<UIImage, UIImage> = .image(precision: 1, perceptualPrecision: 0.98)
+
     let window: UIWindow
     let controller: UIHostingController<AnyView>
     private let previousAnimations = UIView.areAnimationsEnabled
@@ -329,7 +370,7 @@ final class PrivacyViewHost {
         }
         assertSnapshot(
             of: image,
-            as: .image(precision: 1, perceptualPrecision: 0.99),
+            as: Self.imageStrategy,
             named: name,
             file: file,
             testName: testName
@@ -340,9 +381,10 @@ final class PrivacyViewHost {
     func preparePresentedMaterials() async throws {
         // Native toolbar text can finish rasterizing after the sheet transition.
         // A single warm-up and fixed delay are insufficient on a busy CI simulator.
-        // Require stable rendered pixels, while keeping the golden comparison exact.
-        var previous: Data?
-        var unchanged = 0
+        // Use the same perceptual comparison as the snapshot assertion: harmless
+        // glass color variations must not keep the preparation loop running.
+        var previous: UIImage?
+        var matchingCaptures = 0
         for capture in 0..<8 {
             window.layoutIfNeeded()
             freezeSpinners(in: window)
@@ -351,10 +393,10 @@ final class PrivacyViewHost {
                 rendered = window.drawHierarchy(in: window.bounds, afterScreenUpdates: true)
             }
             _ = try XCTUnwrap(rendered ? true : nil, "UIKit must prepare the presented sheet's materials.")
-            let pixels = try XCTUnwrap(image.pngData())
-            unchanged = pixels == previous ? unchanged + 1 : 0
-            previous = pixels
-            if capture >= 3, unchanged >= 2 { return }
+            let matchesPrevious = previous.map { Self.imageStrategy.diffing.diffV2($0, image) == nil } ?? false
+            matchingCaptures = matchesPrevious ? matchingCaptures + 1 : 0
+            previous = image
+            if capture >= 3, matchingCaptures >= 2 { return }
             await Task.yield()
             try await Task.sleep(for: .milliseconds(60))
         }
@@ -364,7 +406,7 @@ final class PrivacyViewHost {
 
     private func makeRenderer() -> UIGraphicsImageRenderer {
         let format = UIGraphicsImageRendererFormat(for: window.traitCollection)
-        // Fix the capture's color range before exact pixel comparison.
+        // Fix the capture's color range before image comparison.
         format.preferredRange = .standard
         return UIGraphicsImageRenderer(bounds: window.bounds, format: format)
     }
