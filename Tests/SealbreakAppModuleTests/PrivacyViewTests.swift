@@ -1,4 +1,3 @@
-import AccessibilitySnapshot
 import AccessibilitySnapshotParser
 import ComposableArchitecture
 import Foundation
@@ -22,35 +21,23 @@ final class PrivacyViewTests: XCTestCase {
     }
 
     func testImmediateHideCancelsExpiryBeforeItsSleepStarts() async throws {
-        let profile = try ServerProfile(id: UUID(), name: "Synthetic", address: "https://bao.example.com")
-        let fragment = ShareComparisonFragment(validatedShare: PrivacyRootFixture.share)
-        let clock = TestClock<Duration>()
-        let probe = PrivacyClientProbe()
-        defer { probe.close() }
-        let store = Store(initialState: ServerDetailsFeature.State(profile: profile, isBusy: false)) {
-            ServerDetailsFeature()
-        } withDependencies: {
-            $0.continuousClock = clock
-            $0.sealbreakClient = PrivacyRootFixture.client(probe)
-        }
-        let reveal = store.send(.shareFragmentTapped)
-        defer { reveal.cancel() }
+        let fixture = try PrivacyRootFixture()
+        defer { fixture.close() }
+        fixture.store.send(.home(.serverDetailsTapped))
+        fixture.start(.home(.serverDetails(.presented(.shareFragmentTapped))))
+        try await fixture.host.waitUntil { fixture.probe.pendingCount == 1 }
+        fixture.probe.succeed(fixture.fragment)
+        // Hide on publication, before the expiry task gets a chance to sleep.
         let deadline = ContinuousClock.now.advanced(by: .seconds(3))
-        while probe.pendingCount == 0 {
-            if ContinuousClock.now >= deadline { XCTFail("Authorization did not start"); return }
-            await Task.yield()
-        }
-        probe.succeed(fragment)
-        // Hide as soon as state is published, before giving the expiry task time to start.
-        while store.shareFragment == nil {
+        while fixture.store.home?.serverDetails?.shareFragment == nil {
             if ContinuousClock.now >= deadline { XCTFail("Fragment did not appear"); return }
             await Task.yield()
         }
-        store.send(.shareFragmentTapped)
-        XCTAssertNil(store.shareFragment)
-        await clock.advance()
+        fixture.store.send(.home(.serverDetails(.presented(.shareFragmentTapped))))
+        XCTAssertNil(fixture.store.home?.serverDetails?.shareFragment)
+        await fixture.clock.advance()
         do {
-            try await clock.checkSuspension()
+            try await fixture.clock.checkSuspension()
         } catch {
             XCTFail("Hiding the fragment must leave no expiry sleep: \(String(reflecting: type(of: error)))")
         }
@@ -58,6 +45,7 @@ final class PrivacyViewTests: XCTestCase {
 
     func testPrivacyGateMapsPhaseAndCaptureEnvironmentToConcealment() async throws {
         let environment = PrivacyEnvironment()
+        environment.phase = .inactive
         let store = Store(initialState: PrivacyFeature.State()) { PrivacyFeature() }
         let button = UIButton(type: .system)
         button.setTitle("Synthetic protected action", for: .normal)
@@ -67,6 +55,11 @@ final class PrivacyViewTests: XCTestCase {
             }.privacyTestEnvironment(environment)
         }
         defer { host.close() }
+        try await host.waitUntil { host.visibleWindow !== host.window && host.accessibility.contains("Sealbreak locked") }
+        environment.captured = true
+        try await host.waitUntil { host.accessibility.contains("Screen capture blocked") }
+        environment.captured = false
+        environment.phase = .active
         try await host.waitUntil { !store.isConcealed && host.accessibility.contains("Synthetic protected action") }
         let point = button.convert(CGPoint(x: button.bounds.midX, y: button.bounds.midY), to: host.window)
         XCTAssertTrue(host.window.hitTest(point, with: nil)?.isDescendant(of: button) == true)
@@ -75,7 +68,10 @@ final class PrivacyViewTests: XCTestCase {
         environment.phase = .inactive
         try await host.waitUntil { store.isConcealed && host.accessibility.contains("Sealbreak locked") }
         XCTAssertTrue(!host.accessibility.contains("Synthetic protected action"))
-        XCTAssertTrue(host.visibleWindow.hitTest(point, with: nil)?.isDescendant(of: button) != true)
+        for window in [host.window, host.visibleWindow] {
+            XCTAssertFalse(window.hitTest(point, with: nil)?.isDescendant(of: button) == true)
+            XCTAssertFalse(host.accessibility(in: window).contains("Synthetic protected action"))
+        }
         try host.snapshot("gate-inactive")
 
         environment.phase = .active
@@ -84,127 +80,60 @@ final class PrivacyViewTests: XCTestCase {
         environment.captured = true
         try await host.waitUntil { store.isCaptured && host.accessibility.contains("Screen capture blocked") }
         XCTAssertTrue(!host.accessibility.contains("Synthetic protected action"))
-        XCTAssertTrue(host.visibleWindow.hitTest(point, with: nil)?.isDescendant(of: button) != true)
+        for window in [host.window, host.visibleWindow] {
+            XCTAssertFalse(window.hitTest(point, with: nil)?.isDescendant(of: button) == true)
+            XCTAssertFalse(host.accessibility(in: window).contains("Synthetic protected action"))
+        }
         try host.snapshot("gate-captured")
     }
 
     func testRootHomeIsVisiblyConcealedAndReturnsWithPositiveContent() async throws {
         let fixture = try PrivacyRootFixture()
         defer { fixture.close() }
-        try await fixture.host.waitUntil { fixture.host.accessibility.contains(fixture.profile.name) }
-        XCTAssertTrue(fixture.host.accessibility.contains("Unseal"))
-        try fixture.host.snapshot("root-home-visible")
-        fixture.environment.phase = .inactive
-        try await fixture.host.waitUntil { fixture.host.accessibility.contains("Sealbreak locked") }
-        XCTAssertTrue(!fixture.host.accessibility.contains(fixture.profile.name))
-        XCTAssertTrue(!fixture.host.accessibility.contains("Unseal"))
-        try fixture.host.snapshot("root-home-inactive")
-        fixture.environment.phase = .active
-        try await fixture.host.waitUntil { fixture.host.accessibility.contains(fixture.profile.name) }
-        XCTAssertTrue(!fixture.store.privacy.isConcealed)
-    }
-
-    func testPrivacyShieldCoversNativePresentationsWithoutTakingKeyWindow() async throws {
-        let fixture = try PrivacyRootFixture()
-        defer { fixture.close() }
-        try await fixture.host.waitUntil { fixture.host.accessibility.contains(fixture.profile.name) }
-        let window = fixture.host.window
-        let scene = try XCTUnwrap(window.windowScene)
-        let alert = UIAlertController(title: "Synthetic private dialog", message: nil, preferredStyle: .actionSheet)
-        alert.addAction(UIAlertAction(title: "Synthetic protected action", style: .default))
-        alert.popoverPresentationController?.sourceView = fixture.host.controller.view
-        fixture.host.controller.present(alert, animated: false)
-        try await fixture.host.waitUntil { alert.viewIfLoaded?.window != nil && alert.transitionCoordinator == nil }
-
-        // Native presentations may also use a separate window, above ordinary alerts.
+        let host = fixture.host
+        try await host.waitUntil { host.accessibility.contains(fixture.profile.name) }
+        XCTAssertTrue(host.accessibility.contains("Unseal"))
+        try host.snapshot("root-home-visible")
+        let scene = try XCTUnwrap(host.window.windowScene)
+        let keyWindow = scene.keyWindow
+        let dialog = UIAlertController(title: "Synthetic private dialog", message: nil, preferredStyle: .actionSheet)
+        dialog.addAction(UIAlertAction(title: "Synthetic protected action", style: .default))
+        dialog.popoverPresentationController?.sourceView = host.controller.view
+        host.controller.present(dialog, animated: false)
+        try await host.waitUntil { dialog.viewIfLoaded?.window != nil && dialog.transitionCoordinator == nil }
         let overlay = UIWindow(windowScene: scene)
-        overlay.windowLevel = UIWindow.Level(rawValue: UIWindow.Level.alert.rawValue + 1)
-        let button = UIButton(type: .system)
-        button.setTitle("Synthetic overlay action", for: .normal)
-        let controller = UIViewController()
-        controller.view = button
-        overlay.rootViewController = controller
+        overlay.windowLevel = .alert + 1
+        overlay.rootViewController = UIHostingController(rootView: Text("Synthetic overlay action"))
         overlay.isHidden = false
         defer { overlay.isHidden = true; overlay.rootViewController = nil }
-        let keyWindow = scene.keyWindow
-
         for captured in [false, true] {
-            if captured { fixture.environment.captured = true }
-            else { fixture.environment.phase = .inactive }
-            try await fixture.host.waitUntil {
-                fixture.store.privacy.isConcealed
-                    && scene.windows.contains { !$0.isHidden && $0.windowLevel > overlay.windowLevel }
-            }
-            let shield = try XCTUnwrap(scene.windows.filter { !$0.isHidden }.max { $0.windowLevel < $1.windowLevel })
-            XCTAssertNotIdentical(shield, overlay, "Privacy must cover native presentations outside the SwiftUI hierarchy.")
+            fixture.environment.phase = captured ? .active : .inactive
+            fixture.environment.captured = captured
+            try await host.waitUntil { host.visibleWindow !== host.window && fixture.store.privacy.isConcealed }
+            let shield = host.visibleWindow
             XCTAssertGreaterThan(shield.windowLevel, overlay.windowLevel)
             XCTAssertEqual(shield.bounds, scene.effectiveGeometry.coordinateSpace.bounds)
             XCTAssertIdentical(scene.keyWindow, keyWindow)
             XCTAssertFalse(shield.canBecomeKey)
-            XCTAssertTrue(fixture.host.controller.presentedViewController === alert)
-            let accessibility = AccessibilityHierarchyParser().parseAccessibilityHierarchy(in: shield).flattenToElements()
-                .map(\.description).joined(separator: "\n")
-            XCTAssertTrue(accessibility.contains(captured ? "Screen capture blocked" : "Sealbreak locked"))
-            XCTAssertFalse(accessibility.contains("Synthetic protected action"))
-            XCTAssertFalse(accessibility.contains("Synthetic overlay action"))
             XCTAssertTrue(shield.rootViewController?.view.accessibilityViewIsModal == true)
-            let point = CGPoint(x: shield.bounds.midX, y: shield.bounds.midY)
-            XCTAssertNotNil(shield.hitTest(point, with: nil))
-
-            // The rendered shield must be opaque over its entire area, including safe areas.
-            let renderer = UIGraphicsImageRenderer(bounds: shield.bounds)
-            let image = renderer.image { _ in
-                XCTAssertTrue(shield.drawHierarchy(in: shield.bounds, afterScreenUpdates: true))
+            XCTAssertNotNil(shield.hitTest(CGPoint(x: shield.bounds.midX, y: shield.bounds.midY), with: nil))
+            XCTAssertTrue(host.accessibility.contains(captured ? "Screen capture blocked" : "Sealbreak locked"))
+            for protected in [fixture.profile.name, "Unseal", "Synthetic protected action", "Synthetic overlay action"] {
+                XCTAssertFalse(host.accessibility.contains(protected))
             }
-            let cgImage = try XCTUnwrap(image.cgImage)
-            var pixels = [UInt8](repeating: 0, count: cgImage.width * cgImage.height * 4)
-            try pixels.withUnsafeMutableBytes { buffer in
-                let context = try XCTUnwrap(CGContext(
-                    data: buffer.baseAddress, width: cgImage.width, height: cgImage.height,
-                    bitsPerComponent: 8, bytesPerRow: cgImage.width * 4,
-                    space: CGColorSpaceCreateDeviceRGB(), bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
-                ))
-                context.draw(cgImage, in: CGRect(x: 0, y: 0, width: cgImage.width, height: cgImage.height))
-            }
-            XCTAssertTrue(stride(from: 3, to: pixels.count, by: 4).allSatisfy { pixels[$0] == 255 })
-
+            try host.assertOpaque(shield)
+            if !captured { try host.snapshot("root-home-inactive") }
             fixture.environment.phase = .active
             fixture.environment.captured = false
-            try await fixture.host.waitUntil { !fixture.store.privacy.isConcealed && shield.isHidden }
+            try await host.waitUntil { !fixture.store.privacy.isConcealed && shield.isHidden }
             XCTAssertIdentical(scene.keyWindow, keyWindow)
-            XCTAssertTrue(fixture.host.controller.presentedViewController === alert)
+            XCTAssertIdentical(host.controller.presentedViewController, dialog)
         }
-    }
-
-    func testPrivacyShieldIsRemovedWhenGateIsDismantled() async throws {
-        let fixture = try PrivacyRootFixture()
-        defer { fixture.close() }
-        try await fixture.host.waitUntil { fixture.host.accessibility.contains(fixture.profile.name) }
         fixture.environment.phase = .inactive
-        try await fixture.host.waitUntil { fixture.store.privacy.isConcealed }
-        let scene = try XCTUnwrap(fixture.host.window.windowScene)
-        let shield = try XCTUnwrap(scene.windows.first { !$0.isHidden && $0.windowLevel > .alert })
-        fixture.host.controller.rootView = AnyView(Text("Replacement root"))
-        try await fixture.host.waitUntil { shield.isHidden }
-    }
-
-    func testPrivacyShieldConcealsWhenGateStartsInactiveAndUpdatesCaptureTitle() async throws {
-        let environment = PrivacyEnvironment()
-        environment.phase = .inactive
-        let store = Store(initialState: PrivacyFeature.State()) { PrivacyFeature() }
-        let host = try PrivacyViewHost {
-            PrivacyGate(store: store) { Text("Synthetic private content") }
-                .privacyTestEnvironment(environment)
-        }
-        defer { host.close() }
-        let scene = try XCTUnwrap(host.window.windowScene)
-        try await host.waitUntil { scene.windows.contains { !$0.isHidden && $0.windowLevel > .alert } }
-        let shield = try XCTUnwrap(scene.windows.first { !$0.isHidden && $0.windowLevel > .alert })
-        environment.captured = true
-        try await host.waitUntil {
-            AccessibilityHierarchyParser().parseAccessibilityHierarchy(in: shield).flattenToElements()
-                .contains { $0.description.contains("Screen capture blocked") }
-        }
+        try await host.waitUntil { host.visibleWindow !== host.window }
+        let shield = host.visibleWindow
+        host.controller.rootView = AnyView(Text("Replacement root"))
+        try await host.waitUntil { shield.isHidden }
     }
 
     func testPresentedSheetsStayPresentedAndConcealOnInactive() async throws {
@@ -300,6 +229,9 @@ final class PrivacyViewTests: XCTestCase {
                     fixture.probe.succeed(fixture.fragment)
                     try await fixture.host.waitUntil { fixture.host.accessibility.contains(fixture.fragment.displayValue) }
                     try fixture.host.snapshot("details-authorized-before-interruption")
+                    fixture.environment.phase = .inactive
+                    try await fixture.host.waitUntil { fixture.store.privacy.phase == .inactive }
+                    XCTAssertEqual(fixture.store.home?.serverDetails?.shareFragment, fixture.fragment)
                 }
                 if interruption == .background {
                     fixture.environment.phase = .background
@@ -315,6 +247,8 @@ final class PrivacyViewTests: XCTestCase {
                 await fixture.clock.advance(by: .seconds(20))
                 try await fixture.host.finish(authorization)
                 XCTAssertTrue(fixture.store.home?.serverDetails == nil)
+                XCTAssertEqual(fixture.probe.cancelCount, 1)
+                XCTAssertNil(fixture.store.home?.status)
                 XCTAssertTrue(fixture.store.privacy.isConcealed, "The environment still requests privacy.")
                 try await fixture.host.waitUntil {
                     fixture.host.accessibility.contains(interruption == .capture ? "Screen capture blocked" : "Sealbreak locked")
@@ -418,8 +352,11 @@ final class PrivacyViewHost {
         window.windowScene?.windows.first { $0 is PrivacyShieldWindow && !$0.isHidden } ?? window
     }
 
-    var accessibility: String {
-        accessibilityElements.map(\.description).joined(separator: "\n") + "\n"
+    var accessibility: String { accessibility(in: visibleWindow) }
+
+    func accessibility(in window: UIWindow) -> String {
+        AccessibilityHierarchyParser().parseAccessibilityHierarchy(in: window).flattenToElements()
+            .map(\.description).joined(separator: "\n") + "\n"
     }
 
     var pasteControlIsEnabled: Bool {
@@ -449,45 +386,34 @@ final class PrivacyViewHost {
     }
 
     func snapshot(_ name: String, file: StaticString = #filePath, testName: String = #function) throws {
-        let window = visibleWindow
-        freezeSpinners(in: window)
-        var captured = false
-        let renderer = makeRenderer(for: window)
-        let image = renderer.image { _ in
-            captured = window.drawHierarchy(in: window.bounds, afterScreenUpdates: true)
-        }
-        _ = try XCTUnwrap(captured ? true : nil, "UIKit must capture the current hosted window without reparenting it.")
-        let png = try XCTUnwrap(image.pngData())
-        let format = try XCTUnwrap(renderer.format as? UIGraphicsImageRendererFormat)
-        XCTContext.runActivity(named: "Snapshot diagnostics: \(name)") { activity in
-            let attachment = XCTAttachment(data: png, uniformTypeIdentifier: "public.png")
-            attachment.name = "actual-\(name).png"
-            attachment.lifetime = .keepAlways
-            activity.add(attachment)
-            let traits = XCTAttachment(string: """
-            OS: \(ProcessInfo.processInfo.operatingSystemVersionString)
-            Bounds: \(window.bounds), safe area: \(window.safeAreaInsets)
-            Display scale: \(window.traitCollection.displayScale), gamut: \(window.traitCollection.displayGamut.rawValue)
-            Interface style: \(window.traitCollection.userInterfaceStyle.rawValue), contrast: \(window.traitCollection.accessibilityContrast.rawValue)
-            Content size: \(window.traitCollection.preferredContentSizeCategory.rawValue)
-            Reduce motion: \(UIAccessibility.isReduceMotionEnabled), reduce transparency: \(UIAccessibility.isReduceTransparencyEnabled)
-            Darker colors: \(UIAccessibility.isDarkerSystemColorsEnabled), bold text: \(UIAccessibility.isBoldTextEnabled)
-            Renderer scale: \(format.scale), range: \(format.preferredRange.rawValue)
-            Image pixels: \(image.cgImage?.width ?? 0)x\(image.cgImage?.height ?? 0), bits: \(image.cgImage?.bitsPerComponent ?? 0)
-            Color space: \(String(describing: image.cgImage?.colorSpace))
-            """)
-            traits.name = "rendering-traits-\(name)"
-            traits.lifetime = .keepAlways
-            activity.add(traits)
-        }
-        assertSnapshot(
-            of: image,
-            as: Self.imageStrategy,
-            named: name,
-            file: file,
-            testName: testName
-        )
+        assertSnapshot(of: try renderImage(in: visibleWindow), as: Self.imageStrategy, named: name, file: file, testName: testName)
         assertSnapshot(of: accessibility, as: .lines, named: "\(name)-accessibility", file: file, testName: testName)
+    }
+
+    private func renderImage(in window: UIWindow) throws -> UIImage {
+        freezeSpinners(in: window)
+        let format = UIGraphicsImageRendererFormat(for: window.traitCollection)
+        format.preferredRange = .standard
+        var rendered = false
+        let image = UIGraphicsImageRenderer(bounds: window.bounds, format: format).image { _ in
+            rendered = window.drawHierarchy(in: window.bounds, afterScreenUpdates: true)
+        }
+        _ = try XCTUnwrap(rendered ? true : nil, "UIKit must capture the hosted window without reparenting it.")
+        return image
+    }
+
+    func assertOpaque(_ window: UIWindow) throws {
+        let image = try XCTUnwrap(renderImage(in: window).cgImage)
+        var pixels = [UInt8](repeating: 0, count: image.width * image.height * 4)
+        try pixels.withUnsafeMutableBytes { buffer in
+            let context = try XCTUnwrap(CGContext(
+                data: buffer.baseAddress, width: image.width, height: image.height,
+                bitsPerComponent: 8, bytesPerRow: image.width * 4,
+                space: CGColorSpaceCreateDeviceRGB(), bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+            ))
+            context.draw(image, in: CGRect(x: 0, y: 0, width: image.width, height: image.height))
+        }
+        XCTAssertTrue(stride(from: 3, to: pixels.count, by: 4).allSatisfy { pixels[$0] == 255 })
     }
 
     func preparePresentedMaterials() async throws {
@@ -499,12 +425,7 @@ final class PrivacyViewHost {
         var matchingCaptures = 0
         for capture in 0..<8 {
             window.layoutIfNeeded()
-            freezeSpinners(in: window)
-            var rendered = false
-            let image = makeRenderer(for: window).image { _ in
-                rendered = window.drawHierarchy(in: window.bounds, afterScreenUpdates: true)
-            }
-            _ = try XCTUnwrap(rendered ? true : nil, "UIKit must prepare the presented sheet's materials.")
+            let image = try renderImage(in: window)
             let matchesPrevious = previous.map { Self.imageStrategy.diffing.diffV2($0, image) == nil } ?? false
             matchingCaptures = matchesPrevious ? matchingCaptures + 1 : 0
             previous = image
@@ -514,13 +435,6 @@ final class PrivacyViewHost {
         }
         XCTFail("Presented sheet rendering did not settle within eight captures.")
         throw NSError(domain: "PrivacyViewHost", code: 1)
-    }
-
-    private func makeRenderer(for window: UIWindow) -> UIGraphicsImageRenderer {
-        let format = UIGraphicsImageRendererFormat(for: window.traitCollection)
-        // Fix the capture's color range before image comparison.
-        format.preferredRange = .standard
-        return UIGraphicsImageRenderer(bounds: window.bounds, format: format)
     }
 
     private func freezeSpinners(in view: UIView) {
