@@ -76,17 +76,15 @@ struct HomeView: View {
         .sheet(
             item: $store.scope(state: \.$serverDetails, action: \.serverDetails)
         ) { detailsStore in
-            PrivacyCover(store: privacyStore) {
-                ServerDetailsView(store: detailsStore)
-            }
-            .interactiveDismissDisabled(detailsStore.isRevealingShare)
+            ServerDetailsView(store: detailsStore)
+                .privacyProtected(privacyStore.isConcealed)
+                .interactiveDismissDisabled(detailsStore.isRevealingShare)
         }
         .sheet(
             item: $store.scope(state: \.$replaceShare, action: \.replaceShare)
         ) { replacementStore in
-            PrivacyCover(store: privacyStore) {
-                ReplaceShareView(store: replacementStore)
-            }
+            ReplaceShareView(store: replacementStore)
+                .privacyProtected(privacyStore.isConcealed)
         }
         .confirmationDialog(
             confirmationTitle,

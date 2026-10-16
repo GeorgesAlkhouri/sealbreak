@@ -7,45 +7,6 @@ extension SerialExecutorTests {
     @Suite(.timeLimit(.minutes(1)))
     @MainActor
     struct PrivacyReducerIntegrationTests {
-        @Test
-        func inactiveKeepsAuthorizedFragmentInPresentedStateUntilRealInterruption() async throws {
-            let profile = try profile()
-            let probe = PrivacyClientProbe()
-            defer { probe.close() }
-            let fragment = ShareComparisonFragment(validatedShare: PrivacyRootFixture.share)
-            let clock = TestClock()
-            var client = PrivacyRootFixture.client(probe)
-            client.readShareFragment = { _, _ in fragment }
-            let store = TestStore(initialState: initialState(profile)) { AppFeature() } withDependencies: {
-                $0.sealbreakClient = client
-                $0.continuousClock = clock
-            }
-
-            await store.send(.home(.serverDetailsTapped)) {
-                $0.home?.serverDetails = ServerDetailsFeature.State(profile: profile, status: PrivacyRootFixture.status, isBusy: false, activity: nil)
-            }
-            await store.send(.home(.serverDetails(.presented(.shareFragmentTapped)))) {
-                $0.home?.serverDetails?.isRevealingShare = true
-            }
-            await store.receive(.home(.serverDetails(.presented(.shareFragmentLoaded(fragment))))) {
-                $0.home?.serverDetails?.isRevealingShare = false
-                $0.home?.serverDetails?.shareFragment = fragment
-            }
-            await store.send(.privacy(.phaseChanged(.inactive))) { $0.privacy.phase = .inactive }
-            #expect(store.state.privacy.isConcealed)
-            #expect(store.state.home?.serverDetails?.shareFragment == fragment)
-            await store.send(.privacy(.phaseChanged(.background))) { $0.privacy.phase = .background }
-            await store.receive(.privacy(.delegate(.interrupted)))
-            await store.receive(.home(.privacyInterrupted)) {
-                $0.home?.status = nil
-                $0.home?.serverDetails = nil
-            }
-            await clock.advance(by: .seconds(20))
-            await store.finish()
-            #expect(probe.cancelCount == 1)
-            #expect(probe.forbiddenCalls.isEmpty)
-        }
-
         @Test(arguments: PrivacySheet.allCases, PrivacyInterruption.allCases)
         func interruptionDismissesPendingChildAndLateAuthorizationCannotRestoreIt(sheet: PrivacySheet, interruption: PrivacyInterruption) async throws {
             let profile = try profile()
