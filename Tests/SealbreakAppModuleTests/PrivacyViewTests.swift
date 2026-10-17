@@ -10,7 +10,7 @@ import XCTest
 @testable import SealbreakAppModule
 @testable import SealbreakCore
 
-// Fixed iPhone 17 / iOS 26.5, light appearance, English, default Dynamic Type.
+// Fixed iPhone 17 / iOS 27.0, light appearance, English, default Dynamic Type.
 // Actions below are component integration, not simulated end-to-end touches.
 @MainActor
 final class PrivacyViewTests: XCTestCase {
