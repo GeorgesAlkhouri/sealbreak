@@ -18,7 +18,7 @@ build_with_log() {
 # The ignored SwiftPM lockfile starts with the canonical Xcode pins.
 cp "$pins" Package.resolved
 build_with_log "$output/package-resolve.log" \
-  swift package --build-path "$output/SwiftPM" resolve --skip-update
+  swift package --build-path "$output/SwiftPM" resolve
 swift package --build-path "$output/SwiftPM" clean
 build_with_log "$output/package-build.log" \
   swift build --build-path "$output/SwiftPM" --force-resolved-versions \
