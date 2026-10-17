@@ -104,10 +104,13 @@ package struct InstanceSetupFeature {
 
         let client = self.client
         return .run { send in
-          // ServerProfile guarantees a canonical HTTPS origin with a host.
-          let host = URL(string: profile.origin)!.host!
-
           do {
+            guard let host = URL(string: profile.origin)?.host else {
+              throw AppFailure(
+                LocalizedStringResource(
+                  "The server profile is invalid. Set up this server profile again.",
+                  bundle: .module))
+            }
             let dnssecStatus = try await client.dnssecStatus(host)
             await send(.dnssecResolved(dnssecStatus))
 

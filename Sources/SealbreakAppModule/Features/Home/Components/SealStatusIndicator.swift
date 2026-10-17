@@ -1,4 +1,3 @@
-import SealbreakCore
 import SwiftUI
 
 struct SealStatusIndicator: View {

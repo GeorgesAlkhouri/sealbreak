@@ -698,7 +698,7 @@ struct FeatureTests {
   }
 
   @Test
-  func instanceSetupFallsBackToGenericWhenProductDetectionFails() async throws {
+  func instanceSetupFallsBackToGenericWhenProductDetectionFails() async {
     let spy = ClientSpy()
     await spy.setDNSSECStatus(.secure)
     await spy.setDetectionError(AppFailure("detection failed"))
@@ -1070,7 +1070,7 @@ struct FeatureTests {
   }
 
   @Test
-  func setupChecksInstanceBeforeAdvancingToShare() async throws {
+  func setupChecksInstanceBeforeAdvancingToShare() async {
     let spy = ClientSpy()
     await spy.setDetectedProduct(.openBao)
     await spy.setDNSSECStatus(.secure)
@@ -1743,13 +1743,6 @@ private func localizedContains(
   return String(localized: feedback.text).contains(substring)
 }
 
-private func localizedContains(
-  _ feedback: AppFeedback,
-  _ substring: String
-) -> Bool {
-  String(localized: feedback.text).contains(substring)
-}
-
 extension ClientSpy {
   fileprivate func setLoadedProfile(_ value: ServerProfile?) {
     storedProfiles =
@@ -1763,9 +1756,7 @@ extension ClientSpy {
     }
   }
   fileprivate func setLoadError(_ value: AppFailure?) { loadError = value }
-  fileprivate func setProtectOutcome(_ value: LocalPersistenceOutcome?) { protectOutcome = value }
   fileprivate func setProtectError(_ value: AppFailure?) { protectError = value }
-  fileprivate func setRemoveOutcome(_ value: LocalPersistenceOutcome?) { removeOutcome = value }
   fileprivate func setRemoveError(_ value: AppFailure?) { removeError = value }
   fileprivate func setInsertProfileError(_ value: AppFailure?) { insertProfileError = value }
   fileprivate func setDeleteProfileError(_ value: AppFailure?) { deleteProfileError = value }
@@ -1776,9 +1767,7 @@ extension ClientSpy {
   fileprivate func setStatusQueue(_ value: [Result<SealStatus, AppFailure>]) { statusQueue = value }
   fileprivate func setReadRecord(_ value: ShareRecord?) { readRecord = value }
   fileprivate func setReadError(_ value: AppFailure?) { readError = value }
-  fileprivate func setInsertError(_ value: AppFailure?) { insertError = value }
   fileprivate func setReplaceError(_ value: AppFailure?) { replaceError = value }
-  fileprivate func setDeleteShareError(_ value: AppFailure?) { deleteShareError = value }
   fileprivate func setSubmitError(_ value: AppFailure?) { submitError = value }
   fileprivate func setWaitCancellation(_ value: Bool) { waitCancellation = value }
 

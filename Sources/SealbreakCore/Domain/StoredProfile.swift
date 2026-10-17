@@ -1,5 +1,3 @@
-import Foundation
-
 package enum StoredProfileState: String, Codable, Equatable {
   case creating
   case ready

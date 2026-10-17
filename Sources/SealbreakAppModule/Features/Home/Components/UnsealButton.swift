@@ -1,4 +1,3 @@
-import SealbreakCore
 import SwiftUI
 
 struct UnsealButton: View {

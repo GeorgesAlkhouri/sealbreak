@@ -1,5 +1,3 @@
-import Foundation
-
 struct SealStatusMotion: Equatable {
   enum Phase: Equatable {
     case unknown

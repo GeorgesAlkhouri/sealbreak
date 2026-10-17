@@ -79,8 +79,8 @@ final class LiveSealbreakClientController {
   private let client: SealServerClient
   private let dnssecResolver = DNSSECResolver.live
   private let makeContext: () -> LAContext
-  private let applicationState: () -> UIApplication.State
-  private let protectedDataAvailable: () -> Bool
+  private let applicationState: @MainActor () -> UIApplication.State
+  private let protectedDataAvailable: @MainActor () -> Bool
   private let sceneCaptured: @MainActor () -> Bool
   private let sleep: (Duration) async throws -> Void
   private var activeContext: LAContext?
@@ -90,10 +90,10 @@ final class LiveSealbreakClientController {
     profiles: ProfileStore = ProfileStore(),
     client: SealServerClient = SealServerClient(),
     makeContext: @escaping () -> LAContext = { LAContext() },
-    applicationState: @escaping () -> UIApplication.State = {
+    applicationState: @escaping @MainActor () -> UIApplication.State = {
       UIApplication.shared.applicationState
     },
-    protectedDataAvailable: @escaping () -> Bool = {
+    protectedDataAvailable: @escaping @MainActor () -> Bool = {
       UIApplication.shared.isProtectedDataAvailable
     },
     sceneCaptured: @escaping @MainActor () -> Bool = {

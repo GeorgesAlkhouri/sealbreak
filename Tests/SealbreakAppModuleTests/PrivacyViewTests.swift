@@ -377,8 +377,8 @@ private struct PrivacyTestEnvironment: ViewModifier {
 
 private struct NativeButtonProbe: UIViewRepresentable {
   let button: UIButton
-  func makeUIView(context: Context) -> UIButton { button }
-  func updateUIView(_ uiView: UIButton, context: Context) {}
+  func makeUIView(context _: Context) -> UIButton { button }
+  func updateUIView(_: UIButton, context _: Context) {}
 }
 
 @MainActor

@@ -89,7 +89,7 @@ package struct ServerProfile: Codable, Equatable, Identifiable, Sendable {
       parts.query == nil,
       parts.fragment == nil,
       parts.path.isEmpty || parts.path == "/",
-      parts.port == nil || (1...65535).contains(parts.port!)
+      parts.port.map({ (1...65535).contains($0) }) ?? true
     else {
       throw AppFailure(
         LocalizedStringResource(

@@ -31,7 +31,7 @@ extension SerialExecutorTests {
       #expect(context.availabilityPolicies == [.deviceOwnerAuthenticationWithBiometrics])
       #expect(context.evaluationPolicies == [.deviceOwnerAuthenticationWithBiometrics])
       #expect(context.reasons == ["Synthetic authorization"])
-      #expect(context.localizedFallbackTitle == "")
+      #expect(context.localizedFallbackTitle?.isEmpty == true)
       #expect(context.touchIDAuthenticationAllowableReuseDuration == 0)
       #expect(context.invalidationCount == 0)
       if !action.requiresReadyProfile {
@@ -646,7 +646,7 @@ final class ControllerKeychainSpy: KeychainAccessing {
     return status
   }
 
-  func update(_ request: [String: Any], attributes: [String: Any]) -> OSStatus {
+  func update(_ request: [String: Any], attributes _: [String: Any]) -> OSStatus {
     record("update", request)
     return status
   }

@@ -1,10 +1,194 @@
-# Additional correctness checks. swift-format owns formatting and style.
+# Evaluated with SwiftLint 0.65.1.
+# Start from the measured 133-rule candidate; retain 129 normal rules.
+# swift-format owns layout; SwiftLint retains semantic and API-quality checks.
+# Intentionally omitted from the 133-rule baseline:
+# - comment_spacing: no additional whitespace convention inside comment text.
+# - mark: no additional editorial format convention for MARK comments.
+# - object_literal: conflicts with swift-format's NoPlaygroundLiterals.
+# - redundant_void_return: function signatures covered by swift-format;
+#   explicit Void closure annotations remain allowed.
 included:
   - Sealbreak
   - Sources
   - Tests
+  - Package.swift
 only_rules:
+  - accessibility_trait_for_button
+  - array_init
+  - async_without_await
+  - balanced_xctest_lifecycle
+  - blanket_disable_command
+  - block_based_kvo
+  - class_delegate_protocol
+  - compiler_protocol_init
+  - contains_over_filter_count
+  - contains_over_filter_is_empty
+  - contains_over_first_not_nil
+  - contains_over_range_nil_comparison
+  - convenience_type
+  - cyclomatic_complexity
+  - deployment_target
+  - discarded_notification_center_observer
+  - discouraged_assert
+  - discouraged_direct_init
+  - duplicate_conditions
+  - duplicate_enum_cases
+  - duplicated_key_in_dictionary_literal
+  - dynamic_inline
+  - empty_collection_literal
+  - empty_count
+  - empty_string
+  - empty_xctest_method
+  - enum_case_associated_values_count
+  - expiring_todo
+  - fallthrough
+  - fatal_error_message
+  - file_name_no_space
+  - final_test_case
+  - first_where
+  - flatmap_over_map_reduce
+  - for_where
   - force_cast
   - force_try
+  - force_unwrapping
+  - function_parameter_count
+  - generic_type_name
+  - ibinspectable_in_extension
+  - identical_operands
+  - implicitly_unwrapped_optional
+  - incompatible_concurrency_annotation
+  - invalid_swiftlint_command
+  - invisible_character
+  - is_disjoint
+  - joined_default_parameter
+  - large_tuple
+  - last_where
+  - legacy_cggeometry_functions
+  - legacy_constant
+  - legacy_constructor
+  - legacy_hashing
+  - legacy_multiple
+  - legacy_nsgeometry_functions
+  - legacy_objc_type
+  - legacy_random
+  - legacy_swiftui_aspect_ratio
+  - legacy_uigraphics_function
+  - local_doc_comment
+  - lower_acl_than_parent
+  - missing_docs
+  - nesting
+  - nimble_operator
+  - no_empty_block
+  - non_optional_string_data_conversion
+  - notification_center_detachment
+  - ns_number_init_as_function_reference
+  - nslocalizedstring_key
+  - nslocalizedstring_require_bundle
+  - nsobject_prefer_isequal
+  - optional_data_string_conversion
+  - orphaned_doc_comment
+  - overridden_super_call
+  - override_in_extension
+  - prefer_condition_list
+  - prefer_type_checking
+  - private_action
+  - private_outlet
+  - private_subject
+  - private_swiftui_state
+  - private_unit_test
+  - prohibited_interface_builder
+  - prohibited_super_call
+  - quick_discouraged_call
+  - quick_discouraged_focused_test
+  - quick_discouraged_pending_test
+  - raw_value_for_camel_cased_codable_enum
+  - reduce_boolean
+  - reduce_into
+  - redundant_final
+  - redundant_nil_coalescing
+  - redundant_objc_attribute
+  - redundant_sendable
+  - redundant_set_access_control
+  - redundant_string_enum_value
+  - redundant_type_annotation
+  - required_enum_case
+  - return_value_from_void_function
+  - self_in_property_initialization
+  - shorthand_optional_binding
+  - sorted_first_last
+  - static_operator
+  - strong_iboutlet
+  - superfluous_disable_command
+  - test_case_accessibility
+  - todo
+  - toggle_bool
+  - type_name
+  - unavailable_condition
+  - unavailable_function
+  - unhandled_throwing_task
+  - unneeded_break_in_switch
+  - unneeded_escaping
+  - unneeded_override
+  - unneeded_throws_rethrows
+  - unowned_variable_capture
+  - untyped_error_in_catch
   - unused_closure_parameter
+  - unused_control_flow_label
+  - unused_enumerated
+  - unused_parameter
+  - unused_setter_value
   - valid_ibinspectable
+  - void_function_in_ternary
+  - weak_delegate
+  - xctfail_message
+  - yoda_condition
+
+# TCA deliberately nests State/Action and related types.
+nesting:
+  type_level: 2
+# Explicit validation stays readable; individual switch cases are not separate branches.
+cyclomatic_complexity:
+  warning: 15
+  error: 25
+  ignores_case_statements: true
+# Review tuple size with the evaluated warning/error thresholds.
+large_tuple:
+  warning: 4
+  error: 6
+# UIKit paste APIs require NSString through NSItemProvider object protocols.
+legacy_objc_type:
+  allowed_types:
+    - NSString
+# Allow framework stubs, package initializers, and injected no-op callbacks.
+# Empty statement blocks (including catch bodies) are still checked.
+no_empty_block:
+  disabled_block_types:
+    - initializer_bodies
+    - function_bodies
+    - closure_blocks
+
+# These rules require a full build and `swiftlint analyze`; normal lint skips them.
+# TCA intentionally exposes its dependency modules through its public facade.
+analyzer_rules:
+  - unused_import
+  - unused_declaration
+unused_import:
+  require_explicit_imports: false
+  allowed_transitive_imports:
+    - module: ComposableArchitecture
+      allowed_transitive_imports:
+        - CasePaths
+        - Clocks
+        - CombineSchedulers
+        - ConcurrencyExtras
+        - CustomDump
+        - Dependencies
+        - DependenciesMacros
+        - IdentifiedCollections
+        - Observation
+        - Perception
+        - Sharing
+        - SwiftUINavigation
+        - UIKitNavigation
+unused_declaration:
+  include_public_and_open: false
