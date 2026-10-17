@@ -23,13 +23,13 @@ jobs:
     if: >-
       github.event.label.name == 'record-snapshots' &&
       github.event.pull_request.head.repo.full_name == github.repository
-    runs-on: macos-26
+    runs-on: xcode-27
     timeout-minutes: 30
     permissions:
       contents: read
     env:
       # Keep this baseline aligned with the hosted tests in ci.yml.
-      DEVELOPER_DIR: /Applications/Xcode_26.6.app/Contents/Developer
+      DEVELOPER_DIR: /Applications/Xcode_27.1.app/Contents/Developer
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
@@ -53,7 +53,7 @@ jobs:
           SNAPSHOT_PHASE: record
         run: &snapshot-tests |
           xcodebuild test -project Sealbreak.xcodeproj -scheme Sealbreak \
-            -configuration Debug -destination 'platform=iOS Simulator,name=iPhone 17,OS=26.5' \
+            -configuration Debug -destination 'platform=iOS Simulator,name=iPhone 17,OS=27.0' \
             -derivedDataPath build/Simulator \
             -only-testing:SealbreakAppModuleTests \
             -enableCodeCoverage YES -resultBundlePath "build/Snapshots-$SNAPSHOT_PHASE.xcresult" \

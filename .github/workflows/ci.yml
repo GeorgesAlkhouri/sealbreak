@@ -22,12 +22,12 @@ concurrency:
 jobs:
   quality:
     name: CI / quality
-    runs-on: macos-26
+    runs-on: xcode-27
     timeout-minutes: 30
     permissions:
       contents: read
     env:
-      DEVELOPER_DIR: /Applications/Xcode_26.6.app/Contents/Developer
+      DEVELOPER_DIR: /Applications/Xcode_27.1.app/Contents/Developer
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
@@ -56,21 +56,21 @@ jobs:
             build/SwiftLintAnalyze/SwiftPM/checkouts
             build/SwiftLintAnalyze/SwiftPM/repositories
             build/SwiftLintAnalyze/SwiftPM/artifacts
-          key: swiftlint-analyze-packages-${{ runner.os }}-${{ runner.arch }}-26.6-${{ hashFiles('Sealbreak.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved') }}
+          key: swiftlint-analyze-packages-${{ runner.os }}-${{ runner.arch }}-27.1-${{ hashFiles('Sealbreak.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved') }}
           restore-keys: |
-            swiftlint-analyze-packages-${{ runner.os }}-${{ runner.arch }}-26.6-
+            swiftlint-analyze-packages-${{ runner.os }}-${{ runner.arch }}-27.1-
       - name: Static checks and SwiftLint analysis
         run: pre-commit run --all-files --show-diff-on-failure
 
   tests:
     name: CI / Swift package tests
-    runs-on: macos-26
+    runs-on: xcode-27
     timeout-minutes: 20
     permissions:
       contents: read
       id-token: write
     env:
-      DEVELOPER_DIR: /Applications/Xcode_26.6.app/Contents/Developer
+      DEVELOPER_DIR: /Applications/Xcode_27.1.app/Contents/Developer
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
@@ -107,13 +107,13 @@ jobs:
 
   build:
     name: CI / iOS app
-    runs-on: macos-26
+    runs-on: xcode-27
     timeout-minutes: 30
     permissions:
       contents: read
       id-token: write
     env:
-      DEVELOPER_DIR: /Applications/Xcode_26.6.app/Contents/Developer
+      DEVELOPER_DIR: /Applications/Xcode_27.1.app/Contents/Developer
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
@@ -123,9 +123,9 @@ jobs:
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
         with:
           path: build/Simulator/SourcePackages
-          key: swiftpm-ios-${{ runner.os }}-${{ runner.arch }}-26.6-${{ hashFiles('Sealbreak.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved') }}
+          key: swiftpm-ios-${{ runner.os }}-${{ runner.arch }}-27.1-${{ hashFiles('Sealbreak.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved') }}
           restore-keys: |
-            swiftpm-ios-${{ runner.os }}-${{ runner.arch }}-26.6-
+            swiftpm-ios-${{ runner.os }}-${{ runner.arch }}-27.1-
       - name: Verify Swift package lockfile
         run: |
           set -euo pipefail
@@ -140,14 +140,14 @@ jobs:
             Sealbreak.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved; then
             exit 0
           fi
-          echo '::error title=Package.resolved out of date::Xcode changed Package.resolved. Resolve packages with Xcode 26.6 and commit the generated lockfile.'
+          echo '::error title=Package.resolved out of date::Xcode changed Package.resolved. Resolve packages with Xcode 27.1 and commit the generated lockfile.'
           git diff -- \
             Sealbreak.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved
           exit 1
       - name: Build complete iOS app and hosted tests with coverage
         run: |
           xcodebuild build-for-testing -project Sealbreak.xcodeproj -scheme Sealbreak \
-            -configuration Debug -destination 'platform=iOS Simulator,name=iPhone 17,OS=26.5' \
+            -configuration Debug -destination 'platform=iOS Simulator,name=iPhone 17,OS=27.0' \
             -derivedDataPath build/Simulator -only-testing:SealbreakAppModuleTests \
             -enableCodeCoverage YES -disableAutomaticPackageResolution \
             -skipMacroValidation CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO \
@@ -160,7 +160,7 @@ jobs:
           set -euo pipefail
           xcodebuild -version
           xcodebuild test-without-building -project Sealbreak.xcodeproj -scheme Sealbreak \
-            -configuration Debug -destination 'platform=iOS Simulator,name=iPhone 17,OS=26.5' \
+            -configuration Debug -destination 'platform=iOS Simulator,name=iPhone 17,OS=27.0' \
             -derivedDataPath build/Simulator -only-testing:SealbreakAppModuleTests \
             -enableCodeCoverage YES -resultBundlePath build/AppModuleTests.xcresult \
             -test-timeouts-enabled YES -collect-test-diagnostics on-failure \
@@ -170,7 +170,7 @@ jobs:
       - name: Export hosted iOS AppModule test results
         if: ${{ !cancelled() && (steps.hosted-security-tests.outcome == 'success' || hashFiles('build/AppModuleTests.xcresult/Info.plist') != '') }}
         env:
-          DEVELOPER_DIR: /Applications/Xcode_26.6.app/Contents/Developer
+          DEVELOPER_DIR: /Applications/Xcode_27.1.app/Contents/Developer
         run: |
           mkdir -p build/test-results
           xcresultparser -o junit build/AppModuleTests.xcresult > build/test-results/appmodule.junit.xml.tmp
@@ -182,7 +182,7 @@ jobs:
         with:
           files: build/test-results/appmodule.junit.xml
           report_type: test_results
-          flags: appmodule-ios-26.5
+          flags: appmodule-ios-27.0
           disable_search: true
           fail_ci_if_error: true
           use_oidc: true
@@ -278,9 +278,9 @@ jobs:
             runtime: com.apple.CoreSimulator.SimRuntime.iOS-26-5
             device: com.apple.CoreSimulator.SimDeviceType.iPhone-17
           - ios: "27.0"
-            xcode: "27.0"
+            xcode: "27.1"
             runner: xcode-27
-            developer_dir: /Applications/Xcode_27.0.app/Contents/Developer
+            developer_dir: /Applications/Xcode_27.1.app/Contents/Developer
             runtime: com.apple.CoreSimulator.SimRuntime.iOS-27-0
             device: com.apple.CoreSimulator.SimDeviceType.iPhone-18-Pro
     env:
