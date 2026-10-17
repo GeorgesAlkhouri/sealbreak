@@ -585,7 +585,8 @@ final class PrivacyRootFixture {
   }
 
   static let status = SealStatus(
-    type: "shamir", initialized: true, sealed: true, t: 3, n: 5, progress: 1, migration: false,
+    type: "shamir", initialized: true, sealed: true,
+    quorum: .init(threshold: 3, totalShares: 5, progress: 1), migration: false,
     recoverySeal: false)
 
   static func client(_ probe: PrivacyClientProbe) -> SealbreakClient {

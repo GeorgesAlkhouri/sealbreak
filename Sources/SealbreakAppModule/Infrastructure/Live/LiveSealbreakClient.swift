@@ -7,65 +7,73 @@ import UIKit
 extension SealbreakClient {
   package static var live: Self {
     Self(
-      loadLocalSetupState: {
-        try await LiveSealbreakClientController.shared.loadLocalSetupState()
-      },
-      protectNewProfile: { profile, record, reason in
-        try await LiveSealbreakClientController.shared.protectNewProfile(
-          profile: profile,
-          record: record,
-          reason: reason
-        )
-      },
-      resetLocalData: {
-        try await LiveSealbreakClientController.shared.resetLocalData()
-      },
-      detectProduct: { profile in
-        try await LiveSealbreakClientController.shared.detectProduct(profile)
-      },
-      dnssecStatus: { host in
-        await LiveSealbreakClientController.shared.dnssecStatus(host)
-      },
-      status: { profile in
-        try await LiveSealbreakClientController.shared.status(profile)
-      },
-      submit: { record in
-        try await LiveSealbreakClientController.shared.submit(record)
-      },
-      readShareFragment: { profileID, reason in
-        try await LiveSealbreakClientController.shared.readShareFragment(
-          profileID: profileID,
-          reason: reason
-        )
-      },
-      readShare: { profileID, reason in
-        try await LiveSealbreakClientController.shared.readShare(
-          profileID: profileID,
-          reason: reason
-        )
-      },
-      replaceShare: { expectedProfile, replacement, reason in
-        try await LiveSealbreakClientController.shared.replaceShare(
-          expectedProfile: expectedProfile,
-          replacement: replacement,
-          reason: reason
-        )
-      },
-      removeLocalProfile: { profileID, reason in
-        try await LiveSealbreakClientController.shared.removeLocalProfile(
-          profileID: profileID,
-          reason: reason
-        )
-      },
-      requireForeground: {
-        try await LiveSealbreakClientController.shared.requireForeground()
-      },
-      waitForForeground: {
-        try await LiveSealbreakClientController.shared.waitForForeground()
-      },
-      cancelSensitiveOperation: {
-        await LiveSealbreakClientController.shared.cancelSensitiveOperation()
-      }
+      localData: .init(
+        loadLocalSetupState: {
+          try await LiveSealbreakClientController.shared.loadLocalSetupState()
+        },
+        protectNewProfile: { profile, record, reason in
+          try await LiveSealbreakClientController.shared.protectNewProfile(
+            profile: profile,
+            record: record,
+            reason: reason
+          )
+        },
+        resetLocalData: {
+          try await LiveSealbreakClientController.shared.resetLocalData()
+        },
+        removeLocalProfile: { profileID, reason in
+          try await LiveSealbreakClientController.shared.removeLocalProfile(
+            profileID: profileID,
+            reason: reason
+          )
+        }
+      ),
+      server: .init(
+        detectProduct: { profile in
+          try await LiveSealbreakClientController.shared.detectProduct(profile)
+        },
+        dnssecStatus: { host in
+          await LiveSealbreakClientController.shared.dnssecStatus(host)
+        },
+        status: { profile in
+          try await LiveSealbreakClientController.shared.status(profile)
+        },
+        submit: { record in
+          try await LiveSealbreakClientController.shared.submit(record)
+        }
+      ),
+      shareAccess: .init(
+        readShareFragment: { profileID, reason in
+          try await LiveSealbreakClientController.shared.readShareFragment(
+            profileID: profileID,
+            reason: reason
+          )
+        },
+        readShare: { profileID, reason in
+          try await LiveSealbreakClientController.shared.readShare(
+            profileID: profileID,
+            reason: reason
+          )
+        },
+        replaceShare: { expectedProfile, replacement, reason in
+          try await LiveSealbreakClientController.shared.replaceShare(
+            expectedProfile: expectedProfile,
+            replacement: replacement,
+            reason: reason
+          )
+        }
+      ),
+      lifecycle: .init(
+        requireForeground: {
+          try await LiveSealbreakClientController.shared.requireForeground()
+        },
+        waitForForeground: {
+          try await LiveSealbreakClientController.shared.waitForForeground()
+        },
+        cancelSensitiveOperation: {
+          await LiveSealbreakClientController.shared.cancelSensitiveOperation()
+        }
+      )
     )
   }
 }
@@ -85,30 +93,48 @@ final class LiveSealbreakClientController {
   private let sleep: (Duration) async throws -> Void
   private var activeContext: LAContext?
 
+  struct Environment {
+    let makeContext: () -> LAContext
+    let applicationState: @MainActor () -> UIApplication.State
+    let protectedDataAvailable: @MainActor () -> Bool
+    let sceneCaptured: @MainActor () -> Bool
+    let sleep: (Duration) async throws -> Void
+
+    init(
+      makeContext: @escaping () -> LAContext = { LAContext() },
+      applicationState: @escaping @MainActor () -> UIApplication.State = {
+        UIApplication.shared.applicationState
+      },
+      protectedDataAvailable: @escaping @MainActor () -> Bool = {
+        UIApplication.shared.isProtectedDataAvailable
+      },
+      sceneCaptured: @escaping @MainActor () -> Bool = {
+        LiveSealbreakClientController.isForegroundSceneCaptured
+      },
+      sleep: @escaping (Duration) async throws -> Void = { try await Task.sleep(for: $0) }
+    ) {
+      self.makeContext = makeContext
+      self.applicationState = applicationState
+      self.protectedDataAvailable = protectedDataAvailable
+      self.sceneCaptured = sceneCaptured
+      self.sleep = sleep
+    }
+  }
+
   init(
     keychain: KeychainStore = KeychainStore(),
     profiles: ProfileStore = ProfileStore(),
     client: SealServerClient = SealServerClient(),
-    makeContext: @escaping () -> LAContext = { LAContext() },
-    applicationState: @escaping @MainActor () -> UIApplication.State = {
-      UIApplication.shared.applicationState
-    },
-    protectedDataAvailable: @escaping @MainActor () -> Bool = {
-      UIApplication.shared.isProtectedDataAvailable
-    },
-    sceneCaptured: @escaping @MainActor () -> Bool = {
-      LiveSealbreakClientController.isForegroundSceneCaptured
-    },
-    sleep: @escaping (Duration) async throws -> Void = { try await Task.sleep(for: $0) }
+    environment: Environment = .init()
   ) {
     self.keychain = keychain
     self.profiles = profiles
     self.client = client
-    self.makeContext = makeContext
-    self.applicationState = applicationState
-    self.protectedDataAvailable = protectedDataAvailable
-    self.sceneCaptured = sceneCaptured
-    self.sleep = sleep
+    self.makeContext = environment.makeContext
+    self.applicationState = environment.applicationState
+    self.protectedDataAvailable = environment.protectedDataAvailable
+    self.sceneCaptured = environment.sceneCaptured
+    self.sleep = environment.sleep
   }
 
   func loadLocalSetupState() throws -> LocalSetupState {

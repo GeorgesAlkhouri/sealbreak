@@ -184,9 +184,7 @@ final class ButtonLayoutTests: XCTestCase {
       type: "shamir",
       initialized: true,
       sealed: true,
-      t: 3,
-      n: 5,
-      progress: 0,
+      quorum: .init(threshold: 3, totalShares: 5, progress: 0),
       migration: false,
       recoverySeal: false
     )
@@ -194,9 +192,7 @@ final class ButtonLayoutTests: XCTestCase {
       type: "shamir",
       initialized: true,
       sealed: false,
-      t: 3,
-      n: 5,
-      progress: 0,
+      quorum: .init(threshold: 3, totalShares: 5, progress: 0),
       migration: false,
       recoverySeal: false
     )
