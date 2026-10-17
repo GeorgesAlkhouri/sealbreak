@@ -448,18 +448,20 @@ final class ControllerFixture {
       keychain: KeychainStore(access: access),
       profiles: profiles,
       client: client,
-      makeContext: { factory.make() },
-      applicationState: { platform.state },
-      protectedDataAvailable: { platform.protectedDataAvailable },
-      sceneCaptured: { platform.captured },
-      sleep: {
-        platform.recordSleep()
-        if let sleep {
-          try await sleep($0)
-        } else {
-          try await clock.sleep(for: $0)
+      environment: .init(
+        makeContext: { factory.make() },
+        applicationState: { platform.state },
+        protectedDataAvailable: { platform.protectedDataAvailable },
+        sceneCaptured: { platform.captured },
+        sleep: {
+          platform.recordSleep()
+          if let sleep {
+            try await sleep($0)
+          } else {
+            try await clock.sleep(for: $0)
+          }
         }
-      }
+      )
     )
   }
 

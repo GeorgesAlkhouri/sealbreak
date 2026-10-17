@@ -405,11 +405,8 @@ package struct HomeFeature {
         state.serverDetails = nil
         return .none
 
-      case .replaceShare(.presented(.delegate(.saved))):
-        state.replaceShare = nil
-        return .none
-
-      case .replaceShare(.presented(.delegate(.dismissRequested))):
+      case .replaceShare(.presented(.delegate(.saved))),
+        .replaceShare(.presented(.delegate(.dismissRequested))):
         state.replaceShare = nil
         return .none
 

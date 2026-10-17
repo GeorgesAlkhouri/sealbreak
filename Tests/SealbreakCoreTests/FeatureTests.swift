@@ -210,24 +210,32 @@ private actor ClientSpy {
 
 private func client(_ spy: ClientSpy) -> SealbreakClient {
   SealbreakClient(
-    loadLocalSetupState: { try await spy.loadLocalSetupState() },
-    protectNewProfile: { profile, record, _ in
-      try await spy.protectNewProfile(profile, record: record)
-    },
-    resetLocalData: { try await spy.resetLocalData() },
-    detectProduct: { _ in try await spy.detectProduct() },
-    dnssecStatus: { _ in await spy.dnssecStatus() },
-    status: { _ in try await spy.status() },
-    submit: { try await spy.submit($0) },
-    readShareFragment: { profileID, _ in try await spy.readShareFragment(profileID) },
-    readShare: { profileID, _ in try await spy.readShare(profileID) },
-    replaceShare: { _, replacement, _ in try await spy.replace(replacement) },
-    removeLocalProfile: { profileID, _ in
-      try await spy.removeLocalProfile(profileID)
-    },
-    requireForeground: {},
-    waitForForeground: { try await spy.waitForForeground() },
-    cancelSensitiveOperation: { await spy.cancel() }
+    localData: .init(
+      loadLocalSetupState: { try await spy.loadLocalSetupState() },
+      protectNewProfile: { profile, record, _ in
+        try await spy.protectNewProfile(profile, record: record)
+      },
+      resetLocalData: { try await spy.resetLocalData() },
+      removeLocalProfile: { profileID, _ in
+        try await spy.removeLocalProfile(profileID)
+      }
+    ),
+    server: .init(
+      detectProduct: { _ in try await spy.detectProduct() },
+      dnssecStatus: { _ in await spy.dnssecStatus() },
+      status: { _ in try await spy.status() },
+      submit: { try await spy.submit($0) }
+    ),
+    shareAccess: .init(
+      readShareFragment: { profileID, _ in try await spy.readShareFragment(profileID) },
+      readShare: { profileID, _ in try await spy.readShare(profileID) },
+      replaceShare: { _, replacement, _ in try await spy.replace(replacement) }
+    ),
+    lifecycle: .init(
+      requireForeground: {},
+      waitForForeground: { try await spy.waitForForeground() },
+      cancelSensitiveOperation: { await spy.cancel() }
+    )
   )
 }
 
@@ -261,9 +269,7 @@ struct FeatureTests {
       type: type,
       initialized: initialized,
       sealed: sealed,
-      t: threshold,
-      n: shares,
-      progress: progress,
+      quorum: .init(threshold: threshold, totalShares: shares, progress: progress),
       migration: migration,
       recoverySeal: recoverySeal
     )

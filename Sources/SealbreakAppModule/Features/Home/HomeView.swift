@@ -162,9 +162,7 @@ struct HomeView: View {
       type: "shamir",
       initialized: true,
       sealed: true,
-      t: 3,
-      n: 5,
-      progress: 1,
+      quorum: .init(threshold: 3, totalShares: 5, progress: 1),
       migration: false,
       recoverySeal: false
     )

@@ -188,7 +188,8 @@ struct ModelsTests {
   func doesNotOfferShamirUnsealForOtherTypes(type: String) throws {
     let status = SealStatus(
       type: type, initialized: true, sealed: true,
-      t: 0, n: 0, progress: 0, migration: false, recoverySeal: true)
+      quorum: .init(threshold: 0, totalShares: 0, progress: 0), migration: false, recoverySeal: true
+    )
     #expect(try !status.validated().supportsUnseal)
   }
 
@@ -196,7 +197,8 @@ struct ModelsTests {
   func rejectsInconsistentStatus() {
     let status = SealStatus(
       type: "shamir", initialized: true, sealed: true,
-      t: 3, n: 2, progress: 0, migration: false, recoverySeal: false)
+      quorum: .init(threshold: 3, totalShares: 2, progress: 0), migration: false,
+      recoverySeal: false)
     #expect(throws: AppFailure.self) { try status.validated() }
   }
 }

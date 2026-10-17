@@ -273,9 +273,7 @@ struct HomeViewStateTests {
       type: supportsUnseal ? "shamir" : "transit",
       initialized: true,
       sealed: sealed,
-      t: 3,
-      n: 5,
-      progress: 1,
+      quorum: .init(threshold: 3, totalShares: 5, progress: 1),
       migration: false,
       recoverySeal: supportsUnseal ? false : true
     )

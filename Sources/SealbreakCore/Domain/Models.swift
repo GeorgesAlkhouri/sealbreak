@@ -194,6 +194,18 @@ package struct ShareComparisonFragment: Equatable, Sendable {
 }
 
 package struct SealStatus: Decodable, Equatable, Sendable {
+  package struct Quorum: Equatable, Sendable {
+    package let threshold: Int
+    package let totalShares: Int
+    package let progress: Int
+
+    package init(threshold: Int, totalShares: Int, progress: Int) {
+      self.threshold = threshold
+      self.totalShares = totalShares
+      self.progress = progress
+    }
+  }
+
   package let type: String
   package let initialized: Bool
   package let sealed: Bool
@@ -207,18 +219,16 @@ package struct SealStatus: Decodable, Equatable, Sendable {
     type: String,
     initialized: Bool,
     sealed: Bool,
-    t: Int,
-    n: Int,
-    progress: Int,
+    quorum: Quorum,
     migration: Bool?,
     recoverySeal: Bool?
   ) {
     self.type = type
     self.initialized = initialized
     self.sealed = sealed
-    self.t = t
-    self.n = n
-    self.progress = progress
+    self.t = quorum.threshold
+    self.n = quorum.totalShares
+    self.progress = quorum.progress
     self.migration = migration
     self.recoverySeal = recoverySeal
   }
