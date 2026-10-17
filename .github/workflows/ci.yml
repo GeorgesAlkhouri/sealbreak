@@ -23,7 +23,7 @@ jobs:
   quality:
     name: CI / quality
     runs-on: macos-26
-    timeout-minutes: 20
+    timeout-minutes: 30
     permissions:
       contents: read
     env:
@@ -48,7 +48,18 @@ jobs:
           xcodebuild -version
           xcrun swift-format --version
           brew install swiftlint
-      - name: Static checks
+      - name: Restore analyzer package downloads
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+        with:
+          path: |
+            build/Simulator/SourcePackages
+            build/SwiftLintAnalyze/SwiftPM/checkouts
+            build/SwiftLintAnalyze/SwiftPM/repositories
+            build/SwiftLintAnalyze/SwiftPM/artifacts
+          key: swiftlint-analyze-packages-${{ runner.os }}-${{ runner.arch }}-26.6-${{ hashFiles('Sealbreak.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved') }}
+          restore-keys: |
+            swiftlint-analyze-packages-${{ runner.os }}-${{ runner.arch }}-26.6-
+      - name: Static checks and SwiftLint analysis
         run: pre-commit run --all-files --show-diff-on-failure
 
   tests:

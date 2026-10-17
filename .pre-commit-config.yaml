@@ -30,6 +30,14 @@ repos:
         entry: swiftlint --quiet --strict
         language: unsupported
         types: [swift]
+      - id: swiftlint-analyze
+        name: SwiftLint analyze (clean builds)
+        entry: bash scripts/ci/analyze.sh
+        language: unsupported
+        pass_filenames: false
+        require_serial: true
+        # Deleting the last use of a declaration must also trigger analysis.
+        always_run: true
       - id: plutil
         name: Validate Apple property files
         entry: plutil -lint

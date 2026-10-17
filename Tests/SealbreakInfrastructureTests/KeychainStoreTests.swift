@@ -149,7 +149,7 @@ struct KeychainStoreTests {
     #expect(
       stub.lastUpdateRequest?[kSecUseAuthenticationContext as String] as? LAContext === context)
     #expect(stub.lastUpdateRequest?[kSecAttrSynchronizable as String] as? Bool == false)
-    #expect(Set(stub.lastUpdateAttributes?.keys.map { $0 } ?? []) == [kSecValueData as String])
+    #expect(Set((stub.lastUpdateAttributes ?? [:]).keys) == [kSecValueData as String])
     #expect(stub.lastUpdateRequest?[kSecAttrAccessControl as String] == nil)
     #expect(stub.lastUpdateRequest?[kSecAttrAccessible as String] == nil)
 

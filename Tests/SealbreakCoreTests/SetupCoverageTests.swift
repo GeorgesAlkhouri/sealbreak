@@ -117,8 +117,8 @@ struct SetupCoverageTests {
     await store.skipReceivedActions()
 
     #expect(store.state.feedback == .error("server unavailable"))
-    #expect(await statusCalls.count == 1)
-    #expect(await detectionCalls.count == 0)
+    #expect(await statusCalls.callCount == 1)
+    #expect(await detectionCalls.callCount == 0)
     #expect(store.state.checkedProfile == nil)
     #expect(!store.state.canContinue)
   }
@@ -294,7 +294,7 @@ struct SetupCoverageTests {
     await shareStore.send(.privacyInterrupted).finish()
     await shareStore.skipReceivedActions()
     #expect(shareStore.state.share?.operation == .protecting)
-    #expect(await counter.count == 1)
+    #expect(await counter.callCount == 1)
   }
 
   @Test
@@ -366,9 +366,9 @@ struct SetupCoverageTests {
 }
 
 private actor CallCounter {
-  private(set) var count = 0
+  private(set) var callCount = 0
 
   func increment() {
-    count += 1
+    callCount += 1
   }
 }

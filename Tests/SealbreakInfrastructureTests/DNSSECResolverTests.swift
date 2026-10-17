@@ -130,7 +130,7 @@ struct DNSSECResolverTests {
   }
 
   @Test(arguments: 0..<10)
-  func cancellationRacingWithCallbackCompletesOnce(_ iteration: Int) async {
+  func cancellationRacingWithCallbackCompletesOnce(_: Int) async {
     let probe = DNSSECServiceProbe()
     let resolver = DNSSECResolver.makeLive(timeout: 5, service: probe.client)
     let task = Task { await resolver.status(for: "bao.example.com") }

@@ -6,35 +6,38 @@ import Testing
 
 @MainActor
 struct HomeViewStateTests {
+  private struct StatusPresentationCase {
+    let status: HomeViewState.Status
+    let title: String
+    let primaryDetail: String
+    let secondaryDetail: String
+    let progress: Double
+  }
+
   @Test
   func statusPresentationMapsEveryPhase() {
-    let cases:
-      [(
-        status: HomeViewState.Status,
-        title: String,
-        primaryDetail: String,
-        secondaryDetail: String,
-        progress: Double
-      )] = [
-        (.unknown, "UNKNOWN", "Status unknown", "Check status before sending", 0),
-        (
-          .sealed(progress: 1, threshold: 3, supportsUnseal: true), "SEALED",
-          "1 of 3 shares submitted", "Shamir seal", 1.0 / 3.0
-        ),
-        (
-          .sealed(progress: 1, threshold: 0, supportsUnseal: false), "SEALED",
-          "1 of 0 shares submitted", "Manual unseal unavailable", 0
-        ),
-        (
-          .sealed(progress: -1, threshold: 3, supportsUnseal: true), "SEALED",
-          "-1 of 3 shares submitted", "Shamir seal", 0
-        ),
-        (
-          .sealed(progress: 5, threshold: 3, supportsUnseal: true), "SEALED",
-          "5 of 3 shares submitted", "Shamir seal", 1
-        ),
-        (.unsealed, "UNSEALED", "Server is available", "Status checked", 1),
-      ]
+    let cases: [StatusPresentationCase] = [
+      .init(
+        status: .unknown, title: "UNKNOWN", primaryDetail: "Status unknown",
+        secondaryDetail: "Check status before sending", progress: 0),
+      .init(
+        status: .sealed(progress: 1, threshold: 3, supportsUnseal: true), title: "SEALED",
+        primaryDetail: "1 of 3 shares submitted", secondaryDetail: "Shamir seal",
+        progress: 1.0 / 3.0),
+      .init(
+        status: .sealed(progress: 1, threshold: 0, supportsUnseal: false), title: "SEALED",
+        primaryDetail: "1 of 0 shares submitted", secondaryDetail: "Manual unseal unavailable",
+        progress: 0),
+      .init(
+        status: .sealed(progress: -1, threshold: 3, supportsUnseal: true), title: "SEALED",
+        primaryDetail: "-1 of 3 shares submitted", secondaryDetail: "Shamir seal", progress: 0),
+      .init(
+        status: .sealed(progress: 5, threshold: 3, supportsUnseal: true), title: "SEALED",
+        primaryDetail: "5 of 3 shares submitted", secondaryDetail: "Shamir seal", progress: 1),
+      .init(
+        status: .unsealed, title: "UNSEALED", primaryDetail: "Server is available",
+        secondaryDetail: "Status checked", progress: 1),
+    ]
 
     for item in cases {
       #expect(String(localized: item.status.title) == item.title)

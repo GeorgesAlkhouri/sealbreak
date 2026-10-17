@@ -262,7 +262,7 @@ private final class DelayedPasteProvider: NSItemProvider, @unchecked Sendable {
   }
 
   override func loadObject(
-    ofClass aClass: any NSItemProviderReading.Type,
+    ofClass _: any NSItemProviderReading.Type,
     completionHandler: @escaping @Sendable ((any NSItemProviderReading)?, Error?) -> Void
   ) -> Progress {
     completion = completionHandler

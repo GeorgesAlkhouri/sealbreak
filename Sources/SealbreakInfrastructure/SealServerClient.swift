@@ -8,7 +8,7 @@ final class TransportPolicy: NSObject, URLSessionTaskDelegate, @unchecked Sendab
     task _: URLSessionTask,
     willPerformHTTPRedirection _: HTTPURLResponse,
     newRequest _: URLRequest,
-    completionHandler: @escaping (URLRequest?) -> Void
+    completionHandler: (URLRequest?) -> Void
   ) {
     completionHandler(nil)
   }
@@ -16,7 +16,7 @@ final class TransportPolicy: NSObject, URLSessionTaskDelegate, @unchecked Sendab
   func urlSession(
     _: URLSession,
     didReceive challenge: URLAuthenticationChallenge,
-    completionHandler: @escaping (URLSession.AuthChallengeDisposition, URLCredential?) -> Void
+    completionHandler: (URLSession.AuthChallengeDisposition, URLCredential?) -> Void
   ) {
     if challenge.protectionSpace.authenticationMethod == NSURLAuthenticationMethodServerTrust {
       completionHandler(.performDefaultHandling, nil)
@@ -29,7 +29,7 @@ final class TransportPolicy: NSObject, URLSessionTaskDelegate, @unchecked Sendab
     _ session: URLSession,
     task _: URLSessionTask,
     didReceive challenge: URLAuthenticationChallenge,
-    completionHandler: @escaping (URLSession.AuthChallengeDisposition, URLCredential?) -> Void
+    completionHandler: (URLSession.AuthChallengeDisposition, URLCredential?) -> Void
   ) {
     urlSession(session, didReceive: challenge, completionHandler: completionHandler)
   }

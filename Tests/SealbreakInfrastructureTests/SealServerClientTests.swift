@@ -109,7 +109,7 @@ struct SealServerClientTests {
       let recorder = RequestRecorder()
       let client = makeClient { request in
         recorder.record(request)
-        return (Self.response(for: request), Data(payload.utf8))
+        return (try Self.response(for: request), Data(payload.utf8))
       }
 
       let product = try await client.detectProduct(try profile())
@@ -132,7 +132,7 @@ struct SealServerClientTests {
     let recorder = RequestRecorder()
     let client = makeClient { request in
       recorder.record(request)
-      return (Self.response(for: request), Self.statusData())
+      return (try Self.response(for: request), Self.statusData())
     }
 
     let status = try await client.status(try profile())
@@ -149,7 +149,7 @@ struct SealServerClientTests {
     let recorder = RequestRecorder()
     let client = makeClient { request in
       recorder.record(request)
-      return (Self.response(for: request), Data("{}".utf8))
+      return (try Self.response(for: request), Data("{}".utf8))
     }
     let record = try ShareRecord(profile: profile(), input: syntheticShare)
 
@@ -162,9 +162,9 @@ struct SealServerClientTests {
   }
 
   @Test
-  func statusRejectsInvalidPayload() async throws {
+  func statusRejectsInvalidPayload() async {
     let client = makeClient { request in
-      (Self.response(for: request), Data("{}".utf8))
+      (try Self.response(for: request), Data("{}".utf8))
     }
 
     let message = await failureMessage {
@@ -174,7 +174,7 @@ struct SealServerClientTests {
   }
 
   @Test
-  func requestRejectsUnexpectedResponses() async throws {
+  func requestRejectsUnexpectedResponses() async {
     let cases: [(Int, [String: String], String, String)] = [
       (302, ["Content-Type": "application/json"], origin, "Redirect blocked."),
       (500, ["Content-Type": "application/json"], origin, "Server returned HTTP 500."),
@@ -191,13 +191,14 @@ struct SealServerClientTests {
 
     for (statusCode, headers, responseOrigin, prefix) in cases {
       let client = makeClient { _ in
-        let url = URL(string: "\(responseOrigin)/v1/sys/seal-status")!
-        let response = HTTPURLResponse(
-          url: url,
-          statusCode: statusCode,
-          httpVersion: "HTTP/1.1",
-          headerFields: headers
-        )!
+        let url = try #require(URL(string: "\(responseOrigin)/v1/sys/seal-status"))
+        let response = try #require(
+          HTTPURLResponse(
+            url: url,
+            statusCode: statusCode,
+            httpVersion: "HTTP/1.1",
+            headerFields: headers
+          ))
         return (response, Self.statusData())
       }
       let message = await failureMessage {
@@ -212,7 +213,7 @@ struct SealServerClientTests {
     let statusData = Self.statusData()
     let data = statusData + Data(repeating: 0x20, count: byteCount - statusData.count)
     let client = makeClient { request in
-      (Self.response(for: request), data)
+      (try Self.response(for: request), data)
     }
 
     if byteCount == 65_536 {
@@ -228,7 +229,7 @@ struct SealServerClientTests {
   }
 
   @Test
-  func requestMapsUnexpectedTransportErrorsWithoutExposingDiagnostics() async throws {
+  func requestMapsUnexpectedTransportErrorsWithoutExposingDiagnostics() async {
     let client = makeClient { _ in
       throw NSError(
         domain: "SealbreakTests.Transport",
@@ -244,7 +245,7 @@ struct SealServerClientTests {
   }
 
   @Test
-  func requestMapsTLSErrorsAndOrdinaryNetworkFailures() async throws {
+  func requestMapsTLSErrorsAndOrdinaryNetworkFailures() async {
     let cases: [(URLError.Code, String)] = [
       (.serverCertificateUntrusted, "TLS validation failed."),
       (.secureConnectionFailed, "TLS validation failed."),
@@ -263,7 +264,7 @@ struct SealServerClientTests {
   @Test
   func cancellationIsPreserved() async throws {
     let client = makeClient { request in
-      (Self.response(for: request), Self.statusData())
+      (try Self.response(for: request), Self.statusData())
     }
     let target = try profile()
     let task = Task {
@@ -303,13 +304,15 @@ struct SealServerClientTests {
     }
   }
 
-  private static func response(for request: URLRequest) -> HTTPURLResponse {
-    HTTPURLResponse(
-      url: request.url!,
-      statusCode: 200,
-      httpVersion: "HTTP/1.1",
-      headerFields: ["Content-Type": "application/json"]
-    )!
+  private static func response(for request: URLRequest) throws -> HTTPURLResponse {
+    let url = try #require(request.url)
+    return try #require(
+      HTTPURLResponse(
+        url: url,
+        statusCode: 200,
+        httpVersion: "HTTP/1.1",
+        headerFields: ["Content-Type": "application/json"]
+      ))
   }
 
   private static func statusData() -> Data {
