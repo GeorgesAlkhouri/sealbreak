@@ -3,40 +3,40 @@ import SealbreakCore
 import SwiftUI
 
 public struct SealbreakRootView: View {
-    private let store: StoreOf<AppFeature>
+  private let store: StoreOf<AppFeature>
 
-    public init() {
-        store = Store(initialState: AppFeature.State()) {
-            AppFeature()
-        } withDependencies: {
-            $0.sealbreakClient = .live
+  public init() {
+    store = Store(initialState: AppFeature.State()) {
+      AppFeature()
+    } withDependencies: {
+      $0.sealbreakClient = .live
+    }
+  }
+
+  init(store: StoreOf<AppFeature>) {
+    self.store = store
+  }
+
+  public var body: some View {
+    PrivacyGate(store: privacyStore) {
+      NavigationStack {
+        if let homeStore = store.scope(state: \.home, action: \.home) {
+          HomeView(store: homeStore, privacyStore: privacyStore)
+        } else if let setupStore = store.scope(state: \.setup, action: \.setup) {
+          SetupView(store: setupStore)
+        } else if let welcomeStore = store.scope(state: \.welcome, action: \.welcome) {
+          WelcomeView(store: welcomeStore)
+        } else {
+          PapercutPalette.sky.ignoresSafeArea()
         }
+      }
     }
+    .task {
+      await store.send(.task).finish()
+    }
+  }
 
-    init(store: StoreOf<AppFeature>) {
-        self.store = store
-    }
-
-    public var body: some View {
-        PrivacyGate(store: privacyStore) {
-            NavigationStack {
-                if let homeStore = store.scope(state: \.home, action: \.home) {
-                    HomeView(store: homeStore, privacyStore: privacyStore)
-                } else if let setupStore = store.scope(state: \.setup, action: \.setup) {
-                    SetupView(store: setupStore)
-                } else if let welcomeStore = store.scope(state: \.welcome, action: \.welcome) {
-                    WelcomeView(store: welcomeStore)
-                } else {
-                    PapercutPalette.sky.ignoresSafeArea()
-                }
-            }
-        }
-        .task {
-            await store.send(.task).finish()
-        }
-    }
-
-    private var privacyStore: StoreOf<PrivacyFeature> {
-        store.scope(state: \.privacy, action: \.privacy)
-    }
+  private var privacyStore: StoreOf<PrivacyFeature> {
+    store.scope(state: \.privacy, action: \.privacy)
+  }
 }

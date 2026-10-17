@@ -15,9 +15,14 @@ repos:
 
   - repo: local
     hooks:
-      - id: swiftformat
-        name: SwiftFormat
-        entry: bash -c 'swiftformat "$@" --lint' --
+      - id: swift-format
+        name: swift-format
+        entry: xcrun swift-format format --in-place
+        language: unsupported
+        types: [swift]
+      - id: swift-format-lint
+        name: swift-format lint
+        entry: xcrun swift-format lint --strict
         language: unsupported
         types: [swift]
       - id: swiftlint

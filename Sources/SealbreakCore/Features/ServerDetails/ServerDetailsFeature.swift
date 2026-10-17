@@ -3,95 +3,95 @@ import Foundation
 
 @Reducer
 package struct ServerDetailsFeature {
-    @ObservableState
-    package struct State: Equatable {
-        package var profile: ServerProfile
-        package var status: SealStatus?
-        package var isBusy: Bool
-        var activity: LocalizedStringResource?
-        package var shareFragment: ShareComparisonFragment? = nil
-        package var isRevealingShare = false
+  @ObservableState
+  package struct State: Equatable {
+    package var profile: ServerProfile
+    package var status: SealStatus?
+    package var isBusy: Bool
+    var activity: LocalizedStringResource?
+    package var shareFragment: ShareComparisonFragment? = nil
+    package var isRevealingShare = false
+  }
+
+  package enum Action: Equatable {
+    package enum Delegate: Equatable {
+      case refreshRequested
+      case dismissRequested
     }
 
-    package enum Action: Equatable {
-        package enum Delegate: Equatable {
-            case refreshRequested
-            case dismissRequested
+    case refreshTapped
+    case doneTapped
+    case shareFragmentTapped
+    case shareFragmentLoaded(ShareComparisonFragment)
+    case shareFragmentLoadFailed
+    case shareFragmentExpired
+    case delegate(Delegate)
+  }
+
+  private enum CancelID: Hashable {
+    case shareFragment
+  }
+
+  @Dependency(\.continuousClock) private var clock
+  @Dependency(\.sealbreakClient) private var client
+
+  package var body: some ReducerOf<Self> {
+    Reduce { state, action in
+      switch action {
+      case .refreshTapped:
+        return .send(.delegate(.refreshRequested))
+
+      case .doneTapped:
+        return .send(.delegate(.dismissRequested))
+
+      case .shareFragmentTapped:
+        if state.shareFragment != nil {
+          state.shareFragment = nil
+          return .cancel(id: CancelID.shareFragment)
         }
 
-        case refreshTapped
-        case doneTapped
-        case shareFragmentTapped
-        case shareFragmentLoaded(ShareComparisonFragment)
-        case shareFragmentLoadFailed
-        case shareFragmentExpired
-        case delegate(Delegate)
-    }
-
-    private enum CancelID: Hashable {
-        case shareFragment
-    }
-
-    @Dependency(\.continuousClock) private var clock
-    @Dependency(\.sealbreakClient) private var client
-
-    package var body: some ReducerOf<Self> {
-        Reduce { state, action in
-            switch action {
-            case .refreshTapped:
-                return .send(.delegate(.refreshRequested))
-
-            case .doneTapped:
-                return .send(.delegate(.dismissRequested))
-
-            case .shareFragmentTapped:
-                if state.shareFragment != nil {
-                    state.shareFragment = nil
-                    return .cancel(id: CancelID.shareFragment)
-                }
-
-                guard !state.isBusy, !state.isRevealingShare else {
-                    return .none
-                }
-
-                state.isRevealingShare = true
-                let profileID = state.profile.id
-                let client = self.client
-                let clock = self.clock
-                // Register cancellation before publishing the fragment, so an immediate
-                // hide also cancels an expiry sleep that has not started yet.
-                return .run { send in
-                    do {
-                        let fragment = try await client.readShareFragment(
-                            profileID,
-                            LocalizedStringResource("Show stored share fragment", bundle: .module)
-                        )
-                        await send(.shareFragmentLoaded(fragment))
-                    } catch {
-                        await send(.shareFragmentLoadFailed)
-                        return
-                    }
-                    try await clock.sleep(for: .seconds(20))
-                    await send(.shareFragmentExpired)
-                }
-                .cancellable(id: CancelID.shareFragment, cancelInFlight: true)
-
-            case .shareFragmentLoaded(let fragment):
-                state.isRevealingShare = false
-                state.shareFragment = fragment
-                return .none
-
-            case .shareFragmentLoadFailed:
-                state.isRevealingShare = false
-                return .none
-
-            case .shareFragmentExpired:
-                state.shareFragment = nil
-                return .none
-
-            case .delegate:
-                return .none
-            }
+        guard !state.isBusy, !state.isRevealingShare else {
+          return .none
         }
+
+        state.isRevealingShare = true
+        let profileID = state.profile.id
+        let client = self.client
+        let clock = self.clock
+        // Register cancellation before publishing the fragment, so an immediate
+        // hide also cancels an expiry sleep that has not started yet.
+        return .run { send in
+          do {
+            let fragment = try await client.readShareFragment(
+              profileID,
+              LocalizedStringResource("Show stored share fragment", bundle: .module)
+            )
+            await send(.shareFragmentLoaded(fragment))
+          } catch {
+            await send(.shareFragmentLoadFailed)
+            return
+          }
+          try await clock.sleep(for: .seconds(20))
+          await send(.shareFragmentExpired)
+        }
+        .cancellable(id: CancelID.shareFragment, cancelInFlight: true)
+
+      case .shareFragmentLoaded(let fragment):
+        state.isRevealingShare = false
+        state.shareFragment = fragment
+        return .none
+
+      case .shareFragmentLoadFailed:
+        state.isRevealingShare = false
+        return .none
+
+      case .shareFragmentExpired:
+        state.shareFragment = nil
+        return .none
+
+      case .delegate:
+        return .none
+      }
     }
+  }
 }
