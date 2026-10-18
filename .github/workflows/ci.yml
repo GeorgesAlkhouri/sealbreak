@@ -84,10 +84,18 @@ jobs:
           # SwiftPM requires parallel mode to write the XCTest XML report.
           swift test --force-resolved-versions --skip-build --enable-code-coverage -Xswiftc -warnings-as-errors \
             --parallel --xunit-output build/test-results/package.junit.xml
-          profile="$(find .build -name default.profdata -type f -print -quit)"
-          binary="$(find .build -type f -name 'SealbreakPackageTests' -perm -111 -print -quit)"
-          test -n "$profile" && test -n "$binary"
-          xcrun llvm-cov export "$binary" -instr-profile "$profile" -format=lcov > coverage.lcov
+          # Swift 6.4's default build system emits one bundle per test target.
+          # Resolve the active build directory so stale binaries cannot supply coverage.
+          build_path="$(swift build --show-bin-path)"
+          profile="$build_path/codecov/default.profdata"
+          test -s "$profile"
+          objects=()
+          for target in SealbreakCoreTests SealbreakInfrastructureTests; do
+            binary="$build_path/$target.xctest/Contents/MacOS/$target"
+            test -x "$binary"
+            objects+=(-object "$binary")
+          done
+          xcrun llvm-cov export "${objects[@]}" -instr-profile "$profile" -format=lcov > coverage.lcov
       - name: Upload Core and Infrastructure test results to Codecov
         if: ${{ !cancelled() && hashFiles('build/test-results/package.junit.xml', 'build/test-results/package.junit-swift-testing.xml') != '' }}
         uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
