@@ -1,6 +1,6 @@
 Name, P1 Synthetic Vault
 Origin, https://bao.example.com
-Share, Show stored share fragment: Hidden. Dimmed. Button.
+Share, Show stored share fragment, In progress: Hidden. Dimmed. Button.
 Initialized, Yes
 Seal, Sealed
 Type, shamir
