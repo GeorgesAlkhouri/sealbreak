@@ -216,9 +216,7 @@ final class PrivacyViewTests: XCTestCase {
     try fixture.host.snapshot("fragment-initial-hidden")
 
     let deniedAuthorization = fixture.start(.home(.serverDetails(.presented(.shareFragmentTapped))))
-    try await fixture.host.waitUntil {
-      fixture.probe.pendingCount == 1 && fixture.store.home?.serverDetails?.isRevealingShare == true
-    }
+    try await fixture.waitForPendingFragment()
     XCTAssertTrue(!fixture.host.accessibility.contains(fixture.fragment.displayValue))
     XCTAssertTrue(!fixture.host.accessibility.contains(PrivacyRootFixture.share))
     try fixture.host.snapshot("fragment-pending")
@@ -644,6 +642,7 @@ final class PrivacyRootFixture {
         && store.home?.serverDetails?.isRevealingShare == true
         && done?.traits.contains([.button, .notEnabled]) == true
         && reveal?.traits.contains([.button, .notEnabled]) == true
+        && reveal?.label?.contains("In progress") == true
         && reveal?.value == "Hidden"
         && !elements.contains { $0.description.contains(fragment.displayValue) }
     }
