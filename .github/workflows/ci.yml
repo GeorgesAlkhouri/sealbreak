@@ -237,7 +237,7 @@ jobs:
           intermediates = Path("build/Simulator/Build/Intermediates.noindex/Sealbreak.build/Debug-iphonesimulator")
           with tempfile.TemporaryDirectory(prefix="sealbreak-localization-") as directory:
               for target, catalog in catalogs.items():
-                  stringsdata = [path for path in sorted((intermediates / f"{target}.build/Objects-normal/arm64").glob("*.stringsdata"))
+                  stringsdata = [path for path in sorted((intermediates / f"{target}-t.build/Objects-normal/arm64").glob("*.stringsdata"))
                                  if path.name != "ExtractedAppShortcutsMetadata.stringsdata"]
                   if not stringsdata:
                       raise SystemExit(f"::error title=Missing localization extraction::No source strings were extracted for {target}.")
