@@ -255,8 +255,8 @@ jobs:
   integration:
     name: CI / integration / ${{ matrix.server.name }} / iOS ${{ matrix.platform.ios }}
     runs-on: ${{ matrix.platform.runner }}
-    # A cold Xcode 27 build can consume almost 20 minutes before cleanup.
-    timeout-minutes: 30
+    # The iOS 26.5 lane downloads an additional simulator runtime.
+    timeout-minutes: ${{ matrix.platform.ios == '26.5' && 60 || 30 }}
     permissions:
       contents: read
       id-token: write
@@ -272,9 +272,9 @@ jobs:
             version: "2.1.2"
         platform:
           - ios: "26.5"
-            xcode: "26.6"
-            runner: macos-26
-            developer_dir: /Applications/Xcode_26.6.app/Contents/Developer
+            xcode: "27.1"
+            runner: xcode-27
+            developer_dir: /Applications/Xcode_27.1.app/Contents/Developer
             runtime: com.apple.CoreSimulator.SimRuntime.iOS-26-5
             device: com.apple.CoreSimulator.SimDeviceType.iPhone-17
           - ios: "27.0"
@@ -296,6 +296,16 @@ jobs:
         run: |
           test -d "$DEVELOPER_DIR"
           xcodebuild -version
+      - name: Install iOS 26.5 simulator runtime
+        if: matrix.platform.ios == '26.5'
+        run: |
+          set -euo pipefail
+          if ! xcrun simctl list runtimes -j |
+            jq -e '.runtimes | any(.identifier == "com.apple.CoreSimulator.SimRuntime.iOS-26-5" and .isAvailable == true)' >/dev/null; then
+            xcodebuild -downloadPlatform iOS -buildVersion 26.5 -architectureVariant arm64
+          fi
+          xcrun simctl list runtimes -j |
+            jq -e '.runtimes | any(.identifier == "com.apple.CoreSimulator.SimRuntime.iOS-26-5" and .isAvailable == true)'
       - name: Restore Swift package sources
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
         with:
