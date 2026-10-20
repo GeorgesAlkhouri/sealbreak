@@ -11,19 +11,7 @@ struct HomeView: View {
 
   var body: some View {
     PapercutScreen {
-      HomeHeader(isBusy: viewState.isBusy) { action in
-        switch action {
-        case .refresh:
-          statusInteractionTrigger += 1
-          store.send(.refreshTapped)
-        case .serverDetails:
-          store.send(.serverDetailsTapped)
-        case .replaceShare:
-          store.send(.replaceShareTapped)
-        case .removeLocalData:
-          store.send(.removeLocalDataTapped)
-        }
-      }
+      header(interactionTrigger: $statusInteractionTrigger)
     } content: {
       VStack(spacing: 0) {
         ServerStatusCard(
@@ -34,20 +22,9 @@ struct HomeView: View {
         .padding(.horizontal, 29)
         .padding(.bottom, 26)
 
-        UnsealButton(state: viewState.primaryAction) {
-          switch viewState.primaryAction {
-          case .unseal:
-            statusInteractionTrigger += 1
-            store.send(.unsealTapped)
-          case .checkStatus:
-            statusInteractionTrigger += 1
-            store.send(.refreshTapped)
-          case .working:
-            break
-          }
-        }
-        .frame(maxWidth: 335)
-        .padding(.horizontal, 29)
+        primaryButton(interactionTrigger: $statusInteractionTrigger)
+          .frame(maxWidth: 335)
+          .padding(.horizontal, 29)
 
         if let feedback = viewState.feedback {
           PapercutFeedback(feedback: feedback)
@@ -104,6 +81,37 @@ struct HomeView: View {
           bundle: .module)
       case nil:
         EmptyView()
+      }
+    }
+  }
+
+  func header(interactionTrigger: Binding<Int>) -> HomeHeader {
+    HomeHeader(isBusy: viewState.isBusy) { action in
+      switch action {
+      case .refresh:
+        interactionTrigger.wrappedValue += 1
+        store.send(.refreshTapped)
+      case .serverDetails:
+        store.send(.serverDetailsTapped)
+      case .replaceShare:
+        store.send(.replaceShareTapped)
+      case .removeLocalData:
+        store.send(.removeLocalDataTapped)
+      }
+    }
+  }
+
+  func primaryButton(interactionTrigger: Binding<Int>) -> UnsealButton {
+    UnsealButton(state: viewState.primaryAction) {
+      switch viewState.primaryAction {
+      case .unseal:
+        interactionTrigger.wrappedValue += 1
+        store.send(.unsealTapped)
+      case .checkStatus:
+        interactionTrigger.wrappedValue += 1
+        store.send(.refreshTapped)
+      case .working:
+        break
       }
     }
   }

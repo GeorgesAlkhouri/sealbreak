@@ -10,6 +10,158 @@ import XCTest
 
 @MainActor
 final class PapercutScreenTests: XCTestCase {
+  func testWelcomePrimaryActionsSendTheirFeatureActions() async throws {
+    for requiresLocalReset in [false, true] {
+      var actions = [WelcomeFeature.Action]()
+      let store = Store(
+        initialState: WelcomeFeature.State(requiresLocalReset: requiresLocalReset)
+      ) {
+        WelcomeFeature()
+        Reduce { _, action in
+          actions.append(action)
+          return .none
+        }
+      }
+      let host = try makeHost(size: CGSize(width: 402, height: 874)) {
+        WelcomeView(store: store)
+      }
+      defer { host.close() }
+      try await host.waitUntil {
+        host.accessibilityElements.contains { $0.identifier == "welcome-primary-action" }
+      }
+
+      try activate(identifier: "welcome-primary-action", in: host)
+
+      let expected: WelcomeFeature.Action =
+        requiresLocalReset ? .resetLocalDataTapped : .setUpTapped
+      try await host.waitUntil { actions.contains(expected) }
+      XCTAssertEqual(actions.first, expected)
+      XCTAssertEqual(store.confirmReset, requiresLocalReset)
+      if !requiresLocalReset { XCTAssertTrue(actions.contains(.delegate(.setUp))) }
+    }
+  }
+
+  func testHomePrimaryActionsRequestConfirmationOrRefresh() async throws {
+    let profile = try makeProfile()
+    let checkedStatus = PrivacyRootFixture.status
+    for status in [checkedStatus, nil] {
+      var actions = [HomeFeature.Action]()
+      let store = Store(initialState: HomeFeature.State(profile: profile, status: status)) {
+        HomeFeature()
+        Reduce { _, action in
+          actions.append(action)
+          return .none
+        }
+      } withDependencies: {
+        $0.sealbreakClient.waitForForeground = {}
+        $0.sealbreakClient.status = { _ in checkedStatus }
+      }
+      let privacy = Store(initialState: PrivacyFeature.State()) { PrivacyFeature() }
+      let host = try makeHost(size: CGSize(width: 402, height: 874)) {
+        HomeView(store: store, privacyStore: privacy)
+      }
+      defer { host.close() }
+      try await host.waitUntil {
+        host.accessibilityElements.contains { $0.identifier == "home-primary-action" }
+      }
+
+      try activate(identifier: "home-primary-action", in: host)
+
+      let expected: HomeFeature.Action = status == nil ? .refreshTapped : .unsealTapped
+      try await host.waitUntil { actions.contains(expected) }
+      XCTAssertEqual(actions.first, expected)
+      if status == nil {
+        try await host.waitUntil { store.operation == nil && store.status != nil }
+        XCTAssertNil(store.confirmation)
+      } else {
+        XCTAssertEqual(store.confirmation, .unseal)
+        XCTAssertNil(store.operation, "Unseal must await explicit confirmation.")
+      }
+    }
+  }
+
+  func testHomeHeaderCallbacksSendTheirFeatureActions() throws {
+    let profile = try makeProfile()
+    let checkedStatus = PrivacyRootFixture.status
+    let commands: [(HomeMenuAction, HomeFeature.Action)] = [
+      (.refresh, .refreshTapped),
+      (.serverDetails, .serverDetailsTapped),
+      (.replaceShare, .replaceShareTapped),
+      (.removeLocalData, .removeLocalDataTapped),
+    ]
+    for (command, expected) in commands {
+      var actions = [HomeFeature.Action]()
+      let store = Store(
+        initialState: HomeFeature.State(profile: profile, status: checkedStatus)
+      ) {
+        HomeFeature()
+        Reduce { _, action in
+          actions.append(action)
+          return .none
+        }
+      } withDependencies: {
+        $0.sealbreakClient.waitForForeground = {}
+        $0.sealbreakClient.status = { _ in checkedStatus }
+      }
+      let privacy = Store(initialState: PrivacyFeature.State()) { PrivacyFeature() }
+      let view = HomeView(store: store, privacyStore: privacy)
+      var trigger = 0
+      let header = view.header(
+        interactionTrigger: Binding(get: { trigger }, set: { trigger = $0 }))
+
+      header.onAction(command)
+
+      XCTAssertEqual(actions.first, expected)
+      XCTAssertEqual(trigger, expected == .refreshTapped ? 1 : 0)
+      XCTAssertFalse(header.isBusy)
+      switch expected {
+      case .refreshTapped:
+        XCTAssertEqual(store.operation, .checkingStatus)
+      case .serverDetailsTapped:
+        XCTAssertEqual(store.serverDetails?.profile, profile)
+      case .replaceShareTapped:
+        XCTAssertEqual(store.replaceShare?.profile, profile)
+      case .removeLocalDataTapped:
+        XCTAssertEqual(store.confirmation, .removeLocalData)
+        XCTAssertNil(store.operation, "Removal must await explicit confirmation.")
+      default:
+        XCTFail("Unexpected header menu command.")
+      }
+    }
+  }
+
+  func testHomePrimaryButtonUpdatesInteractionOnlyForAvailableActions() throws {
+    let profile = try makeProfile()
+    let cases: [(SealStatus?, HomeFeature.State.Operation?, HomeFeature.Action?)] = [
+      (PrivacyRootFixture.status, nil, .unsealTapped),
+      (nil, nil, .refreshTapped),
+      (PrivacyRootFixture.status, .checkingStatus, nil),
+    ]
+    for (status, operation, expected) in cases {
+      var state = HomeFeature.State(profile: profile, status: status)
+      state.operation = operation
+      var actions = [HomeFeature.Action]()
+      let store = Store(initialState: state) {
+        Reduce<HomeFeature.State, HomeFeature.Action> { _, action in
+          actions.append(action)
+          return .none
+        }
+      }
+      let privacy = Store(initialState: PrivacyFeature.State()) { PrivacyFeature() }
+      let view = HomeView(store: store, privacyStore: privacy)
+      var trigger = 0
+      let button = view.primaryButton(
+        interactionTrigger: Binding(get: { trigger }, set: { trigger = $0 }))
+
+      button.action()
+
+      XCTAssertEqual(actions, expected.map { [$0] } ?? [])
+      XCTAssertEqual(trigger, expected == nil ? 0 : 1)
+      XCTAssertEqual(button.state.enabled, expected != nil)
+      XCTAssertEqual(store.operation, operation)
+    }
+  }
+
   func testWelcomeAndHomeKeepTheirHeadersWhileContentScrolls() async throws {
     let welcome = Store(initialState: WelcomeFeature.State()) { WelcomeFeature() }
     let profile = try makeProfile()
@@ -208,6 +360,21 @@ final class PapercutScreenTests: XCTestCase {
   private func makeProfile() throws -> ServerProfile {
     try ServerProfile(
       id: UUID(), name: "Synthetic server", address: "https://bao.example.com", product: .openBao)
+  }
+
+  private func activate(identifier: String, in host: PrivacyViewHost) throws {
+    let matches: [[(AccessibilityElement, NSObject)]] = AccessibilityHierarchyParser()
+      .parseAccessibilityHierarchy(
+        in: host.visibleWindow,
+        makeElement: { element, _, source in
+          element.identifier == identifier ? [(element, source)] : []
+        },
+        makeContainer: { _, children, _ in children.flatMap { $0 } }
+      )
+    let (element, source) = try XCTUnwrap(matches.flatMap { $0 }.first)
+    _ = try XCTUnwrap(
+      element.traits.contains(.notEnabled) ? nil : true, "The requested control must be enabled.")
+    XCTAssertTrue(source.accessibilityActivate(), "The visible button must handle activation.")
   }
 
   private func scrollView(in host: PrivacyViewHost) throws -> UIScrollView {
