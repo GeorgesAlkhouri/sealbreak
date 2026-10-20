@@ -3,20 +3,19 @@ import SwiftUI
 struct HeaderWaveShape: Shape {
   func path(in rect: CGRect) -> Path {
     let sx = rect.width / 393
-    let sy = rect.height / 165
     var path = Path()
     path.move(to: CGPoint(x: 0, y: 0))
     path.addLine(to: CGPoint(x: 393 * sx, y: 0))
-    path.addLine(to: CGPoint(x: 393 * sx, y: 130 * sy))
+    path.addLine(to: CGPoint(x: 393 * sx, y: rect.maxY - 35))
     path.addCurve(
-      to: CGPoint(x: 240 * sx, y: 124 * sy),
-      control1: CGPoint(x: 339 * sx, y: 152 * sy),
-      control2: CGPoint(x: 290 * sx, y: 141 * sy)
+      to: CGPoint(x: 240 * sx, y: rect.maxY - 41),
+      control1: CGPoint(x: 339 * sx, y: rect.maxY - 13),
+      control2: CGPoint(x: 290 * sx, y: rect.maxY - 24)
     )
     path.addCurve(
-      to: CGPoint(x: 0, y: 127 * sy),
-      control1: CGPoint(x: 167 * sx, y: 99 * sy),
-      control2: CGPoint(x: 105 * sx, y: 155 * sy)
+      to: CGPoint(x: 0, y: rect.maxY - 38),
+      control1: CGPoint(x: 167 * sx, y: rect.maxY - 66),
+      control2: CGPoint(x: 105 * sx, y: rect.maxY - 10)
     )
     path.closeSubpath()
     return path

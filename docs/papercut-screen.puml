@@ -1,0 +1,37 @@
+@startuml
+skinparam componentStyle uml2
+skinparam shadowing false
+title Fixed papercut screen layout
+
+component "Welcome / Setup / Home" as Features
+component "PapercutScreen<Header, Content>" as Screen
+component "Fixed header\nSafe-area inset + opaque wave" as Header
+component "Native vertical ScrollView\nFeature content" as Scroll
+component "PapercutBackground\nSky + landscape" as Background
+
+Features --> Screen : header, content, scroll identity
+Screen --> Background : back layer
+Screen --> Scroll : middle layer
+Screen --> Header : front layer
+
+note right of Header
+  Content scrolls behind the curved edge.
+  Header height follows its content and Dynamic Type.
+  The wave amplitude stays fixed as the header grows.
+  Controls stay inside the safe area.
+  The opaque paper consumes taps over covered content.
+end note
+
+note bottom of Scroll
+  Setup progress scrolls with its step.
+  A step change resets only the scroll content.
+  Native keyboard avoidance and focus remain active.
+  Automatic top scroll-edge effects are hidden.
+end note
+
+note left of Features
+  Existing actions and busy states remain feature-owned.
+  Everything stays inside the existing privacy protection.
+  Server details and replacement sheets are unchanged.
+end note
+@enduml
