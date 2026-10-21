@@ -10,69 +10,35 @@ struct HomeView: View {
   @State private var statusInteractionTrigger = 0
 
   var body: some View {
-    GeometryReader { proxy in
-      ZStack {
-        PapercutBackground()
+    PapercutScreen {
+      header(interactionTrigger: $statusInteractionTrigger)
+    } content: {
+      VStack(spacing: 0) {
+        ServerStatusCard(
+          state: viewState,
+          interactionTrigger: statusInteractionTrigger
+        )
+        .frame(maxWidth: 335)
+        .padding(.horizontal, 29)
+        .padding(.bottom, 26)
 
-        ScrollView(.vertical, showsIndicators: false) {
-          VStack(spacing: 0) {
-            HomeHeader(isBusy: viewState.isBusy) { action in
-              switch action {
-              case .refresh:
-                statusInteractionTrigger += 1
-                store.send(.refreshTapped)
-              case .serverDetails:
-                store.send(.serverDetailsTapped)
-              case .replaceShare:
-                store.send(.replaceShareTapped)
-              case .removeLocalData:
-                store.send(.removeLocalDataTapped)
-              }
-            }
-            .padding(.horizontal, 24)
-            .padding(.bottom, 28)
+        primaryButton(interactionTrigger: $statusInteractionTrigger)
+          .frame(maxWidth: 335)
+          .padding(.horizontal, 29)
 
-            ServerStatusCard(
-              state: viewState,
-              interactionTrigger: statusInteractionTrigger
-            )
+        if let feedback = viewState.feedback {
+          PapercutFeedback(feedback: feedback)
             .frame(maxWidth: 335)
             .padding(.horizontal, 29)
-            .padding(.bottom, 26)
-
-            UnsealButton(state: viewState.primaryAction) {
-              switch viewState.primaryAction {
-              case .unseal:
-                statusInteractionTrigger += 1
-                store.send(.unsealTapped)
-              case .checkStatus:
-                statusInteractionTrigger += 1
-                store.send(.refreshTapped)
-              case .working:
-                break
-              }
-            }
-            .frame(maxWidth: 335)
-            .padding(.horizontal, 29)
-
-            if let feedback = viewState.feedback {
-              PapercutFeedback(feedback: feedback)
-                .frame(maxWidth: 335)
-                .padding(.horizontal, 29)
-                .padding(.top, 10)
-            }
-
-            Spacer(minLength: max(118, proxy.safeAreaInsets.bottom + 90))
-          }
-          .padding(.top, 10)
-          .frame(maxWidth: .infinity)
-          .frame(minHeight: proxy.size.height, alignment: .top)
+            .padding(.top, 10)
         }
-        .scrollBounceBehavior(.basedOnSize)
+
+        Spacer(minLength: 118)
       }
+      .padding(.top, 10)
+      .frame(maxWidth: .infinity)
     }
     .toolbar(.hidden, for: .navigationBar)
-    .background(PapercutPalette.sky)
     .sheet(
       item: $store.scope(state: \.$serverDetails, action: \.serverDetails)
     ) { detailsStore in
@@ -115,6 +81,37 @@ struct HomeView: View {
           bundle: .module)
       case nil:
         EmptyView()
+      }
+    }
+  }
+
+  func header(interactionTrigger: Binding<Int>) -> HomeHeader {
+    HomeHeader(isBusy: viewState.isBusy) { action in
+      switch action {
+      case .refresh:
+        interactionTrigger.wrappedValue += 1
+        store.send(.refreshTapped)
+      case .serverDetails:
+        store.send(.serverDetailsTapped)
+      case .replaceShare:
+        store.send(.replaceShareTapped)
+      case .removeLocalData:
+        store.send(.removeLocalDataTapped)
+      }
+    }
+  }
+
+  func primaryButton(interactionTrigger: Binding<Int>) -> UnsealButton {
+    UnsealButton(state: viewState.primaryAction) {
+      switch viewState.primaryAction {
+      case .unseal:
+        interactionTrigger.wrappedValue += 1
+        store.send(.unsealTapped)
+      case .checkStatus:
+        interactionTrigger.wrappedValue += 1
+        store.send(.refreshTapped)
+      case .working:
+        break
       }
     }
   }

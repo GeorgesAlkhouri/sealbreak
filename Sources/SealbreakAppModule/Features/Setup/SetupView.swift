@@ -10,48 +10,35 @@ struct SetupView: View {
   @ScaledMetric(relativeTo: .caption2) private var stepBadgeSize: CGFloat = 24
 
   var body: some View {
-    GeometryReader { proxy in
-      ZStack {
-        PapercutBackground()
+    PapercutScreen(scrollID: store.step == .share) {
+      header
+    } content: {
+      VStack(spacing: 0) {
+        progressIndicator
+          .padding(.top, 20)
+          .padding(.horizontal, 30)
 
-        ScrollView {
-          VStack(spacing: 0) {
-            header
-              .padding(.top, max(8, proxy.safeAreaInsets.top + 2))
-              .padding(.horizontal, 24)
+        switch store.step {
+        case .instance:
+          InstanceSetupView(
+            store: store.scope(
+              state: \.instance,
+              action: \.instance
+            )
+          )
 
-            progressIndicator
-              .padding(.top, 20)
-              .padding(.horizontal, 30)
-
-            switch store.step {
-            case .instance:
-              InstanceSetupView(
-                store: store.scope(
-                  state: \.instance,
-                  action: \.instance
-                )
-              )
-
-            case .share:
-              if let shareStore = store.scope(
-                state: \.share,
-                action: \.share
-              ) {
-                ShareSetupView(store: shareStore)
-              }
-            }
+        case .share:
+          if let shareStore = store.scope(
+            state: \.share,
+            action: \.share
+          ) {
+            ShareSetupView(store: shareStore)
           }
-          .frame(maxWidth: .infinity)
         }
-        .scrollIndicators(.hidden)
-        .scrollBounceBehavior(.basedOnSize)
-        .scrollDismissesKeyboard(.interactively)
-        // Start each step at the top without retaining the previous scroll offset.
-        .id(store.step == .share)
       }
+      .frame(maxWidth: .infinity)
     }
-    .background(PapercutPalette.sky)
+    .scrollDismissesKeyboard(.interactively)
     .toolbar(.hidden, for: .navigationBar)
     .confirmationDialog(
       LocalizedStringResource("Discard setup?", bundle: .module),
@@ -75,10 +62,10 @@ struct SetupView: View {
     ViewThatFits(in: .horizontal) {
       HStack(spacing: 12) {
         backControl
-        Spacer(minLength: 8)
+          .frame(maxWidth: .infinity, alignment: .leading)
         headerTitle
-        Spacer(minLength: 8)
         cancelButton
+          .frame(maxWidth: .infinity, alignment: .trailing)
       }
 
       VStack(alignment: .leading, spacing: 8) {

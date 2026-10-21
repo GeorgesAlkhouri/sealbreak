@@ -10,109 +10,96 @@ struct WelcomeView: View {
   private var compatibilityGlyphHeight: CGFloat = 15
 
   var body: some View {
-    GeometryReader { proxy in
-      ZStack {
-        PapercutBackground()
+    PapercutScreen {
+      HStack(spacing: 12) {
+        Image("SealbreakShield")
+          .resizable()
+          .scaledToFit()
+          .frame(width: 37, height: 44)
+          .accessibilityHidden(true)
 
-        ScrollView {
-          VStack(spacing: 0) {
-            Spacer()
-              .frame(height: max(54, proxy.safeAreaInsets.top + 30))
-
-            Image("SealbreakShield")
-              .resizable()
-              .scaledToFit()
-              .frame(width: 64, height: 76)
-              .accessibilityHidden(true)
-
-            Text("Sealbreak", bundle: .module)
-              .font(.system(.largeTitle, design: .rounded, weight: .bold))
-              .foregroundStyle(PapercutPalette.cream)
-              .multilineTextAlignment(.center)
-              .fixedSize(horizontal: false, vertical: true)
-              .padding(.top, 12)
-
-            Text("Unlock OpenBao or Vault with Face ID.", bundle: .module)
-              .font(.body.weight(.semibold))
-              .foregroundStyle(PapercutPalette.cream)
-              .multilineTextAlignment(.center)
-              .fixedSize(horizontal: false, vertical: true)
-              .padding(.top, 16)
-              .frame(maxWidth: 310)
-
-            Text(
-              "One Shamir unseal share stays protected on this iPhone and is sent to your server only after Face ID.",
-              bundle: .module
-            )
-            .font(.subheadline.weight(.medium))
-            .foregroundStyle(PapercutPalette.cream.opacity(0.86))
-            .multilineTextAlignment(.center)
-            .fixedSize(horizontal: false, vertical: true)
-            .padding(.top, 8)
-            .frame(maxWidth: 320)
-
-            compatibilityCopy
-              .font(.subheadline.weight(.medium))
-              .multilineTextAlignment(.center)
-              .lineSpacing(4)
-              .fixedSize(horizontal: false, vertical: true)
-              .padding(.top, 12)
-              .frame(maxWidth: 320)
-              .accessibilityElement(children: .ignore)
-              .accessibilityLabel(
-                LocalizedStringResource(
-                  "Works with OpenBao, Vault, and compatible Shamir seal servers.", bundle: .module)
-              )
-
-            if store.requiresLocalReset {
-              Button {
-                store.send(.resetLocalDataTapped)
-              } label: {
-                primaryActionLabel(
-                  icon: "trash.fill",
-                  title: store.isResetting
-                    ? LocalizedStringResource("Resetting…", bundle: .module)
-                    : LocalizedStringResource("Reset local Sealbreak data", bundle: .module)
-                )
-              }
-              .buttonStyle(.plain)
-              .accessibilityIdentifier("welcome-primary-action")
-              .frame(maxWidth: 335)
-              .padding(.top, 34)
-              .disabled(store.isResetting)
-            } else {
-              Button {
-                store.send(.setUpTapped)
-              } label: {
-                primaryActionLabel(
-                  icon: "plus.circle.fill",
-                  title: LocalizedStringResource("Set up Sealbreak", bundle: .module)
-                )
-              }
-              .buttonStyle(.plain)
-              .accessibilityIdentifier("welcome-primary-action")
-              .frame(maxWidth: 335)
-              .padding(.top, 34)
-            }
-
-            if let feedback = store.feedback {
-              PapercutFeedback(feedback: feedback)
-                .frame(maxWidth: 330)
-                .padding(.top, 18)
-            }
-
-            Spacer()
-              .frame(height: max(156, proxy.safeAreaInsets.bottom + 130))
-          }
-          .frame(maxWidth: .infinity)
-          .frame(minHeight: proxy.size.height, alignment: .top)
-          .padding(.horizontal, 24)
-        }
-        .scrollIndicators(.hidden)
-        .scrollBounceBehavior(.basedOnSize)
+        Text("Sealbreak", bundle: .module)
+          .font(.system(.title, design: .rounded, weight: .bold))
+          .foregroundStyle(PapercutPalette.cream)
+          .fixedSize(horizontal: false, vertical: true)
       }
+    } content: {
+      VStack(spacing: 0) {
+        Text("Unlock OpenBao or Vault with Face ID.", bundle: .module)
+          .font(.body.weight(.semibold))
+          .foregroundStyle(PapercutPalette.cream)
+          .multilineTextAlignment(.center)
+          .fixedSize(horizontal: false, vertical: true)
+          .padding(.top, 16)
+          .frame(maxWidth: 310)
+
+        Text(
+          "One Shamir unseal share stays protected on this iPhone and is sent to your server only after Face ID.",
+          bundle: .module
+        )
+        .font(.subheadline.weight(.medium))
+        .foregroundStyle(PapercutPalette.cream.opacity(0.86))
+        .multilineTextAlignment(.center)
+        .fixedSize(horizontal: false, vertical: true)
+        .padding(.top, 8)
+        .frame(maxWidth: 320)
+
+        compatibilityCopy
+          .font(.subheadline.weight(.medium))
+          .multilineTextAlignment(.center)
+          .lineSpacing(4)
+          .fixedSize(horizontal: false, vertical: true)
+          .padding(.top, 12)
+          .frame(maxWidth: 320)
+          .accessibilityElement(children: .ignore)
+          .accessibilityLabel(
+            LocalizedStringResource(
+              "Works with OpenBao, Vault, and compatible Shamir seal servers.", bundle: .module)
+          )
+
+        if store.requiresLocalReset {
+          Button {
+            store.send(.resetLocalDataTapped)
+          } label: {
+            primaryActionLabel(
+              icon: "trash.fill",
+              title: store.isResetting
+                ? LocalizedStringResource("Resetting…", bundle: .module)
+                : LocalizedStringResource("Reset local Sealbreak data", bundle: .module)
+            )
+          }
+          .buttonStyle(.plain)
+          .accessibilityIdentifier("welcome-primary-action")
+          .frame(maxWidth: 335)
+          .padding(.top, 34)
+          .disabled(store.isResetting)
+        } else {
+          Button {
+            store.send(.setUpTapped)
+          } label: {
+            primaryActionLabel(
+              icon: "plus.circle.fill",
+              title: LocalizedStringResource("Set up Sealbreak", bundle: .module)
+            )
+          }
+          .buttonStyle(.plain)
+          .accessibilityIdentifier("welcome-primary-action")
+          .frame(maxWidth: 335)
+          .padding(.top, 34)
+        }
+
+        if let feedback = store.feedback {
+          PapercutFeedback(feedback: feedback)
+            .frame(maxWidth: 330)
+            .padding(.top, 18)
+        }
+
+        Spacer()
+          .frame(height: 156)
+      }
+      .frame(maxWidth: .infinity)
+      .padding(.horizontal, 24)
     }
-    .background(PapercutPalette.sky)
     .toolbar(.hidden, for: .navigationBar)
     .confirmationDialog(
       LocalizedStringResource("Reset local Sealbreak data?", bundle: .module),

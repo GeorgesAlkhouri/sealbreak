@@ -26,6 +26,7 @@
 		000000000000000000000650 /* PrivacyViewTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000651 /* PrivacyViewTests.swift */; };
 		000000000000000000000652 /* PrivacyReducerIntegrationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000653 /* PrivacyReducerIntegrationTests.swift */; };
 		000000000000000000000654 /* ButtonLayoutTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000655 /* ButtonLayoutTests.swift */; };
+		000000000000000000000656 /* PapercutScreenTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000657 /* PapercutScreenTests.swift */; };
 		DA9922F8306BBD960003AF6F /* AppIcon.icon in Resources */ = {isa = PBXBuildFile; fileRef = DA9922F2306BBD960003AF6F /* AppIcon.icon */; };
 /* End PBXBuildFile section */
 
@@ -58,6 +59,7 @@
 		000000000000000000000651 /* PrivacyViewTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PrivacyViewTests.swift; sourceTree = "<group>"; };
 		000000000000000000000653 /* PrivacyReducerIntegrationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PrivacyReducerIntegrationTests.swift; sourceTree = "<group>"; };
 		000000000000000000000655 /* ButtonLayoutTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ButtonLayoutTests.swift; sourceTree = "<group>"; };
+		000000000000000000000657 /* PapercutScreenTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PapercutScreenTests.swift; sourceTree = "<group>"; };
 		DA9922F2306BBD960003AF6F /* AppIcon.icon */ = {isa = PBXFileReference; lastKnownFileType = folder.iconcomposer.icon; path = Resources/AppIcon.icon; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -149,6 +151,7 @@
 				000000000000000000000631 /* LiveSealbreakClientTests.swift */,
 				000000000000000000000651 /* PrivacyViewTests.swift */,
 				000000000000000000000655 /* ButtonLayoutTests.swift */,
+				000000000000000000000657 /* PapercutScreenTests.swift */,
 				000000000000000000000653 /* PrivacyReducerIntegrationTests.swift */,
 				000000000000000000000633 /* LiveSealbreakResetTests.swift */,
 				000000000000000000000635 /* ProfileStorePlatformTests.swift */,
@@ -323,6 +326,7 @@
 				000000000000000000000630 /* LiveSealbreakClientTests.swift in Sources */,
 				000000000000000000000650 /* PrivacyViewTests.swift in Sources */,
 				000000000000000000000654 /* ButtonLayoutTests.swift in Sources */,
+				000000000000000000000656 /* PapercutScreenTests.swift in Sources */,
 				000000000000000000000652 /* PrivacyReducerIntegrationTests.swift in Sources */,
 				000000000000000000000632 /* LiveSealbreakResetTests.swift in Sources */,
 				000000000000000000000634 /* ProfileStorePlatformTests.swift in Sources */,
