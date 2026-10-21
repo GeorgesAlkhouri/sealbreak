@@ -10,7 +10,7 @@ import XCTest
 @testable import SealbreakAppModule
 @testable import SealbreakCore
 
-// Fixed iPhone 17 / iOS 26.5, light appearance, English, default Dynamic Type.
+// Fixed iPhone 17 / iOS 27.0, light appearance, English, default Dynamic Type.
 // Actions below are component integration, not simulated end-to-end touches.
 @MainActor
 final class PrivacyViewTests: XCTestCase {
@@ -216,9 +216,7 @@ final class PrivacyViewTests: XCTestCase {
     try fixture.host.snapshot("fragment-initial-hidden")
 
     let deniedAuthorization = fixture.start(.home(.serverDetails(.presented(.shareFragmentTapped))))
-    try await fixture.host.waitUntil {
-      fixture.probe.pendingCount == 1 && fixture.store.home?.serverDetails?.isRevealingShare == true
-    }
+    try await fixture.waitForPendingFragment()
     XCTAssertTrue(!fixture.host.accessibility.contains(fixture.fragment.displayValue))
     XCTAssertTrue(!fixture.host.accessibility.contains(PrivacyRootFixture.share))
     try fixture.host.snapshot("fragment-pending")
@@ -458,8 +456,15 @@ final class PrivacyViewHost {
     assertSnapshot(
       of: try renderImage(in: visibleWindow), as: Self.imageStrategy, named: name, file: file,
       testName: testName)
+    // iOS 27 intermittently combines the native spinner's label into this
+    // explicitly labelled button. Normalize only that optional system phrase;
+    // its concealed value, disabled trait, role, and all other elements stay exact.
+    let snapshotAccessibility = accessibility.replacingOccurrences(
+      of: "Share, Show stored share fragment, In progress: Hidden. Dimmed. Button.",
+      with: "Share, Show stored share fragment: Hidden. Dimmed. Button.")
     assertSnapshot(
-      of: accessibility, as: .lines, named: "\(name)-accessibility", file: file, testName: testName)
+      of: snapshotAccessibility, as: .lines, named: "\(name)-accessibility", file: file,
+      testName: testName)
   }
 
   private func renderImage(in window: UIWindow) throws -> UIImage {

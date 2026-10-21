@@ -23,13 +23,13 @@ jobs:
     if: >-
       github.event.label.name == 'record-snapshots' &&
       github.event.pull_request.head.repo.full_name == github.repository
-    runs-on: macos-26
+    runs-on: xcode-27
     timeout-minutes: 30
     permissions:
       contents: read
     env:
       # Keep this baseline aligned with the hosted tests in ci.yml.
-      DEVELOPER_DIR: /Applications/Xcode_26.6.app/Contents/Developer
+      DEVELOPER_DIR: /Applications/Xcode_27.1.app/Contents/Developer
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
@@ -51,12 +51,15 @@ jobs:
         env:
           TEST_RUNNER_SNAPSHOT_TESTING_RECORD: all
           SNAPSHOT_PHASE: record
+          # Expected recording failures must not wait for simulator diagnostics.
+          SNAPSHOT_DIAGNOSTICS: never
         run: &snapshot-tests |
           xcodebuild test -project Sealbreak.xcodeproj -scheme Sealbreak \
-            -configuration Debug -destination 'platform=iOS Simulator,name=iPhone 17,OS=26.5' \
+            -configuration Debug -destination 'platform=iOS Simulator,name=iPhone 17,OS=27.0' \
             -derivedDataPath build/Simulator \
             -only-testing:SealbreakAppModuleTests \
             -enableCodeCoverage YES -resultBundlePath "build/Snapshots-$SNAPSHOT_PHASE.xcresult" \
+            -collect-test-diagnostics "$SNAPSHOT_DIAGNOSTICS" \
             -disableAutomaticPackageResolution -skipMacroValidation \
             CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO \
             DEVELOPMENT_TEAM= COMPILER_INDEX_STORE_ENABLE=NO
@@ -77,6 +80,7 @@ jobs:
         env:
           TEST_RUNNER_SNAPSHOT_TESTING_RECORD: never
           SNAPSHOT_PHASE: verify
+          SNAPSHOT_DIAGNOSTICS: on-failure
         run: *snapshot-tests
 
       - name: Upload verified PNG candidates
