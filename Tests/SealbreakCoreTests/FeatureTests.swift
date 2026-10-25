@@ -1096,13 +1096,13 @@ struct FeatureTests {
     await store.send(.instance(.checkConnectionTapped)).finish()
     await store.skipReceivedActions()
 
-    #expect(store.state.instance.dnssecStatus == .secure)
+    #expect(store.state.instance.dnssecStatus == nil)
     #expect(store.state.instance.checkedProfile?.origin == origin)
     #expect(store.state.instance.checkedProfile?.product == .openBao)
     #expect(store.state.instance.canContinue)
     #expect(await spy.statusCalls == 1)
     #expect(await spy.detectProductCalls == 1)
-    #expect(await spy.dnssecCount == 1)
+    #expect(await spy.dnssecCount == 0)
 
     await store.send(.instance(.continueTapped)).finish()
     await store.skipReceivedActions()
@@ -1112,7 +1112,7 @@ struct FeatureTests {
   }
 
   @Test
-  func setupRequiresHTTPSWhenDNSSECIsUnavailable() async {
+  func setupRequiresHTTPSWhileDNSSECIsDisabled() async {
     for serverReachable in [true, false] {
       let spy = ClientSpy()
       await spy.setDNSSECStatus(.unavailable)
@@ -1132,7 +1132,8 @@ struct FeatureTests {
       await store.send(.checkConnectionTapped).finish()
       await store.skipReceivedActions()
 
-      #expect(store.state.dnssecStatus == .unavailable)
+      #expect(store.state.dnssecStatus == nil)
+      #expect(await spy.dnssecCount == 0)
       #expect(!store.state.isCheckingConnection)
       #expect(store.state.canContinue == serverReachable)
       #expect((store.state.checkedProfile != nil) == serverReachable)
@@ -1142,9 +1143,10 @@ struct FeatureTests {
   }
 
   @Test
-  func setupBlocksBogusDNSSECBeforeContactingServer() async {
+  func setupSkipsDNSSECWhileDisabled() async {
     let spy = ClientSpy()
     await spy.setDNSSECStatus(.bogus)
+    await spy.setStatusQueue([.success(status())])
 
     let store = TestStore(initialState: InstanceSetupFeature.State()) {
       InstanceSetupFeature()
@@ -1159,12 +1161,13 @@ struct FeatureTests {
     await store.skipReceivedActions()
 
     #expect(!store.state.isCheckingConnection)
-    #expect(store.state.dnssecStatus == .bogus)
-    #expect(store.state.checkedProfile == nil)
-    #expect(localizedContains(store.state.feedback, "DNSSEC validation failed"))
-    #expect(!store.state.canContinue)
-    #expect(await spy.statusCalls == 0)
-    #expect(await spy.detectProductCalls == 0)
+    #expect(store.state.dnssecStatus == nil)
+    #expect(store.state.checkedProfile?.origin == origin)
+    #expect(store.state.feedback == nil)
+    #expect(store.state.canContinue)
+    #expect(await spy.dnssecCount == 0)
+    #expect(await spy.statusCalls == 1)
+    #expect(await spy.detectProductCalls == 1)
   }
 
   @Test
