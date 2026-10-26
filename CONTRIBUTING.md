@@ -10,7 +10,7 @@ The maintainer may also offer Sealbreak under commercial or proprietary terms, i
 
 ## Contributor License Agreement
 
-Before merging a copyright-bearing contribution, the maintainer requires a signed Harmony Contributor License Agreement (CLA), with **Outbound License Option Five**. Contributors keep copyright ownership, while granting the maintainer the additional rights needed for commercial and proprietary licensing.
+Before merging a copyright-bearing contribution, contributors must accept the Harmony Contributor License Agreement (CLA) with **Outbound License Option Five**. For individuals, the GitHub CLA Assistant records this acceptance directly in the pull request. Contributors keep copyright ownership, while granting the maintainer the additional rights needed for commercial and proprietary licensing.
 
 Choose the appropriate document:
 
