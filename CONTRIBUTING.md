@@ -1,0 +1,32 @@
+# Contributing to Sealbreak
+
+Thank you for your interest in Sealbreak.
+
+## License and commercial use
+
+Sealbreak is released under the [GNU General Public License version 3](LICENSE), with an [Apple App Store exception](COPYING.iOS) for covered copyrights.
+
+The maintainer may also offer Sealbreak under commercial or proprietary terms, including in a closed-source premium product. This does not change the GPL license granted to recipients of the open-source version.
+
+## Contributor License Agreement
+
+Before merging a copyright-bearing contribution, the maintainer requires a signed Harmony Contributor License Agreement (CLA), with **Outbound License Option Five**. Contributors keep copyright ownership, while granting the maintainer the additional rights needed for commercial and proprietary licensing.
+
+Choose the appropriate document:
+
+- [Individual Contributor License Agreement](docs/legal/CLA-INDIVIDUAL.md)
+- [Entity Contributor License Agreement](docs/legal/CLA-ENTITY.md)
+
+Please ask the maintainer on your pull request for private signing instructions. Do **not** upload completed agreements or personal addresses to a public pull request. The maintainer must verify and record acceptance before merging. A `Signed-off-by` line or pull-request checkbox alone does not replace the CLA.
+
+The CLA process and legal terms require final review before contributions can be accepted under this policy. Existing contributions are not retroactively covered by a new CLA.
+
+## Third-party material
+
+Submit only material you own and are authorized to license under the CLA and project terms. If an employer or other party controls relevant rights, request approval or have that legal entity enter into the Entity CLA before merging.
+
+Do not submit third-party source code, images, or other copyrighted material unless the maintainer has explicitly reviewed its origin, license, attribution requirements, and compatibility with *both* GPL distribution and any proposed proprietary licensing. Ordinary third-party dependencies must retain their respective licenses; the CLA cannot change them.
+
+## Pull requests
+
+Describe what the change does, include relevant tests, and note any new dependencies or third-party material. Review the [threat model](THREAT_MODEL.md) when changing security-sensitive behavior.

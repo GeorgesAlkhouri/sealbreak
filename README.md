@@ -65,4 +65,14 @@ Security assumptions, design decisions, and known risks are documented openly in
 
 ## License
 
-Sealbreak is licensed under the [GNU General Public License v3.0](LICENSE).
+Sealbreak is distributed under the [GNU General Public License version 3](LICENSE) (GPL-3.0-only). Its additional Apple App Store distribution permission is in [COPYING.iOS](COPYING.iOS). This does not replace the GPL or grant rights over separately licensed third-party components.
+
+Third-party license and attribution information is in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+
+### Commercial licensing
+
+Code for which the maintainer has sufficient rights may also be offered under separate commercial or proprietary license terms, including in a closed-source Sealbreak Premium product. The open-source Sealbreak version remains available under GPLv3, and third-party licenses still apply.
+
+### Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) and the [Harmony Contributor License Agreements](docs/legal/CLA-INDIVIDUAL.md) before submitting code. The project requires additional licensing rights from contributors to support both GPLv3 and proprietary distribution.
