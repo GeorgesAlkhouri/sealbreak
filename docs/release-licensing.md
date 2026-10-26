@@ -31,7 +31,7 @@ Apply this checklist separately to the GPLv3 open-source release, Apple TestFlig
 
 ## Notice generation
 
-The existing iOS CI job runs LicensePlist 3.28.3 from a SHA-256-verified portable download after resolving the Xcode lockfile. It reads the downloaded package sources locally, excludes the test and host-tool packages listed in `license_plist.yml`, and combines the original software license texts with `docs/licenses/third-party-notices-header.md`. The complete `THIRD_PARTY_NOTICES.md` is uploaded as a CI artifact. There is no separate generator script or license workflow.
+The existing iOS CI job runs LicensePlist from a SHA-256-verified portable download after resolving the Xcode lockfile. Renovate tracks the adjacent version and checksum in `ci.yml` together using its `github-release-attachments` datasource; tool updates follow the existing seven-day release-age and automerge rules. LicensePlist reads the downloaded package sources locally, excludes the test and host-tool packages listed in `license_plist.yml`, and combines the original software license texts with `docs/licenses/third-party-notices-header.md`. The complete `THIRD_PARTY_NOTICES.md` is uploaded as a CI artifact. There is no separate generator script or license workflow.
 
 For Renovate PRs in this repository, a separate job commits changed notices to the same PR branch and requests CI and dependency review for the new commit. `CI / ready` rejects the older revision while its notices differ. For other PRs, commit the generated artifact when CI reports notice drift. Identical output causes no commit or additional CI run.
 

@@ -24,6 +24,7 @@
       "matchDatasources": [
         "github-tags",
         "github-releases",
+        "github-release-attachments",
         "github-digest",
         "pypi",
         "rubygems",
@@ -88,6 +89,17 @@
       "depNameTemplate": "{{{packageName}}}",
       "versioningTemplate": "semver-coerced",
       "extractVersionTemplate": "^v(?<version>\\d+\\.\\d+\\.\\d+)$"
+    },
+    {
+      "customType": "regex",
+      "managerFilePatterns": [
+        "/^\\.github\\/workflows\\/ci\\.yml$/"
+      ],
+      "matchStrings": [
+        "# renovate: depName=(?<depName>mono0926/LicensePlist)\\s+LICENSEPLIST_VERSION:\\s*\"(?<currentValue>[^\"]+)\"\\s+LICENSEPLIST_SHA256:\\s*(?<currentDigest>[a-f0-9]{64})"
+      ],
+      "datasourceTemplate": "github-release-attachments",
+      "versioningTemplate": "semver"
     }
   ]
 }

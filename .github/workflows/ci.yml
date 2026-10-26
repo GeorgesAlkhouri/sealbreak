@@ -150,6 +150,7 @@ jobs:
       - name: Generate third-party notices from resolved package sources
         id: notices
         env:
+          # renovate: depName=mono0926/LicensePlist
           LICENSEPLIST_VERSION: "3.28.3"
           LICENSEPLIST_SHA256: dd3ca6c08981a1e0c4980d5bc857bbd40f17b8b4c7ca89ab8923396fd910a040
         run: |
