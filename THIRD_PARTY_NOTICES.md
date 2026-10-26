@@ -1,3 +1,4 @@
+<!-- Edit this header for manual notices; CI generates THIRD_PARTY_NOTICES.md. -->
 # Third-Party Notices
 
 Sealbreak includes third-party software and visual assets. The vendored SVG files are kept byte-for-byte identical to the referenced Simple Icons source files. Their inclusion does not imply endorsement by the respective projects or trademark owners.
@@ -32,45 +33,13 @@ Vault and the Vault logo are trademarks of HashiCorp.
 
 ## Software libraries
 
-Sealbreak uses the `ComposableArchitecture` product. The packages below are on the transitive runtime-target dependency path according to their pinned Swift package manifests. Versions come from the Xcode `Package.resolved` file. This section does not include snapshot-test packages or build-time macro tooling.
+The following notices apply to the third-party software used by Sealbreak.
 
-| Package | Resolved version | License | Original license |
-| --- | --- | --- | --- |
-| [combine-schedulers](https://github.com/pointfreeco/combine-schedulers) | 1.2.2 | MIT | [License](https://github.com/pointfreeco/combine-schedulers/blob/114354e8c1667a2edc4993700fb9fa4f90157b56/LICENSE) |
-| [swift-case-paths](https://github.com/pointfreeco/swift-case-paths) | 1.10.0 | MIT | [License](https://github.com/pointfreeco/swift-case-paths/blob/cb4cba6a8a46a86db0d37dbe09935ead6b24c91a/LICENSE) |
-| [swift-clocks](https://github.com/pointfreeco/swift-clocks) | 1.1.1 | MIT | [License](https://github.com/pointfreeco/swift-clocks/blob/82440fa0a8b1c381a6d1e8e0fc7bbba53ec63204/LICENSE) |
-| [swift-collections](https://github.com/apple/swift-collections) | 1.7.1 | Apache-2.0 | [License](https://github.com/apple/swift-collections/blob/98ef3c98609a1e31b7e157b5b619579001a789d6/LICENSE.txt) |
-| [swift-composable-architecture](https://github.com/pointfreeco/swift-composable-architecture) | 1.26.2 | MIT | [License](https://github.com/pointfreeco/swift-composable-architecture/blob/377da4061db10d26337a71bb279c506bb951f50f/LICENSE) |
-| [swift-concurrency-extras](https://github.com/pointfreeco/swift-concurrency-extras) | 1.4.1 | MIT | [License](https://github.com/pointfreeco/swift-concurrency-extras/blob/5fa253428866f2360c3754e88537f700ed2656b5/LICENSE) |
-| [swift-custom-dump](https://github.com/pointfreeco/swift-custom-dump) | 1.7.3 | MIT | [License](https://github.com/pointfreeco/swift-custom-dump/blob/4fb9e7cbb4b8f5a7354005db39447f570d6b3e19/LICENSE) |
-| [swift-dependencies](https://github.com/pointfreeco/swift-dependencies) | 1.17.1 | MIT | [License](https://github.com/pointfreeco/swift-dependencies/blob/b476cc5761057d8d857de063fe7ac8daecf5c06b/LICENSE) |
-| [swift-identified-collections](https://github.com/pointfreeco/swift-identified-collections) | 1.1.1 | MIT | [License](https://github.com/pointfreeco/swift-identified-collections/blob/322d9ffeeba85c9f7c4984b39422ec7cc3c56597/LICENSE) |
-| [swift-navigation](https://github.com/pointfreeco/swift-navigation) | 2.11.2 | MIT | [License](https://github.com/pointfreeco/swift-navigation/blob/7e95e5e9ff0a64f6ad8bca59083f8d6ba381b6ff/LICENSE) |
-| [swift-perception](https://github.com/pointfreeco/swift-perception) | 2.0.12 | MIT | [License](https://github.com/pointfreeco/swift-perception/blob/597afd46249f4a71885b95d26b26cc5b893daf32/LICENSE) |
-| [swift-sharing](https://github.com/pointfreeco/swift-sharing) | 2.10.1 | MIT | [License](https://github.com/pointfreeco/swift-sharing/blob/3552faf8a6c18ce896ec5a72bd8c34755f0f03e0/LICENSE) |
-| [swift-issue-reporting](https://github.com/pointfreeco/swift-issue-reporting) | Release resolution pending | MIT | [License at 2.1.2](https://github.com/pointfreeco/swift-issue-reporting/blob/2.1.2/LICENSE) |
+### [combine-schedulers (1.2.2)](https://github.com/pointfreeco/combine-schedulers)
 
-**Release verification:** `swift-issue-reporting` is a runtime dependency of the pinned packages, but is missing from the checked-in Xcode `Package.resolved`. Its upstream MIT license is included here. Its exact resolved version must be confirmed from the final release build before distribution. The application must also provide the required notices to recipients; a GitHub document by itself does not establish compliance.
-
-### MIT license notices
-
-Each project's original copyright attribution is preserved below. The permission and warranty terms are identical across the listed MIT-licensed packages, and are reproduced once without modifying those terms. The table links to each original license.
-
-- `combine-schedulers`: Copyright (c) 2020 Point-Free, Inc.
-- `swift-case-paths`: Copyright (c) 2020 Point-Free, Inc.
-- `swift-clocks`: Copyright (c) 2022 Point-Free
-- `swift-composable-architecture`: Copyright (c) 2020 Point-Free, Inc.
-- `swift-concurrency-extras`: Copyright (c) 2023 Point-Free
-- `swift-custom-dump`: Copyright (c) 2021 Point-Free, Inc.
-- `swift-dependencies`: Copyright (c) 2022 Point-Free, Inc.
-- `swift-identified-collections`: Copyright (c) 2021 Point-Free, Inc.
-- `swift-navigation`: Copyright (c) 2021 Point-Free, Inc.
-- `swift-perception`: Copyright (c) 2023 Point-Free
-- `swift-sharing`: Copyright (c) 2024 Point-Free, Inc.
-- `swift-issue-reporting`: Copyright (c) 2021 Point-Free, Inc.
-
-```text
 MIT License
+
+Copyright (c) 2020 Point-Free, Inc.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -89,13 +58,60 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
-```
 
-### Swift Collections — Apache License 2.0
 
-The following original license text includes its additional runtime-library exception.
+### [swift-case-paths (1.10.0)](https://github.com/pointfreeco/swift-case-paths)
 
-```text
+MIT License
+
+Copyright (c) 2020 Point-Free, Inc.
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+
+### [swift-clocks (1.1.1)](https://github.com/pointfreeco/swift-clocks)
+
+MIT License
+
+Copyright (c) 2022 Point-Free
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+
+### [swift-collections (1.7.1)](https://github.com/apple/swift-collections)
+
                                  Apache License
                            Version 2.0, January 2004
                         http://www.apache.org/licenses/
@@ -307,4 +323,228 @@ The following original license text includes its additional runtime-library exce
     portions of this Software are embedded into the binary product as a result,
     you may redistribute such product without providing attribution as would
     otherwise be required by Sections 4(a), 4(b) and 4(d) of the License.
-```
+
+
+### [swift-composable-architecture (1.26.2)](https://github.com/pointfreeco/swift-composable-architecture)
+
+MIT License
+
+Copyright (c) 2020 Point-Free, Inc.
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+
+### [swift-concurrency-extras (1.4.1)](https://github.com/pointfreeco/swift-concurrency-extras)
+
+MIT License
+
+Copyright (c) 2023 Point-Free
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+
+### [swift-custom-dump (1.7.3)](https://github.com/pointfreeco/swift-custom-dump)
+
+MIT License
+
+Copyright (c) 2021 Point-Free, Inc.
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+
+### [swift-dependencies (1.17.1)](https://github.com/pointfreeco/swift-dependencies)
+
+MIT License
+
+Copyright (c) 2022 Point-Free, Inc.
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+
+### [swift-identified-collections (1.1.1)](https://github.com/pointfreeco/swift-identified-collections)
+
+MIT License
+
+Copyright (c) 2021 Point-Free, Inc.
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+
+### [swift-navigation (2.11.2)](https://github.com/pointfreeco/swift-navigation)
+
+MIT License
+
+Copyright (c) 2021 Point-Free, Inc.
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+
+### [swift-perception (2.0.12)](https://github.com/pointfreeco/swift-perception)
+
+MIT License
+
+Copyright (c) 2023 Point-Free
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+
+### [swift-sharing (2.10.1)](https://github.com/pointfreeco/swift-sharing)
+
+MIT License
+
+Copyright (c) 2024 Point-Free, Inc.
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+
+### [xctest-dynamic-overlay (1.13.1)](https://github.com/pointfreeco/xctest-dynamic-overlay)
+
+MIT License
+
+Copyright (c) 2021 Point-Free, Inc.
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.

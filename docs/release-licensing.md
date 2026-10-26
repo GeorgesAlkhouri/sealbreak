@@ -19,8 +19,8 @@ Apply this checklist separately to the GPLv3 open-source release, Apple TestFlig
 
 ## Third-party components
 
-- [ ] Compare the maintained software notices in `THIRD_PARTY_NOTICES.md` against the release dependency graph; update license texts and copyright statements when dependencies change.
-- [ ] Resolve the exact release build dependency graph from the Xcode and Swift Package Manager lockfiles, especially `swift-issue-reporting`, which is used by runtime packages but is currently missing from the checked-in Xcode lockfile.
+- [ ] Confirm CI regenerated `THIRD_PARTY_NOTICES.md` from the release toolchain's resolved package sources and that its contents match the checked-in file.
+- [ ] Resolve the exact release build dependency graph with the release Xcode version. With Swift 6.3, IssueReporting is provided by `xctest-dynamic-overlay` 1.13.1; newer manifests/toolchains use the separate `swift-issue-reporting` package. Do not combine resolutions from different toolchains.
 - [ ] Distinguish shipped/runtime code from build-time tools, macros and tests. Do not treat all Package.resolved entries as shipped runtime code.
 - [ ] Check each shipped component's actual license, copyright and notice files at the resolved revision, including transitive components and bundled assets.
 - [ ] Include all notices and full license texts required by those licenses in the distributed product, in addition to the GitHub repository.
@@ -28,6 +28,14 @@ Apply this checklist separately to the GPLv3 open-source release, Apple TestFlig
 - [ ] Re-evaluate the third-party set and license compatibility for the proprietary Premium build. The Sealbreak CLA does not grant rights over third-party dependencies.
 - [ ] If Free and Premium share an App Store binary, evaluate the license of the entire distributed binary. Do not assume that putting premium code in a private repository makes that code exempt from GPL obligations in a GPL-distributed combined work.
 - [ ] Keep the software bill of materials (SBOM) separate from the human-readable copyright and licensing notices.
+
+## Notice generation
+
+The existing iOS CI job runs LicensePlist 3.28.3 from a SHA-256-verified portable download after resolving the Xcode lockfile. It reads the downloaded package sources locally, excludes the test and host-tool packages listed in `license_plist.yml`, and combines the original software license texts with `docs/licenses/third-party-notices-header.md`. The complete `THIRD_PARTY_NOTICES.md` is uploaded as a CI artifact. There is no separate generator script or license workflow.
+
+For Renovate PRs in this repository, a separate job commits changed notices to the same PR branch and requests CI and dependency review for the new commit. `CI / ready` rejects the older revision while its notices differ. For other PRs, commit the generated artifact when CI reports notice drift. Identical output causes no commit or additional CI run.
+
+Edit the header for asset attributions or additional notices and review exclusions when dependencies change. LicensePlist reads a package's license file; separate upstream `NOTICE` or other attribution files still need review and, where required, inclusion in the manual header. The generated file must still be bundled and made available in the app before distribution. Generation does not establish which code is present in an archived release, produce an SBOM, or constitute legal clearance.
 
 ## Release evidence
 

@@ -12,6 +12,8 @@ repos:
         # Keep the vendored Simple Icons SVGs byte-identical to their pinned upstream files.
         exclude: '^Sealbreak/Resources/Brand\.xcassets/(OpenBaoMark\.imageset/OpenBaoMark|VaultMark\.imageset/VaultMark)\.svg$'
       - id: trailing-whitespace
+        # Preserve whitespace inside the generated original license texts.
+        exclude: '^THIRD_PARTY_NOTICES\.md$'
 
   - repo: local
     hooks:
