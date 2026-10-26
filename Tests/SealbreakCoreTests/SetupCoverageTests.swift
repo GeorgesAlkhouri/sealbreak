@@ -62,26 +62,38 @@ struct SetupCoverageTests {
   }
 
   @Test
-  func instanceDNSSECFailureIsSurfaced() async {
+  func instanceSkipsFailingDNSSECWhileDisabled() async {
+    let dnssecCalls = CallCounter()
     var dependency = SealbreakClient.testValue
     dependency.dnssecStatus = { _ in
+      await dnssecCalls.increment()
       throw AppFailure("dnssec failed")
     }
+    dependency.status = { _ in
+      SealStatus(
+        type: "shamir", initialized: true, sealed: true,
+        quorum: .init(threshold: 3, totalShares: 5, progress: 0),
+        migration: false, recoverySeal: false)
+    }
+    dependency.detectProduct = { _ in .generic }
 
     let store = instanceStore(dependency)
     await store.send(.addressChanged(origin))
     await store.send(.checkConnectionTapped).finish()
     await store.skipReceivedActions()
 
-    #expect(store.state.feedback == .error("dnssec failed"))
+    #expect(await dnssecCalls.callCount == 0)
+    #expect(store.state.dnssecStatus == nil)
+    #expect(store.state.feedback == nil)
     #expect(!store.state.isCheckingConnection)
-    #expect(store.state.checkedProfile == nil)
+    #expect(store.state.checkedProfile?.origin == origin)
+    #expect(store.state.canContinue)
   }
 
   @Test
   func instanceCancellationIsSurfaced() async {
     var dependency = SealbreakClient.testValue
-    dependency.dnssecStatus = { _ in
+    dependency.status = { _ in
       throw CancellationError()
     }
 

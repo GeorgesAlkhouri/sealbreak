@@ -23,7 +23,7 @@
 
     },
     "DNSSEC validation failed for this host. Fix its DNSSEC configuration before continuing." : {
-
+      "extractionState" : "manual"
     },
     "Enter one hexadecimal or Base64 Shamir share." : {
 

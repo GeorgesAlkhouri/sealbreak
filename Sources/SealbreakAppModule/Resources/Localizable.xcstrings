@@ -223,7 +223,7 @@
 
     },
     "Sealbreak checks the server using normal iOS certificate validation. DNSSEC is reported separately when the hostname can be validated." : {
-
+      "extractionState" : "manual"
     },
     "Sealbreak is not the active app. Return to it after the system dialog closes, then retry." : {
 

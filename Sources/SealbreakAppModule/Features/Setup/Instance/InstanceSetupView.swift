@@ -67,15 +67,16 @@ struct InstanceSetupView: View {
         .padding(.horizontal, 6)
       }
 
-      Text(
-        "Sealbreak checks the server using normal iOS certificate validation. DNSSEC is reported separately when the hostname can be validated.",
-        bundle: .module
-      )
-      .font(.caption)
-      .foregroundStyle(PapercutPalette.secondaryText.opacity(0.9))
-      .multilineTextAlignment(.center)
-      .fixedSize(horizontal: false, vertical: true)
-      .frame(maxWidth: 325)
+      // DNSSEC messaging is paused pending https://github.com/GeorgesAlkhouri/sealbreak/issues/132.
+      // Text(
+      //   "Sealbreak checks the server using normal iOS certificate validation. DNSSEC is reported separately when the hostname can be validated.",
+      //   bundle: .module
+      // )
+      // .font(.caption)
+      // .foregroundStyle(PapercutPalette.secondaryText.opacity(0.9))
+      // .multilineTextAlignment(.center)
+      // .fixedSize(horizontal: false, vertical: true)
+      // .frame(maxWidth: 325)
     }
     .frame(maxWidth: .infinity)
     .padding(.top, 32)

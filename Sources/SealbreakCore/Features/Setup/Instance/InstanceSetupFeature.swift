@@ -105,29 +105,30 @@ package struct InstanceSetupFeature {
         let client = self.client
         return .run { send in
           do {
-            guard let host = URL(string: profile.origin)?.host else {
-              throw AppFailure(
-                LocalizedStringResource(
-                  "The server profile is invalid. Set up this server profile again.",
-                  bundle: .module))
-            }
-            let dnssecStatus = try await client.dnssecStatus(host)
-            await send(.dnssecResolved(dnssecStatus))
-
-            guard dnssecStatus != .bogus else {
-              await send(
-                .connectionResponse(
-                  .failure(
-                    AppFailure(
-                      LocalizedStringResource(
-                        "DNSSEC validation failed for this host. Fix its DNSSEC configuration before continuing.",
-                        bundle: .module)
-                    )
-                  )
-                )
-              )
-              return
-            }
+            // DNSSEC preflight is paused pending https://github.com/GeorgesAlkhouri/sealbreak/issues/132.
+            // guard let host = URL(string: profile.origin)?.host else {
+            //   throw AppFailure(
+            //     LocalizedStringResource(
+            //       "The server profile is invalid. Set up this server profile again.",
+            //       bundle: .module))
+            // }
+            // let dnssecStatus = try await client.dnssecStatus(host)
+            // await send(.dnssecResolved(dnssecStatus))
+            //
+            // guard dnssecStatus != .bogus else {
+            //   await send(
+            //     .connectionResponse(
+            //       .failure(
+            //         AppFailure(
+            //           LocalizedStringResource(
+            //             "DNSSEC validation failed for this host. Fix its DNSSEC configuration before continuing.",
+            //             bundle: .module)
+            //         )
+            //       )
+            //     )
+            //   )
+            //   return
+            // }
 
             try Task.checkCancellation()
 
