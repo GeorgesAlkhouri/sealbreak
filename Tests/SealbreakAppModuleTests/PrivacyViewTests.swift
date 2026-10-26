@@ -24,7 +24,7 @@ final class PrivacyViewTests: XCTestCase {
   func testImmediateHideCancelsExpiryBeforeItsSleepStarts() async throws {
     let fixture = try PrivacyRootFixture()
     defer { fixture.close() }
-    fixture.store.send(.home(.serverDetailsTapped))
+    try await fixture.present(.details)
     fixture.start(.home(.serverDetails(.presented(.shareFragmentTapped))))
     try await fixture.host.waitUntil { fixture.probe.pendingCount == 1 }
     fixture.probe.succeed(fixture.fragment)
