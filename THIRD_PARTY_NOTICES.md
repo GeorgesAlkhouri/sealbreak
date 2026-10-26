@@ -32,6 +32,13 @@ Vault and the Vault logo are trademarks of HashiCorp.
 
 ## Software dependencies (verified examples; audit not complete)
 
+The [Swift package license inventory workflow](.github/workflows/swift-package-licenses.yml)
+automatically collects original license texts at the pinned Xcode Swift Package Manager
+revisions and uploads the complete inventory as a GitHub Actions artifact. It includes
+build and test dependencies, so the shipped components must still be identified separately.
+
+The following examples remain documented here for convenient review.
+
 Swift packages are resolved through the Xcode and Swift Package Manager build. The pinned dependency list alone does **not** establish which packages are actually included in the distributed app. The following notices are verified against upstream files, but additional transitive dependencies must be assessed before releasing the app. See [the release licensing checklist](docs/release-licensing.md).
 
 ### The Composable Architecture
