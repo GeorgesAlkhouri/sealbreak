@@ -19,8 +19,8 @@ Apply this checklist separately to the GPLv3 open-source release, Apple TestFlig
 
 ## Third-party components
 
-- [ ] Download and review the generated Swift package license inventory artifact for this release. The report includes build/test dependencies and is not itself proof of runtime coverage.
-- [ ] Resolve the exact release build dependency graph from the Xcode and Swift Package Manager lockfiles.
+- [ ] Compare the maintained software notices in `THIRD_PARTY_NOTICES.md` against the release dependency graph; update license texts and copyright statements when dependencies change.
+- [ ] Resolve the exact release build dependency graph from the Xcode and Swift Package Manager lockfiles, especially `swift-issue-reporting`, which is used by runtime packages but is currently missing from the checked-in Xcode lockfile.
 - [ ] Distinguish shipped/runtime code from build-time tools, macros and tests. Do not treat all Package.resolved entries as shipped runtime code.
 - [ ] Check each shipped component's actual license, copyright and notice files at the resolved revision, including transitive components and bundled assets.
 - [ ] Include all notices and full license texts required by those licenses in the distributed product, in addition to the GitHub repository.

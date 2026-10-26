@@ -1,6 +1,6 @@
 # Third-Party Notices
 
-Sealbreak includes the following third-party visual assets. The vendored SVG files are kept byte-for-byte identical to the referenced Simple Icons source files. Their inclusion does not imply endorsement by the respective projects or trademark owners.
+Sealbreak includes third-party software and visual assets. The vendored SVG files are kept byte-for-byte identical to the referenced Simple Icons source files. Their inclusion does not imply endorsement by the respective projects or trademark owners.
 
 ## Simple Icons
 
@@ -30,28 +30,47 @@ The OpenBao name and logo remain subject to the applicable project and Linux Fou
 
 Vault and the Vault logo are trademarks of HashiCorp.
 
-## Software dependencies (verified examples; audit not complete)
+## Software libraries
 
-The [Swift package license inventory workflow](.github/workflows/swift-package-licenses.yml)
-automatically collects original license texts at the pinned Xcode Swift Package Manager
-revisions and uploads the complete inventory as a GitHub Actions artifact. It includes
-build and test dependencies, so the shipped components must still be identified separately.
+Sealbreak uses the `ComposableArchitecture` product. The packages below are on the transitive runtime-target dependency path according to their pinned Swift package manifests. Versions come from the Xcode `Package.resolved` file. This section does not include snapshot-test packages or build-time macro tooling.
 
-The following examples remain documented here for convenient review.
+| Package | Resolved version | License | Original license |
+| --- | --- | --- | --- |
+| [combine-schedulers](https://github.com/pointfreeco/combine-schedulers) | 1.2.2 | MIT | [License](https://github.com/pointfreeco/combine-schedulers/blob/114354e8c1667a2edc4993700fb9fa4f90157b56/LICENSE) |
+| [swift-case-paths](https://github.com/pointfreeco/swift-case-paths) | 1.10.0 | MIT | [License](https://github.com/pointfreeco/swift-case-paths/blob/cb4cba6a8a46a86db0d37dbe09935ead6b24c91a/LICENSE) |
+| [swift-clocks](https://github.com/pointfreeco/swift-clocks) | 1.1.1 | MIT | [License](https://github.com/pointfreeco/swift-clocks/blob/82440fa0a8b1c381a6d1e8e0fc7bbba53ec63204/LICENSE) |
+| [swift-collections](https://github.com/apple/swift-collections) | 1.7.1 | Apache-2.0 | [License](https://github.com/apple/swift-collections/blob/98ef3c98609a1e31b7e157b5b619579001a789d6/LICENSE.txt) |
+| [swift-composable-architecture](https://github.com/pointfreeco/swift-composable-architecture) | 1.26.2 | MIT | [License](https://github.com/pointfreeco/swift-composable-architecture/blob/377da4061db10d26337a71bb279c506bb951f50f/LICENSE) |
+| [swift-concurrency-extras](https://github.com/pointfreeco/swift-concurrency-extras) | 1.4.1 | MIT | [License](https://github.com/pointfreeco/swift-concurrency-extras/blob/5fa253428866f2360c3754e88537f700ed2656b5/LICENSE) |
+| [swift-custom-dump](https://github.com/pointfreeco/swift-custom-dump) | 1.7.3 | MIT | [License](https://github.com/pointfreeco/swift-custom-dump/blob/4fb9e7cbb4b8f5a7354005db39447f570d6b3e19/LICENSE) |
+| [swift-dependencies](https://github.com/pointfreeco/swift-dependencies) | 1.17.1 | MIT | [License](https://github.com/pointfreeco/swift-dependencies/blob/b476cc5761057d8d857de063fe7ac8daecf5c06b/LICENSE) |
+| [swift-identified-collections](https://github.com/pointfreeco/swift-identified-collections) | 1.1.1 | MIT | [License](https://github.com/pointfreeco/swift-identified-collections/blob/322d9ffeeba85c9f7c4984b39422ec7cc3c56597/LICENSE) |
+| [swift-navigation](https://github.com/pointfreeco/swift-navigation) | 2.11.2 | MIT | [License](https://github.com/pointfreeco/swift-navigation/blob/7e95e5e9ff0a64f6ad8bca59083f8d6ba381b6ff/LICENSE) |
+| [swift-perception](https://github.com/pointfreeco/swift-perception) | 2.0.12 | MIT | [License](https://github.com/pointfreeco/swift-perception/blob/597afd46249f4a71885b95d26b26cc5b893daf32/LICENSE) |
+| [swift-sharing](https://github.com/pointfreeco/swift-sharing) | 2.10.1 | MIT | [License](https://github.com/pointfreeco/swift-sharing/blob/3552faf8a6c18ce896ec5a72bd8c34755f0f03e0/LICENSE) |
+| [swift-issue-reporting](https://github.com/pointfreeco/swift-issue-reporting) | Release resolution pending | MIT | [License at 2.1.2](https://github.com/pointfreeco/swift-issue-reporting/blob/2.1.2/LICENSE) |
 
-Swift packages are resolved through the Xcode and Swift Package Manager build. The pinned dependency list alone does **not** establish which packages are actually included in the distributed app. The following notices are verified against upstream files, but additional transitive dependencies must be assessed before releasing the app. See [the release licensing checklist](docs/release-licensing.md).
+**Release verification:** `swift-issue-reporting` is a runtime dependency of the pinned packages, but is missing from the checked-in Xcode `Package.resolved`. Its upstream MIT license is included here. Its exact resolved version must be confirmed from the final release build before distribution. The application must also provide the required notices to recipients; a GitHub document by itself does not establish compliance.
 
-### The Composable Architecture
+### MIT license notices
 
-- Project: [pointfreeco/swift-composable-architecture](https://github.com/pointfreeco/swift-composable-architecture)
-- Direct dependency in `Package.swift`: version 1.26.2
-- License: MIT
-- Original notice and terms: [upstream LICENSE at 1.26.2](https://github.com/pointfreeco/swift-composable-architecture/blob/1.26.2/LICENSE)
+Each project's original copyright attribution is preserved below. The permission and warranty terms are identical across the listed MIT-licensed packages, and are reproduced once without modifying those terms. The table links to each original license.
+
+- `combine-schedulers`: Copyright (c) 2020 Point-Free, Inc.
+- `swift-case-paths`: Copyright (c) 2020 Point-Free, Inc.
+- `swift-clocks`: Copyright (c) 2022 Point-Free
+- `swift-composable-architecture`: Copyright (c) 2020 Point-Free, Inc.
+- `swift-concurrency-extras`: Copyright (c) 2023 Point-Free
+- `swift-custom-dump`: Copyright (c) 2021 Point-Free, Inc.
+- `swift-dependencies`: Copyright (c) 2022 Point-Free, Inc.
+- `swift-identified-collections`: Copyright (c) 2021 Point-Free, Inc.
+- `swift-navigation`: Copyright (c) 2021 Point-Free, Inc.
+- `swift-perception`: Copyright (c) 2023 Point-Free
+- `swift-sharing`: Copyright (c) 2024 Point-Free, Inc.
+- `swift-issue-reporting`: Copyright (c) 2021 Point-Free, Inc.
 
 ```text
 MIT License
-
-Copyright (c) 2020 Point-Free, Inc.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -72,12 +91,9 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-### Swift Collections
+### Swift Collections — Apache License 2.0
 
-- Project: [apple/swift-collections](https://github.com/apple/swift-collections)
-- Transitive dependency from The Composable Architecture; resolved version in the checked-in Xcode lockfile: 1.7.1
-- License: Apache License 2.0
-- Original terms: [upstream LICENSE.txt at 1.7.1](https://github.com/apple/swift-collections/blob/1.7.1/LICENSE.txt)
+The following original license text includes its additional runtime-library exception.
 
 ```text
                                  Apache License
