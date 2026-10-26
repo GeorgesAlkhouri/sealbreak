@@ -18,7 +18,7 @@ jobs:
     timeout-minutes: 5
     steps:
       - name: CLA Assistant
-        if: github.event_name == 'pull_request_target' || (github.event.issue.pull_request && contains(github.event.comment.body, 'CLA'))
+        if: github.event_name == 'pull_request_target' || (github.event.issue.pull_request && (contains(github.event.comment.body, 'CLA') || github.event.comment.body == 'recheck'))
         uses: iainmcgin/cla-github-action@0d27e5a16278d4adb6b0c4b92f08ad27b0a21dc8 # v3.2.0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
