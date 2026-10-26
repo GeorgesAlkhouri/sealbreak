@@ -25,6 +25,7 @@ Apply this checklist separately to the GPLv3 open-source release, Apple TestFlig
 - [ ] Include all notices and full license texts required by those licenses in the distributed product, in addition to the GitHub repository.
 - [ ] Check attribution and trademark conditions for OpenBao, Vault and any other branding separately.
 - [ ] Re-evaluate the third-party set and license compatibility for the proprietary Premium build. The Sealbreak CLA does not grant rights over third-party dependencies.
+- [ ] If Free and Premium share an App Store binary, evaluate the license of the entire distributed binary. Do not assume that putting premium code in a private repository makes that code exempt from GPL obligations in a GPL-distributed combined work.
 - [ ] Keep the software bill of materials (SBOM) separate from the human-readable copyright and licensing notices.
 
 ## Release evidence
