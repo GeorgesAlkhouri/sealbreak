@@ -17,7 +17,7 @@ Choose the appropriate document:
 - [Individual Contributor License Agreement](docs/legal/CLA-INDIVIDUAL.md)
 - [Entity Contributor License Agreement](docs/legal/CLA-ENTITY.md)
 
-Please ask the maintainer on your pull request for private signing instructions. Do **not** upload completed agreements or personal addresses to a public pull request. The maintainer must verify and record acceptance before merging. A `Signed-off-by` line or pull-request checkbox alone does not replace the CLA.
+For individual contributions, a GitHub CLA Assistant can request electronic acceptance directly in the pull request. Read the individual agreement and follow the bot's instructions. The acceptance is recorded against the contributor's GitHub account. No Git commit sign-off trailer or manually emailed form is required for the automated individual process. Company-owned contributions require separate authorization from an authorized representative under the Entity CLA.
 
 The CLA process and legal terms require final review before contributions can be accepted under this policy. Existing contributions are not retroactively covered by a new CLA.
 
