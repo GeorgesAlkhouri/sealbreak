@@ -38,4 +38,4 @@ Apply this checklist separately to the GPLv3 open-source release, Apple TestFlig
 - [Nextcloud iOS App Store exception](https://github.com/nextcloud/ios/blob/master/COPYING.iOS)
 - [Harmony Contributor Agreements (Individual and Entity, Option Five)](https://www.harmonyagreements.org/agreements)
 - [Apple: custom end-user license agreement](https://developer.apple.com/help/app-store-connect/manage-app-information/provide-a-custom-license-agreement)
-- [Apple: minimum end-user license terms](https://www.apple.com/legal/macapps/minterms/)
+- [Apple: minimum end-user license terms](https://www.apple.com/legal/internet-services/itunes/dev/minterms/)
