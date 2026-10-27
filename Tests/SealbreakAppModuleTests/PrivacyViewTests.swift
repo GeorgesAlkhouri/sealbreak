@@ -440,13 +440,21 @@ final class PrivacyViewHost {
   func waitUntil(_ condition: () -> Bool, file: StaticString = #filePath, line: UInt = #line)
     async throws
   {
-    let deadline = ContinuousClock.now.advanced(by: .seconds(3))
+    // The gate reacts in one synchronous pass (shield, store, then one queued
+    // cancel job), so this only bounds how long a loaded CI simulator takes to
+    // deliver the environment change. A stalled main thread can spend the whole
+    // budget before that work runs; check once more after it had a turn.
+    let deadline = ContinuousClock.now.advanced(by: .seconds(10))
     while !condition() {
-      _ = try XCTUnwrap(
-        ContinuousClock.now < deadline ? true : nil,
-        "Expected real view state did not appear. Accessibility: \(accessibility)",
-        file: file, line: line
-      )
+      if ContinuousClock.now >= deadline {
+        try await Task.sleep(for: .milliseconds(10))
+        _ = try XCTUnwrap(
+          condition() ? true : nil,
+          "Expected real view state did not appear. Accessibility: \(accessibility)",
+          file: file, line: line
+        )
+        break
+      }
       try await Task.sleep(for: .milliseconds(10))
     }
     window.layoutIfNeeded()
