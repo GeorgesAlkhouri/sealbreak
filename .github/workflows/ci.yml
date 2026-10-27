@@ -397,32 +397,44 @@ jobs:
     runs-on: ubuntu-26.04
     timeout-minutes: 5
     permissions:
-      contents: write
+      contents: read
       pull-requests: read
-      actions: write
     env:
       GH_TOKEN: ${{ github.token }}
       GH_REPO: ${{ github.repository }}
       PR_NUMBER: ${{ github.event.pull_request.number }}
       PR_BRANCH: ${{ github.event.pull_request.head.ref }}
       SOURCE_SHA: ${{ github.event.pull_request.head.sha }}
-      BASE_SHA: ${{ github.event.pull_request.base.sha }}
     steps:
       - name: Require an open Renovate PR at the generated revision
         run: |
           gh api "repos/$GH_REPO/pulls/$PR_NUMBER" | jq --exit-status \
             --arg sha "$SOURCE_SHA" --arg repo "$GH_REPO" --arg branch "$PR_BRANCH" \
             '.state == "open" and .user.login == "renovate[bot]" and .head.sha == $sha and .head.repo.full_name == $repo and .head.ref == $branch and .base.ref == "main"'
+      # A GITHUB_TOKEN push starts no pull_request or pull_request_target runs, so the
+      # new revision would lack required checks such as CLAAssistant. The dedicated
+      # GitHub App (NOTICES_BOT_CLIENT_ID variable, NOTICES_BOT_PRIVATE_KEY secret)
+      # needs only Contents: write on this repository.
+      - name: Create notice publishing token
+        id: notices-token
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+        with:
+          client-id: ${{ vars.NOTICES_BOT_CLIENT_ID }}
+          private-key: ${{ secrets.NOTICES_BOT_PRIVATE_KEY }}
+          permission-contents: write
       # This fresh job executes no package or PR code and stages only the notice file.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           ref: ${{ github.event.pull_request.head.sha }}
+          token: ${{ steps.notices-token.outputs.token }}
           persist-credentials: true
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           artifact-ids: ${{ needs.build.outputs.notices_artifact_id }}
           path: build/generated-notices
-      - name: Commit notices and request checks for the new revision
+      # Renovate keeps maintaining the branch because renovate.json lists this
+      # commit identity in gitIgnoredAuthors.
+      - name: Commit notices for the new revision
         run: |
           set -euo pipefail
           cp build/generated-notices/THIRD_PARTY_NOTICES.md THIRD_PARTY_NOTICES.md
@@ -434,9 +446,6 @@ jobs:
             -c user.email='41898282+github-actions[bot]@users.noreply.github.com' \
             commit -m 'docs: update third-party notices'
           git push origin "HEAD:refs/heads/$PR_BRANCH"
-          gh workflow run ci.yml --ref "$PR_BRANCH" -f pr_number="$PR_NUMBER"
-          gh workflow run dependency-review.yml --ref "$PR_BRANCH" \
-            -f base_ref="$BASE_SHA" -f head_ref="$(git rev-parse HEAD)"
 
   ready:
     name: CI / ready
