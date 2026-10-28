@@ -107,7 +107,7 @@ jobs:
     runs-on: ubuntu-26.04
     timeout-minutes: 5
     permissions:
-      contents: write # Commit verified PNGs to the PR branch.
+      contents: read # The automation app token pushes the verified PNGs.
       pull-requests: read # Verify the requesting PR.
     env:
       GH_TOKEN: ${{ github.token }}
@@ -122,10 +122,21 @@ jobs:
             --arg sha "$SOURCE_SHA" --arg repo "$GH_REPO" --arg branch "$PR_BRANCH" \
             '.state == "open" and .head.sha == $sha and .head.repo.full_name == $repo and .head.ref == $branch and .base.ref == "main"'
 
+      # A GITHUB_TOKEN push starts no pull_request or pull_request_target runs, so the
+      # snapshot commit would lack CI and CLAAssistant.
+      - name: Create snapshot publishing token
+        id: automation-token
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+        with:
+          client-id: ${{ vars.AUTOMATION_APP_CLIENT_ID }}
+          private-key: ${{ secrets.AUTOMATION_APP_PRIVATE_KEY }}
+          permission-contents: write
+
       # This fresh job runs no PR code; only publishing gets a writable checkout.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           ref: ${{ github.event.pull_request.head.sha }}
+          token: ${{ steps.automation-token.outputs.token }}
           persist-credentials: true
 
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
@@ -152,7 +163,6 @@ jobs:
     timeout-minutes: 5
     permissions:
       pull-requests: write # Comment and remove the recording label.
-      actions: write # Request CI checks for the snapshot commit.
     env:
       GH_TOKEN: ${{ github.token }}
       GH_REPO: ${{ github.repository }}
@@ -165,15 +175,6 @@ jobs:
           gh api "repos/$GH_REPO/pulls/$PR_NUMBER" | jq --exit-status \
             --arg sha "$SNAPSHOT_SHA" --arg repo "$GH_REPO" --arg branch "$PR_BRANCH" \
             '.state == "open" and .head.sha == $sha and .head.repo.full_name == $repo and .head.ref == $branch and .base.ref == "main"'
-
-      - name: Request normal checks for the snapshot commit
-        if: needs.publish.outputs.commit_hash != github.event.pull_request.head.sha
-        env:
-          BASE_SHA: ${{ github.event.pull_request.base.sha }}
-        run: |
-          gh workflow run ci.yml --ref "$PR_BRANCH" -f pr_number="$PR_NUMBER"
-          gh workflow run dependency-review.yml --ref "$PR_BRANCH" \
-            -f base_ref="$BASE_SHA" -f head_ref="$SNAPSHOT_SHA"
 
       - name: Clear recording request
         run: gh pr edit "$PR_NUMBER" --remove-label record-snapshots

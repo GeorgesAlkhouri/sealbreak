@@ -13,9 +13,7 @@ on:
           - major
 
 permissions:
-  actions: write
-  contents: write
-  pull-requests: write
+  contents: read
 
 concurrency:
   group: prepare-release
@@ -57,11 +55,35 @@ jobs:
           RELEASE_TYPE: ${{ inputs.release_type }}
         run: bundle exec fastlane ios prepare_release release_type:"$RELEASE_TYPE"
 
+      # A pull request opened with GITHUB_TOKEN starts no pull_request or
+      # pull_request_target runs, so it would lack CI and CLAAssistant.
+      - name: Create release automation token
+        id: automation-token
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+        with:
+          client-id: ${{ vars.AUTOMATION_APP_CLIENT_ID }}
+          private-key: ${{ secrets.AUTOMATION_APP_PRIVATE_KEY }}
+          permission-contents: write
+          permission-pull-requests: write
+
+      # CLAAssistant allowlists this exact bot and requires the PR opener to author a commit.
+      - name: Resolve automation commit identity
+        id: automation-identity
+        env:
+          GH_TOKEN: ${{ steps.automation-token.outputs.token }}
+          APP_SLUG: ${{ steps.automation-token.outputs.app-slug }}
+        run: |
+          test "$APP_SLUG" = sealbreak-automation
+          user_id="$(gh api "/users/${APP_SLUG}[bot]" --jq .id)"
+          echo "identity=${APP_SLUG}[bot] <${user_id}+${APP_SLUG}[bot]@users.noreply.github.com>" >> "$GITHUB_OUTPUT"
+
       - name: Create release pull request
         id: release_pr
         uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1 # v8.1.1
         with:
-          token: ${{ github.token }}
+          token: ${{ steps.automation-token.outputs.token }}
+          author: ${{ steps.automation-identity.outputs.identity }}
+          committer: ${{ steps.automation-identity.outputs.identity }}
           add-paths: Sealbreak.xcodeproj/project.pbxproj
           commit-message: "chore: bump version to ${{ steps.version.outputs.next_version }}"
           branch: release/v${{ steps.version.outputs.next_version }}
@@ -72,16 +94,8 @@ jobs:
 
             TestFlight build numbers are assigned separately at upload time.
 
-      - name: Run release pull request checks
+      - name: Summarize release pull request
         if: steps.release_pr.outputs.pull-request-number != ''
         env:
-          GH_TOKEN: ${{ github.token }}
-          RELEASE_BRANCH: ${{ steps.release_pr.outputs.pull-request-branch }}
-        run: |
-          gh workflow run ci.yml --ref "$RELEASE_BRANCH"
-          gh workflow run dependency-review.yml \
-            --ref "$RELEASE_BRANCH" \
-            -f base_ref=main \
-            -f head_ref="$RELEASE_BRANCH"
-
-          echo "Created or updated ${{ steps.release_pr.outputs.pull-request-url }}" >> "$GITHUB_STEP_SUMMARY"
+          RELEASE_PR_URL: ${{ steps.release_pr.outputs.pull-request-url }}
+        run: echo "Created or updated $RELEASE_PR_URL" >> "$GITHUB_STEP_SUMMARY"

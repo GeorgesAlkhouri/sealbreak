@@ -412,15 +412,16 @@ jobs:
             --arg sha "$SOURCE_SHA" --arg repo "$GH_REPO" --arg branch "$PR_BRANCH" \
             '.state == "open" and .user.login == "renovate[bot]" and .head.sha == $sha and .head.repo.full_name == $repo and .head.ref == $branch and .base.ref == "main"'
       # A GITHUB_TOKEN push starts no pull_request or pull_request_target runs, so the
-      # new revision would lack required checks such as CLAAssistant. The dedicated
-      # GitHub App (NOTICES_BOT_CLIENT_ID variable, NOTICES_BOT_PRIVATE_KEY secret)
-      # needs only Contents: write on this repository.
+      # new revision would lack required checks such as CLAAssistant. The
+      # sealbreak-automation GitHub App (AUTOMATION_APP_CLIENT_ID variable,
+      # AUTOMATION_APP_PRIVATE_KEY secret) is shared with prepare-release.yml and
+      # record-snapshots.yml.
       - name: Create notice publishing token
         id: notices-token
         uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
         with:
-          client-id: ${{ vars.NOTICES_BOT_CLIENT_ID }}
-          private-key: ${{ secrets.NOTICES_BOT_PRIVATE_KEY }}
+          client-id: ${{ vars.AUTOMATION_APP_CLIENT_ID }}
+          private-key: ${{ secrets.AUTOMATION_APP_PRIVATE_KEY }}
           permission-contents: write
       # This fresh job executes no package or PR code and stages only the notice file.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
