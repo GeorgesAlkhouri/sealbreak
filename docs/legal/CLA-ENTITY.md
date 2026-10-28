@@ -6,9 +6,11 @@ Source: https://www.harmonyagreements.org/docs/ha-combined-v1
 Attribution: Harmony Contributors, licensed under Creative Commons Attribution 3.0 Unported (https://creativecommons.org/licenses/by/3.0/).
 Adaptations: selected the entity license variant, Option Five, the Sealbreak project and recipient, the third-party submission procedure, German governing law, and signing instructions; removed unused template options. **Legal review of the selections and signing process is required before accepting an agreement.**
 
+Agreement version: Sealbreak Entity CLA 1.0. A changed text receives a new version, and contributors accept it again.
+
 ---
 
-Thank you for your interest in contributing to Sealbreak ("We" or "Us"), maintained by Georges Alkhouri.
+Thank you for your interest in contributing to Sealbreak. This Agreement is made with Georges Alkhouri, the maintainer of Sealbreak ("We" or "Us").
 
 This contributor agreement ("Agreement") documents the rights granted by contributors to Us. To make this document effective, please sign it and send it to Us by private electronic submission following instructions agreed with the maintainer on the relevant pull request. Do not publish signed agreements or personal addresses in public pull requests. This is a legally binding document, so please read it carefully before agreeing to it.
 

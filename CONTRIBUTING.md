@@ -17,7 +17,7 @@ Choose the appropriate document:
 - [Individual Contributor License Agreement](docs/legal/CLA-INDIVIDUAL.md)
 - [Entity Contributor License Agreement](docs/legal/CLA-ENTITY.md)
 
-For individual contributions, a GitHub CLA Assistant can request electronic acceptance directly in the pull request. Read the individual agreement and follow the bot's instructions. The acceptance is recorded against the contributor's GitHub account. No Git commit sign-off trailer or manually emailed form is required for the automated individual process. The paper signature fields in the Harmony template are not used for electronic acceptance in a pull request. Company-owned contributions require separate authorization from an authorized representative under the Entity CLA.
+For individual contributions, a GitHub CLA Assistant can request electronic acceptance directly in the pull request. Read the individual agreement and follow the bot's instructions. The acceptance is recorded against the contributor's GitHub account. No Git commit sign-off trailer or manually emailed form is required for the automated individual process. The CLA Assistant stores the acceptance record (GitHub user name and ID, pull request number, comment ID and time) in `signatures/cla.json` on the public `cla-signatures` branch of this repository. The paper signature fields in the Harmony template are not used for electronic acceptance in a pull request. Company-owned contributions require separate authorization from an authorized representative under the Entity CLA.
 
 The CLA process and legal terms require final review before contributions can be accepted under this policy. Existing contributions are not retroactively covered by a new CLA.
 
