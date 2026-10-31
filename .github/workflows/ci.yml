@@ -179,6 +179,12 @@ jobs:
           path: build/notices/THIRD_PARTY_NOTICES.md
           if-no-files-found: error
           retention-days: 7
+      - name: Require bundled third-party notices to match
+        run: |
+          diff -u Sealbreak/Resources/THIRD_PARTY_NOTICES.md build/notices/THIRD_PARTY_NOTICES.md || {
+            echo '::error title=Third-party notices out of date::Commit the third-party-notices artifact as Sealbreak/Resources/THIRD_PARTY_NOTICES.md.'
+            exit 1
+          }
       - name: Build complete iOS app and hosted tests with coverage
         run: |
           xcodebuild build-for-testing -project Sealbreak.xcodeproj -scheme Sealbreak \

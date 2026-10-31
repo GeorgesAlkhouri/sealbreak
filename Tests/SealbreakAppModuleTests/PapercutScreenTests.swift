@@ -80,6 +80,59 @@ final class PapercutScreenTests: XCTestCase {
     }
   }
 
+  func testAppBundlesThirdPartyNotices() {
+    let notices = ThirdPartyNoticesView.bundledNotices()
+
+    XCTAssertTrue(notices.contains("Attribution: OpenBao project"))
+    XCTAssertTrue(notices.contains("Vault and the Vault logo are trademarks of HashiCorp."))
+    XCTAssertTrue(notices.contains("swift-composable-architecture"))
+  }
+
+  func testThirdPartyNoticesSheetShowsNoticesAndCloses() async throws {
+    let profile = try makeProfile()
+    let checkedStatus = PrivacyRootFixture.status
+    let store = Store(
+      initialState: HomeFeature.State(profile: profile, status: checkedStatus)
+    ) {
+      HomeFeature()
+    } withDependencies: {
+      $0.sealbreakClient.waitForForeground = {}
+      $0.sealbreakClient.status = { _ in checkedStatus }
+    }
+    var privacyState = PrivacyFeature.State()
+    privacyState.phase = .active
+    let privacy = Store(initialState: privacyState) { PrivacyFeature() }
+    let host = try makeHost(size: CGSize(width: 402, height: 874)) {
+      HomeView(store: store, privacyStore: privacy, isShowingThirdPartyNotices: true)
+    }
+    defer { host.close() }
+    try await host.waitUntil {
+      host.controller.presentedViewController != nil
+        && host.controller.presentedViewController?.transitionCoordinator == nil
+        && host.accessibilityElements.contains { $0.label == "Done" }
+    }
+    XCTAssertTrue(host.accessibility.contains("Attribution: OpenBao project"))
+
+    try activate(label: "Done", in: host)
+
+    try await host.waitUntil { host.controller.presentedViewController == nil }
+  }
+
+  func testHomeHeaderOpensThirdPartyNotices() throws {
+    let profile = try makeProfile()
+    let store = Store(initialState: HomeFeature.State(profile: profile, status: nil)) {
+      HomeFeature()
+    }
+    let privacy = Store(initialState: PrivacyFeature.State()) { PrivacyFeature() }
+    var isShowing = false
+    let header = HomeView(store: store, privacyStore: privacy).header(
+      interactionTrigger: .constant(0), showThirdPartyNotices: { isShowing = true })
+
+    header.onAction(.thirdPartyNotices)
+
+    XCTAssertTrue(isShowing)
+  }
+
   func testHomeHeaderCallbacksSendTheirFeatureActions() throws {
     let profile = try makeProfile()
     let checkedStatus = PrivacyRootFixture.status
@@ -107,7 +160,8 @@ final class PapercutScreenTests: XCTestCase {
       let view = HomeView(store: store, privacyStore: privacy)
       var trigger = 0
       let header = view.header(
-        interactionTrigger: Binding(get: { trigger }, set: { trigger = $0 }))
+        interactionTrigger: Binding(get: { trigger }, set: { trigger = $0 }),
+        showThirdPartyNotices: {})
 
       header.onAction(command)
 
@@ -363,11 +417,21 @@ final class PapercutScreenTests: XCTestCase {
   }
 
   private func activate(identifier: String, in host: PrivacyViewHost) throws {
+    try activate(in: host) { $0.identifier == identifier }
+  }
+
+  private func activate(label: String, in host: PrivacyViewHost) throws {
+    try activate(in: host) { $0.label == label }
+  }
+
+  private func activate(
+    in host: PrivacyViewHost, where isMatch: (AccessibilityElement) -> Bool
+  ) throws {
     let matches: [[(AccessibilityElement, NSObject)]] = AccessibilityHierarchyParser()
       .parseAccessibilityHierarchy(
         in: host.visibleWindow,
         makeElement: { element, _, source in
-          element.identifier == identifier ? [(element, source)] : []
+          isMatch(element) ? [(element, source)] : []
         },
         makeContainer: { _, children, _ in children.flatMap { $0 } }
       )

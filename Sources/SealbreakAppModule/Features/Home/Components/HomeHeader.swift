@@ -5,6 +5,7 @@ enum HomeMenuAction {
   case serverDetails
   case replaceShare
   case removeLocalData
+  case thirdPartyNotices
 }
 
 struct HomeHeader: View {
