@@ -12,7 +12,7 @@ Agreement version: Sealbreak Individual CLA 1.0. A changed text receives a new v
 
 Thank you for your interest in contributing to Sealbreak. This Agreement is made with Georges Alkhouri, the maintainer of Sealbreak ("We" or "Us").
 
-This contributor agreement ("Agreement") documents the rights granted by contributors to Us. To make this document effective, review it and follow the electronic acceptance instructions provided by the CLA Assistant on your GitHub pull request. The project records your acceptance. Do not post private information or completed paper forms publicly. This is a legally binding document, so please read it carefully before agreeing to it.
+This contributor agreement ("Agreement") documents the rights granted by contributors to Us. To make this document effective, review it and accept it by commenting on your GitHub pull request as described in [CONTRIBUTING.md](../../CONTRIBUTING.md#contributor-license-agreement). The pull request history records your acceptance. Do not post private information or completed paper forms publicly. This is a legally binding document, so please read it carefully before agreeing to it.
 
 ## 1. Definitions
 

@@ -424,8 +424,7 @@ jobs:
           path: build/generated-notices
       # Renovate keeps maintaining the branch because renovate.json lists this
       # commit identity in gitIgnoredAuthors. A GITHUB_TOKEN push starts no
-      # pull_request runs, so the checks are requested explicitly. CLAAssistant is
-      # not a required check because every bot that pushes here is allowlisted.
+      # pull_request runs, so the checks are requested explicitly.
       - name: Commit notices and request checks for the new revision
         run: |
           set -euo pipefail
