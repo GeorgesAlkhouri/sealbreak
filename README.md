@@ -75,4 +75,4 @@ Code for which the maintainer has sufficient rights may also be offered under se
 
 ### Contributing
 
-Sealbreak does not accept external code contributions yet. See [CONTRIBUTING.md](CONTRIBUTING.md) for details.
+See [CONTRIBUTING.md](CONTRIBUTING.md) and the [Harmony Contributor License Agreements](docs/legal/CLA-INDIVIDUAL.md) before submitting code. The project requires additional licensing rights from contributors to support both GPLv3 and proprietary distribution.
