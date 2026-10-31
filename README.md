@@ -65,7 +65,7 @@ Security assumptions, design decisions, and known risks are documented openly in
 
 ## License
 
-Sealbreak is distributed under the [GNU General Public License version 3](LICENSE) (GPL-3.0-only). Its additional Apple App Store distribution permission is in [COPYING.iOS](COPYING.iOS). This does not replace the GPL or grant rights over separately licensed third-party components.
+Sealbreak is distributed under the [GNU General Public License version 3](LICENSE) (GPL-3.0-only). [COPYING.iOS](COPYING.iOS) describes the maintainer's commitment on distribution through the Apple App Store and TestFlight. It does not replace the GPL, and it covers only code in which the maintainer holds the copyright, not separately licensed third-party components.
 
 Third-party license notices are generated from the resolved Swift packages ([license_plist.yml](license_plist.yml)) together with the manual notices in [docs/licenses/third-party-notices-header.md](docs/licenses/third-party-notices-header.md).
 
@@ -75,4 +75,4 @@ Code for which the maintainer has sufficient rights may also be offered under se
 
 ### Contributing
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) and the [Harmony Contributor License Agreements](docs/legal/CLA-INDIVIDUAL.md) before submitting code. The project requires additional licensing rights from contributors to support both GPLv3 and proprietary distribution.
+Sealbreak does not accept external code contributions yet. See [CONTRIBUTING.md](CONTRIBUTING.md) for details.
