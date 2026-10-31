@@ -1,4 +1,4 @@
-<!-- Edit this header for manual notices; CI generates THIRD_PARTY_NOTICES.md. -->
+<!-- Manual notices. CI adds the generated package notices and publishes the result as a build artifact. -->
 # Third-Party Notices
 
 Sealbreak includes third-party software and visual assets. The vendored SVG files are kept byte-for-byte identical to the referenced Simple Icons source files. Their inclusion does not imply endorsement by the respective projects or trademark owners.

@@ -67,7 +67,7 @@ Security assumptions, design decisions, and known risks are documented openly in
 
 Sealbreak is distributed under the [GNU General Public License version 3](LICENSE) (GPL-3.0-only). Its additional Apple App Store distribution permission is in [COPYING.iOS](COPYING.iOS). This does not replace the GPL or grant rights over separately licensed third-party components.
 
-Third-party license and attribution information is in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+Third-party license notices are generated from the resolved Swift packages ([license_plist.yml](license_plist.yml)) together with the manual notices in [docs/licenses/third-party-notices-header.md](docs/licenses/third-party-notices-header.md).
 
 ### Commercial licensing
 

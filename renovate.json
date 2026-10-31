@@ -8,9 +8,6 @@
   "prHourlyLimit": 0,
   "automerge": false,
   "platformAutomerge": false,
-  "gitIgnoredAuthors": [
-    "41898282+github-actions[bot]@users.noreply.github.com"
-  ],
   "pre-commit": {
     "enabled": true
   },
