@@ -10,20 +10,22 @@ The maintainer may also offer Sealbreak under commercial or proprietary terms, i
 
 ## Contributor License Agreement
 
-Before merging a copyright-bearing contribution, contributors must accept the Harmony Contributor License Agreement (CLA) with **Outbound License Option Five**. Contributors keep copyright ownership, while granting the maintainer the additional rights needed for commercial and proprietary licensing.
+Before merging a copyright-bearing contribution, contributors must accept the Harmony Contributor License Agreement (CLA) with **Outbound License Option Five**. For individuals, the GitHub CLA Assistant records this acceptance directly in the pull request. Contributors keep copyright ownership, while granting the maintainer the additional rights needed for commercial and proprietary licensing.
 
 Choose the appropriate document:
 
 - [Individual Contributor License Agreement](docs/legal/CLA-INDIVIDUAL.md)
 - [Entity Contributor License Agreement](docs/legal/CLA-ENTITY.md)
 
-To accept the individual agreement, post this comment on your pull request from your GitHub account:
+For individual contributions, a GitHub CLA Assistant can request electronic acceptance directly in the pull request. Read the individual agreement and follow the bot's instructions. The acceptance is recorded against the contributor's GitHub account. No Git commit sign-off trailer or manually emailed form is required for the automated individual process. The paper signature fields in the Harmony template are not used for electronic acceptance in a pull request. Company-owned contributions require separate authorization from an authorized representative under the Entity CLA.
 
-> I have read the Sealbreak Individual CLA 1.0 and I accept it.
-
-The maintainer merges a pull request from a new contributor only after this comment is present. The comment stays in the public pull request history as the record of your acceptance. The paper signature fields in the Harmony template are not used. Company-owned contributions require separate authorization from an authorized representative under the Entity CLA.
+The CLA check is not a required status check, because automated pull requests from allowlisted bots cannot trigger it. The maintainer merges a pull request from a new contributor only after the CLA check has passed.
 
 Existing contributions are not retroactively covered by a new CLA.
+
+### Signature records
+
+When you accept the individual agreement, the CLA Assistant stores your GitHub user name and user ID, the ID and time of your acceptance comment, and the pull request it was posted on. The record is kept in `signatures/cla.json` on the `cla-signatures` branch of this repository. Georges Alkhouri keeps it for as long as your contributions are part of Sealbreak, because it is the evidence of the rights granted under the agreement. The repository is public, and so is the record.
 
 ## Third-party material
 
