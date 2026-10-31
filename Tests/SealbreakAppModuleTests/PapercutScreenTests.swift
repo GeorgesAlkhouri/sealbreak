@@ -80,6 +80,14 @@ final class PapercutScreenTests: XCTestCase {
     }
   }
 
+  func testAppBundlesThirdPartyNotices() {
+    let notices = ThirdPartyNoticesView.bundledNotices()
+
+    XCTAssertTrue(notices.contains("Attribution: OpenBao project"))
+    XCTAssertTrue(notices.contains("Vault and the Vault logo are trademarks of HashiCorp."))
+    XCTAssertTrue(notices.contains("swift-composable-architecture"))
+  }
+
   func testHomeHeaderCallbacksSendTheirFeatureActions() throws {
     let profile = try makeProfile()
     let checkedStatus = PrivacyRootFixture.status

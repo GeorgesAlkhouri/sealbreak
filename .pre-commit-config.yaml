@@ -9,9 +9,11 @@ repos:
       - id: check-symlinks
       - id: check-yaml
       - id: end-of-file-fixer
-        # Keep the vendored Simple Icons SVGs byte-identical to their pinned upstream files.
-        exclude: '^Sealbreak/Resources/Brand\.xcassets/(OpenBaoMark\.imageset/OpenBaoMark|VaultMark\.imageset/VaultMark)\.svg$'
+        # Keep the vendored Simple Icons SVGs byte-identical to their pinned upstream files
+        # and the notices identical to the CI output.
+        exclude: '^Sealbreak/Resources/(Brand\.xcassets/(OpenBaoMark\.imageset/OpenBaoMark|VaultMark\.imageset/VaultMark)\.svg|THIRD_PARTY_NOTICES\.md)$'
       - id: trailing-whitespace
+        exclude: '^Sealbreak/Resources/THIRD_PARTY_NOTICES\.md$'
 
   - repo: local
     hooks:

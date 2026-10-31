@@ -27,6 +27,12 @@ struct HomeMenu: View {
       }
       .disabled(isBusy)
 
+      Button(
+        LocalizedStringResource("Third-party notices", bundle: .module), systemImage: "doc.text"
+      ) {
+        onAction(.thirdPartyNotices)
+      }
+
       Divider()
 
       Button(

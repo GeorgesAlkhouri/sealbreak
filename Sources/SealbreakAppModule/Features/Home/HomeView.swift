@@ -8,6 +8,7 @@ struct HomeView: View {
   let privacyStore: StoreOf<PrivacyFeature>
 
   @State private var statusInteractionTrigger = 0
+  @State private var isShowingThirdPartyNotices = false
 
   var body: some View {
     PapercutScreen {
@@ -50,6 +51,10 @@ struct HomeView: View {
       item: $store.scope(state: \.$replaceShare, action: \.replaceShare)
     ) { replacementStore in
       ReplaceShareView(store: replacementStore)
+        .privacyProtected(privacyStore.isConcealed)
+    }
+    .sheet(isPresented: $isShowingThirdPartyNotices) {
+      ThirdPartyNoticesView()
         .privacyProtected(privacyStore.isConcealed)
     }
     .confirmationDialog(
@@ -97,6 +102,8 @@ struct HomeView: View {
         store.send(.replaceShareTapped)
       case .removeLocalData:
         store.send(.removeLocalDataTapped)
+      case .thirdPartyNotices:
+        isShowingThirdPartyNotices = true
       }
     }
   }

@@ -313,6 +313,9 @@
     "This replaces only the locally stored share. It does not rotate server keys or change the configured target." : {
 
     },
+    "Third-party notices" : {
+
+    },
     "Threshold / shares" : {
 
     },
