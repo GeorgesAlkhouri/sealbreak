@@ -1,0 +1,7 @@
+# Test dependencies and host-side macro/compiler tooling are not shipped in the app.
+# All other resolved packages are included, including IssueReporting's runtime package.
+exclude:
+  - name: AccessibilitySnapshot
+  - name: ios-snapshot-test-case
+  - name: swift-snapshot-testing
+  - name: swift-syntax

@@ -1,6 +1,7 @@
+<!-- Manual notices. CI adds the generated package notices and publishes the result as a build artifact. -->
 # Third-Party Notices
 
-Sealbreak includes the following third-party visual assets. The vendored SVG files are kept byte-for-byte identical to the referenced Simple Icons source files. Their inclusion does not imply endorsement by the respective projects or trademark owners.
+Sealbreak includes third-party software and visual assets. The vendored SVG files are kept byte-for-byte identical to the referenced Simple Icons source files. Their inclusion does not imply endorsement by the respective projects or trademark owners.
 
 ## Simple Icons
 
@@ -29,3 +30,7 @@ The OpenBao name and logo remain subject to the applicable project and Linux Fou
 - Trademark policy: [HashiCorp Trademark Policy](https://www.hashicorp.com/trademark-policy)
 
 Vault and the Vault logo are trademarks of HashiCorp.
+
+## Software libraries
+
+The following notices apply to the third-party software used by Sealbreak.

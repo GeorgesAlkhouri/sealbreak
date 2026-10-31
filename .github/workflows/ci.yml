@@ -144,6 +144,41 @@ jobs:
           git diff -- \
             Sealbreak.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved
           exit 1
+      - name: Generate third-party notices from resolved package sources
+        env:
+          # renovate: depName=mono0926/LicensePlist
+          LICENSEPLIST_VERSION: "3.28.3"
+          LICENSEPLIST_SHA256: dd3ca6c08981a1e0c4980d5bc857bbd40f17b8b4c7ca89ab8923396fd910a040
+        run: |
+          set -euo pipefail
+          curl --fail --location --silent --show-error --retry 3 \
+            "https://github.com/mono0926/LicensePlist/releases/download/$LICENSEPLIST_VERSION/portable_licenseplist.zip" \
+            --output "$RUNNER_TEMP/licenseplist.zip"
+          echo "$LICENSEPLIST_SHA256  $RUNNER_TEMP/licenseplist.zip" | shasum -a 256 --check
+          unzip -q "$RUNNER_TEMP/licenseplist.zip" -d "$RUNNER_TEMP/licenseplist"
+          mkdir -p build/notices
+          "$RUNNER_TEMP/licenseplist/license-plist" \
+            --package-path Sealbreak.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved \
+            --package-sources-path build/Simulator/SourcePackages \
+            --config-path license_plist.yml \
+            --output-path build/notices/Settings.bundle \
+            --markdown-path build/notices/libraries.md \
+            --sandbox-mode --fail-if-missing-license \
+            --add-version-numbers --add-sources --suppress-opening-directory --no-color --force
+          python3 scripts/ci/third_party_notices.py \
+            --header docs/licenses/third-party-notices-header.md \
+            --libraries build/notices/libraries.md \
+            --resolved Sealbreak.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved \
+            --config license_plist.yml \
+            --checkouts build/Simulator/SourcePackages/checkouts \
+            --output build/notices/THIRD_PARTY_NOTICES.md
+      - name: Upload generated third-party notices
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: third-party-notices-${{ github.run_attempt }}
+          path: build/notices/THIRD_PARTY_NOTICES.md
+          if-no-files-found: error
+          retention-days: 7
       - name: Build complete iOS app and hosted tests with coverage
         run: |
           xcodebuild build-for-testing -project Sealbreak.xcodeproj -scheme Sealbreak \
