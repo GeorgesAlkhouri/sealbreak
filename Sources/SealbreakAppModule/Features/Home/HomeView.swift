@@ -8,11 +8,23 @@ struct HomeView: View {
   let privacyStore: StoreOf<PrivacyFeature>
 
   @State private var statusInteractionTrigger = 0
-  @State private var isShowingThirdPartyNotices = false
+  @State private var isShowingThirdPartyNotices: Bool
+
+  init(
+    store: StoreOf<HomeFeature>,
+    privacyStore: StoreOf<PrivacyFeature>,
+    isShowingThirdPartyNotices: Bool = false
+  ) {
+    self.store = store
+    self.privacyStore = privacyStore
+    _isShowingThirdPartyNotices = State(initialValue: isShowingThirdPartyNotices)
+  }
 
   var body: some View {
     PapercutScreen {
-      header(interactionTrigger: $statusInteractionTrigger)
+      header(interactionTrigger: $statusInteractionTrigger) {
+        isShowingThirdPartyNotices = true
+      }
     } content: {
       VStack(spacing: 0) {
         ServerStatusCard(
@@ -90,7 +102,9 @@ struct HomeView: View {
     }
   }
 
-  func header(interactionTrigger: Binding<Int>) -> HomeHeader {
+  func header(
+    interactionTrigger: Binding<Int>, showThirdPartyNotices: @escaping () -> Void
+  ) -> HomeHeader {
     HomeHeader(isBusy: viewState.isBusy) { action in
       switch action {
       case .refresh:
@@ -103,7 +117,7 @@ struct HomeView: View {
       case .removeLocalData:
         store.send(.removeLocalDataTapped)
       case .thirdPartyNotices:
-        isShowingThirdPartyNotices = true
+        showThirdPartyNotices()
       }
     }
   }
