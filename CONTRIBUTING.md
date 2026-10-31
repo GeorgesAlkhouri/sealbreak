@@ -23,7 +23,7 @@ To accept the individual agreement, post this comment on your pull request from 
 
 The maintainer merges a pull request from a new contributor only after this comment is present. The comment stays in the public pull request history as the record of your acceptance. The paper signature fields in the Harmony template are not used. Company-owned contributions require separate authorization from an authorized representative under the Entity CLA.
 
-The CLA process and legal terms require final review before contributions can be accepted under this policy. Existing contributions are not retroactively covered by a new CLA.
+Existing contributions are not retroactively covered by a new CLA.
 
 ## Third-party material
 

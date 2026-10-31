@@ -4,7 +4,7 @@ This is the Harmony Entity Contributor License Agreement version 1.0, with the *
 
 Source: https://www.harmonyagreements.org/docs/ha-combined-v1
 Attribution: Harmony Contributors, licensed under Creative Commons Attribution 3.0 Unported (https://creativecommons.org/licenses/by/3.0/).
-Adaptations: selected the entity license variant, Option Five, the Sealbreak project and recipient, the third-party submission procedure, German governing law, and signing instructions; removed unused template options. **Legal review of the selections and signing process is required before accepting an agreement.**
+Adaptations: selected the entity license variant, Option Five, the Sealbreak project and recipient, the third-party submission procedure, German governing law, and signing instructions; removed unused template options.
 
 Agreement version: Sealbreak Entity CLA 1.0. A changed text receives a new version, and contributors accept it again.
 

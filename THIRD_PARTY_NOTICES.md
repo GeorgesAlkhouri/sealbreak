@@ -1,4 +1,3 @@
-<!-- Edit this header for manual notices; CI generates THIRD_PARTY_NOTICES.md. -->
 # Third-Party Notices
 
 Sealbreak includes third-party software and visual assets. The vendored SVG files are kept byte-for-byte identical to the referenced Simple Icons source files. Their inclusion does not imply endorsement by the respective projects or trademark owners.
@@ -37,6 +36,7 @@ The following notices apply to the third-party software used by Sealbreak.
 
 ### [combine-schedulers (1.2.2)](https://github.com/pointfreeco/combine-schedulers)
 
+```text
 MIT License
 
 Copyright (c) 2020 Point-Free, Inc.
@@ -58,10 +58,11 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
-
+```
 
 ### [swift-case-paths (1.10.0)](https://github.com/pointfreeco/swift-case-paths)
 
+```text
 MIT License
 
 Copyright (c) 2020 Point-Free, Inc.
@@ -83,10 +84,11 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
-
+```
 
 ### [swift-clocks (1.1.1)](https://github.com/pointfreeco/swift-clocks)
 
+```text
 MIT License
 
 Copyright (c) 2022 Point-Free
@@ -108,10 +110,11 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
-
+```
 
 ### [swift-collections (1.7.1)](https://github.com/apple/swift-collections)
 
+```text
                                  Apache License
                            Version 2.0, January 2004
                         http://www.apache.org/licenses/
@@ -323,10 +326,11 @@ SOFTWARE.
     portions of this Software are embedded into the binary product as a result,
     you may redistribute such product without providing attribution as would
     otherwise be required by Sections 4(a), 4(b) and 4(d) of the License.
-
+```
 
 ### [swift-composable-architecture (1.26.2)](https://github.com/pointfreeco/swift-composable-architecture)
 
+```text
 MIT License
 
 Copyright (c) 2020 Point-Free, Inc.
@@ -348,10 +352,11 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
-
+```
 
 ### [swift-concurrency-extras (1.4.1)](https://github.com/pointfreeco/swift-concurrency-extras)
 
+```text
 MIT License
 
 Copyright (c) 2023 Point-Free
@@ -373,10 +378,11 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
-
+```
 
 ### [swift-custom-dump (1.7.3)](https://github.com/pointfreeco/swift-custom-dump)
 
+```text
 MIT License
 
 Copyright (c) 2021 Point-Free, Inc.
@@ -398,10 +404,11 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
-
+```
 
 ### [swift-dependencies (1.17.1)](https://github.com/pointfreeco/swift-dependencies)
 
+```text
 MIT License
 
 Copyright (c) 2022 Point-Free, Inc.
@@ -423,10 +430,11 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
-
+```
 
 ### [swift-identified-collections (1.1.1)](https://github.com/pointfreeco/swift-identified-collections)
 
+```text
 MIT License
 
 Copyright (c) 2021 Point-Free, Inc.
@@ -448,10 +456,11 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
-
+```
 
 ### [swift-navigation (2.11.2)](https://github.com/pointfreeco/swift-navigation)
 
+```text
 MIT License
 
 Copyright (c) 2021 Point-Free, Inc.
@@ -473,10 +482,11 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
-
+```
 
 ### [swift-perception (2.0.12)](https://github.com/pointfreeco/swift-perception)
 
+```text
 MIT License
 
 Copyright (c) 2023 Point-Free
@@ -498,10 +508,11 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
-
+```
 
 ### [swift-sharing (2.10.1)](https://github.com/pointfreeco/swift-sharing)
 
+```text
 MIT License
 
 Copyright (c) 2024 Point-Free, Inc.
@@ -523,10 +534,11 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
-
+```
 
 ### [xctest-dynamic-overlay (1.13.1)](https://github.com/pointfreeco/xctest-dynamic-overlay)
 
+```text
 MIT License
 
 Copyright (c) 2021 Point-Free, Inc.
@@ -548,3 +560,4 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
+```
