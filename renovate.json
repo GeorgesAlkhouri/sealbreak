@@ -66,6 +66,13 @@
       "automergeType": "pr"
     },
     {
+      "description": "Review LicensePlist updates by hand: the downloaded binary runs in the iOS CI job, which can request OIDC tokens",
+      "matchDepNames": [
+        "mono0926/LicensePlist"
+      ],
+      "automerge": false
+    },
+    {
       "description": "Keep the CI Python runtime on the 3.13 release line",
       "matchManagers": [
         "github-actions"

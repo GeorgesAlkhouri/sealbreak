@@ -165,22 +165,13 @@ jobs:
             --markdown-path build/notices/libraries.md \
             --sandbox-mode --fail-if-missing-license \
             --add-version-numbers --add-sources --suppress-opening-directory --no-color --force
-          python3 - docs/licenses/third-party-notices-header.md build/notices/libraries.md \
-            build/notices/THIRD_PARTY_NOTICES.md <<'PY'
-          import pathlib, re, sys
-
-          header, libraries, output = map(pathlib.Path, sys.argv[1:])
-          # The comment names the header file as the place to edit; it does not belong in the output.
-          head = re.sub(r"\A<!--.*?-->\n", "", header.read_text(), flags=re.S)
-          text = libraries.read_text()
-          parts = re.split(r"(?m)^## (\[.*)\n", text[re.search(r"(?m)^## \[", text).start():])
-          sections = []
-          for title, body in zip(parts[1::2], parts[2::2]):
-              # Fence each license verbatim so its own headings and markup stay plain text.
-              fence = "`" * max(3, 1 + max(map(len, re.findall("`+", body)), default=0))
-              sections.append(f"### {title}\n\n{fence}text\n{body.strip(chr(10))}\n{fence}")
-          output.write_text(f"{head}\n" + "\n\n".join(sections) + "\n")
-          PY
+          python3 scripts/ci/third_party_notices.py \
+            --header docs/licenses/third-party-notices-header.md \
+            --libraries build/notices/libraries.md \
+            --resolved Sealbreak.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved \
+            --config license_plist.yml \
+            --checkouts build/Simulator/SourcePackages/checkouts \
+            --output build/notices/THIRD_PARTY_NOTICES.md
       - name: Upload generated third-party notices
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
