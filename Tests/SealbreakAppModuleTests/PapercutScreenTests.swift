@@ -99,7 +99,9 @@ final class PapercutScreenTests: XCTestCase {
       $0.sealbreakClient.waitForForeground = {}
       $0.sealbreakClient.status = { _ in checkedStatus }
     }
-    let privacy = Store(initialState: PrivacyFeature.State()) { PrivacyFeature() }
+    var privacyState = PrivacyFeature.State()
+    privacyState.phase = .active
+    let privacy = Store(initialState: privacyState) { PrivacyFeature() }
     let host = try makeHost(size: CGSize(width: 402, height: 874)) {
       HomeView(store: store, privacyStore: privacy, isShowingThirdPartyNotices: true)
     }
@@ -109,6 +111,7 @@ final class PapercutScreenTests: XCTestCase {
         && host.controller.presentedViewController?.transitionCoordinator == nil
         && host.accessibilityElements.contains { $0.label == "Done" }
     }
+    XCTAssertTrue(host.accessibility.contains("Attribution: OpenBao project"))
 
     try activate(label: "Done", in: host)
 
