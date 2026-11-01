@@ -1,49 +1,11 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": [
-    "config:best-practices",
-    ":semanticCommits"
+    "github>georgesalkhouri/renovate-config",
+    "github>georgesalkhouri/renovate-config:python(3.13)"
   ],
-  "prConcurrentLimit": 0,
-  "prHourlyLimit": 0,
-  "automerge": false,
   "platformAutomerge": false,
-  "pre-commit": {
-    "enabled": true
-  },
-  "vulnerabilityAlerts": {
-    "enabled": true,
-    "addLabels": [
-      "security"
-    ],
-    "automerge": false
-  },
   "packageRules": [
-    {
-      "description": "Wait 7 days before updating dependencies with reliable release timestamps",
-      "matchDatasources": [
-        "github-tags",
-        "github-releases",
-        "github-release-attachments",
-        "github-digest",
-        "pypi",
-        "rubygems",
-        "ruby-version"
-      ],
-      "minimumReleaseAge": "7 days",
-      "internalChecksFilter": "strict"
-    },
-    {
-      "description": "Group GitHub Action updates",
-      "matchManagers": [
-        "github-actions"
-      ],
-      "groupName": "GitHub Actions",
-      "matchDepTypes": [
-        "action"
-      ],
-      "separateMajorMinor": false
-    },
     {
       "description": "Group non-major pre-commit hook updates",
       "matchManagers": [
@@ -56,31 +18,11 @@
       "groupName": "pre-commit hooks"
     },
     {
-      "description": "Automerge stable minor and patch updates after CI passes",
-      "matchCurrentVersion": "!/^0/",
-      "matchUpdateTypes": [
-        "minor",
-        "patch"
-      ],
-      "automerge": true,
-      "automergeType": "pr"
-    },
-    {
       "description": "Review LicensePlist updates by hand: the downloaded binary runs in the iOS CI job, which can request OIDC tokens",
       "matchDepNames": [
         "mono0926/LicensePlist"
       ],
       "automerge": false
-    },
-    {
-      "description": "Keep the CI Python runtime on the 3.13 release line",
-      "matchManagers": [
-        "github-actions"
-      ],
-      "matchDepNames": [
-        "python"
-      ],
-      "allowedVersions": "/^3\\.13(?:\\.|$)/"
     }
   ],
   "customManagers": [
