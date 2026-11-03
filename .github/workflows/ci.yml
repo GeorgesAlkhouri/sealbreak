@@ -193,6 +193,11 @@ jobs:
             echo '::error title=Third-party notices out of date::Commit the third-party-notices artifact as Sealbreak/Resources/THIRD_PARTY_NOTICES.md.'
             exit 1
           }
+      - name: Install iOS 27.0 simulator runtime
+        uses: ./.github/actions/ios-simulator-runtime
+        with:
+          ios: "27.0"
+          runtime: com.apple.CoreSimulator.SimRuntime.iOS-27-0
       - name: Build complete iOS app and hosted tests with coverage
         run: |
           xcodebuild build-for-testing -project Sealbreak.xcodeproj -scheme Sealbreak \

@@ -56,18 +56,10 @@ jobs:
           test -d "$DEVELOPER_DIR"
           xcodebuild -version
       - name: Install iOS ${{ inputs.ios }} simulator runtime
-        env:
-          IOS_VERSION: ${{ inputs.ios }}
-        run: |
-          set -euo pipefail
-          runtime_available() {
-            xcrun simctl list runtimes -j |
-              jq -e --arg id "$SEALBREAK_IOS_RUNTIME" '.runtimes | any(.identifier == $id and .isAvailable == true)' >/dev/null
-          }
-          if ! runtime_available; then
-            xcodebuild -downloadPlatform iOS -buildVersion "$IOS_VERSION" -architectureVariant arm64
-          fi
-          runtime_available
+        uses: ./.github/actions/ios-simulator-runtime
+        with:
+          ios: ${{ inputs.ios }}
+          runtime: ${{ inputs.runtime }}
       - name: Restore Swift package sources
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
         with:

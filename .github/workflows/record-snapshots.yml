@@ -45,6 +45,12 @@ jobs:
           xcodebuild -version
           touch "$RUNNER_TEMP/snapshot-recording-start"
 
+      - name: Install iOS 27.0 simulator runtime
+        uses: ./.github/actions/ios-simulator-runtime
+        with:
+          ios: "27.0"
+          runtime: com.apple.CoreSimulator.SimRuntime.iOS-27-0
+
       - name: Record candidate images with Point-Free
         # Point-Free deliberately fails assertions when recording references.
         continue-on-error: true
