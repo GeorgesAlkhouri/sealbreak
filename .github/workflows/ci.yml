@@ -86,11 +86,14 @@ jobs:
             --parallel --xunit-output build/test-results/package.junit.xml
           # Swift 6.4's default build system emits one bundle per test target.
           # Resolve the active build directory so stale binaries cannot supply coverage.
-          build_path="$(swift build --show-bin-path)"
+          build_path="$(swift build --force-resolved-versions --show-bin-path)"
           profile="$build_path/codecov/default.profdata"
           test -s "$profile"
+          # Read the test targets from Package.swift so a new target cannot drop out of coverage.
+          test_targets="$(swift package --force-resolved-versions describe --type json |
+            jq -er '[.targets[] | select(.type == "test") | .name] | if length > 0 then .[] else error("no test targets") end')"
           objects=()
-          for target in SealbreakCoreTests SealbreakInfrastructureTests; do
+          for target in $test_targets; do
             binary="$build_path/$target.xctest/Contents/MacOS/$target"
             test -x "$binary"
             objects+=(-object "$binary")
