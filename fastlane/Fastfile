@@ -85,8 +85,12 @@ platform :ios do
       profile_name: profile_name
     )
 
-    output_directory = File.expand_path("../build/TestFlight", __dir__)
+    root = File.expand_path("..", __dir__)
+    output_directory = File.join(root, "build/TestFlight")
     ipa_path = File.join(output_directory, "Sealbreak.ipa")
+    sbom_path = File.join(output_directory, "sbom.cdx.json")
+    # A fixed path lets the SBOM read the package checkouts of this build.
+    derived_data_path = File.join(output_directory, "DerivedData")
 
     UI.message("Preparing Sealbreak #{version} (#{build_number})")
 
@@ -97,6 +101,7 @@ platform :ios do
       destination: "generic/platform=iOS",
       output_directory: output_directory,
       output_name: "Sealbreak.ipa",
+      derived_data_path: derived_data_path,
       export_method: "app-store",
       disable_package_automatic_updates: true,
       xcargs: [
@@ -119,12 +124,40 @@ platform :ios do
     UI.user_error!("IPA version mismatch: #{ipa_version}") unless ipa_version == version
     UI.user_error!("IPA build mismatch: #{ipa_build}") unless ipa_build == build_number
 
+    # Without a valid SBOM the build must not reach TestFlight.
+    commit = sh("git", "-C", root, "rev-parse", "HEAD", log: false).strip
+    sh(
+      "python3", File.join(root, "scripts/ci/sbom.py"),
+      "--ipa", ipa_path,
+      "--resolved", File.join(root, "Sealbreak.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved"),
+      "--config", File.join(root, "license_plist.yml"),
+      "--checkouts", File.join(derived_data_path, "SourcePackages/checkouts"),
+      "--gemfile-lock", File.join(root, "Gemfile.lock"),
+      "--version", version,
+      "--build-number", build_number,
+      "--commit", commit,
+      "--repository", "#{ENV.fetch('GITHUB_SERVER_URL')}/#{ENV.fetch('GITHUB_REPOSITORY')}",
+      "--xcode-version", sh("xcodebuild", "-version", log: false).lines.first.split.last,
+      "--output", sbom_path
+    )
+    sh("cyclonedx", "validate", "--input-file", sbom_path, "--input-version", "v1_6", "--fail-on-errors")
+
     upload_to_testflight(
       api_key: api_key,
       app_identifier: app_identifier,
       ipa: ipa_path,
       skip_waiting_for_build_processing: true
     )
+
+    if ENV["GITHUB_OUTPUT"]
+      File.open(ENV["GITHUB_OUTPUT"], "a") do |output|
+        output.puts("version=#{version}")
+        output.puts("build_number=#{build_number}")
+        output.puts("commit=#{commit}")
+        output.puts("ipa_path=#{ipa_path}")
+        output.puts("sbom_path=#{sbom_path}")
+      end
+    end
 
     UI.success("Uploaded Sealbreak #{ipa_version} (#{ipa_build}) to TestFlight")
   end

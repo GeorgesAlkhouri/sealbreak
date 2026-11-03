@@ -1,0 +1,24 @@
+name: CycloneDX CLI
+description: >-
+  Install the pinned CycloneDX CLI for macOS on Apple silicon after checking its
+  SHA-256, and put it on PATH.
+
+runs:
+  using: composite
+  steps:
+    - name: Install CycloneDX CLI
+      shell: bash
+      env:
+        # renovate: depName=CycloneDX/cyclonedx-cli
+        CYCLONEDX_CLI_VERSION: "0.33.1"
+        CYCLONEDX_CLI_SHA256: 750c148780154833f6401f9067d08c5a4c31567b6ee3c26c062c3a95c62d741c
+      run: |
+        set -euo pipefail
+        directory="$RUNNER_TEMP/cyclonedx-cli"
+        mkdir -p "$directory"
+        curl --fail --location --silent --show-error --retry 3 \
+          "https://github.com/CycloneDX/cyclonedx-cli/releases/download/v$CYCLONEDX_CLI_VERSION/cyclonedx-osx-arm64" \
+          --output "$directory/cyclonedx"
+        echo "$CYCLONEDX_CLI_SHA256  $directory/cyclonedx" | shasum -a 256 --check
+        chmod +x "$directory/cyclonedx"
+        echo "$directory" >> "$GITHUB_PATH"

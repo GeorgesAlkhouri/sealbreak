@@ -22,6 +22,15 @@ jobs:
     runs-on: xcode-27
     timeout-minutes: 90
     environment: testflight
+    permissions:
+      contents: read
+      # Sign the SBOM attestation with a Sigstore certificate for this workflow.
+      id-token: write
+      attestations: write
+    outputs:
+      version: ${{ steps.lane.outputs.version }}
+      build_number: ${{ steps.lane.outputs.build_number }}
+      commit: ${{ steps.lane.outputs.commit }}
     env:
       DEVELOPER_DIR: /Applications/Xcode_27.1.app/Contents/Developer
       FASTLANE_SKIP_UPDATE_CHECK: "1"
@@ -66,5 +75,85 @@ jobs:
       - name: Verify Xcode 27.1
         run: xcodebuild -version
 
+      - name: Install CycloneDX CLI
+        uses: ./.github/actions/cyclonedx-cli
+
       - name: Build and upload TestFlight release
+        id: lane
         run: bundle exec fastlane ios testflight
+
+      # A TestFlight build without this attestation must not be promoted to the App Store.
+      - name: Attest the SBOM of the uploaded IPA
+        id: attest
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
+        with:
+          subject-path: ${{ steps.lane.outputs.ipa_path }}
+          sbom-path: ${{ steps.lane.outputs.sbom_path }}
+
+      - name: Collect release candidate files
+        env:
+          IPA_PATH: ${{ steps.lane.outputs.ipa_path }}
+          SBOM_PATH: ${{ steps.lane.outputs.sbom_path }}
+          BUNDLE_PATH: ${{ steps.attest.outputs.bundle-path }}
+        run: |
+          set -euo pipefail
+          mkdir -p build/candidate
+          cp "$IPA_PATH" build/candidate/Sealbreak.ipa
+          cp "$SBOM_PATH" build/candidate/sbom.cdx.json
+          cp "$BUNDLE_PATH" build/candidate/sbom.cdx.json.sigstore.json
+
+      - name: Upload release candidate files
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: release-candidate
+          path: build/candidate/
+          if-no-files-found: error
+          retention-days: 7
+
+  draft-release:
+    name: Release / draft
+    needs: testflight
+    runs-on: ubuntu-26.04
+    timeout-minutes: 10
+    permissions:
+      # Only this job, which runs no build tools, may write releases.
+      contents: write
+    steps:
+      - name: Download release candidate files
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: release-candidate
+          path: candidate
+
+      - name: Create draft release for the TestFlight build
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ needs.testflight.outputs.version }}
+          BUILD_NUMBER: ${{ needs.testflight.outputs.build_number }}
+          COMMIT: ${{ needs.testflight.outputs.commit }}
+        run: |
+          set -euo pipefail
+          ipa_sha256="$(sha256sum candidate/Sealbreak.ipa | cut -d ' ' -f 1)"
+          cat > notes.md <<EOF
+          TestFlight build $VERSION ($BUILD_NUMBER) from commit $COMMIT.
+
+          IPA SHA-256: \`$ipa_sha256\`
+
+          Verify the signed SBOM of the IPA:
+
+          \`\`\`bash
+          gh attestation verify Sealbreak.ipa \\
+            --repo $GITHUB_REPOSITORY \\
+            --predicate-type https://cyclonedx.org/bom \\
+            --signer-workflow $GITHUB_REPOSITORY/.github/workflows/release.yml
+          \`\`\`
+          EOF
+          gh release create "build/$VERSION-$BUILD_NUMBER" \
+            --repo "$GITHUB_REPOSITORY" \
+            --draft \
+            --target "$COMMIT" \
+            --title "Sealbreak $VERSION ($BUILD_NUMBER)" \
+            --notes-file notes.md \
+            candidate/Sealbreak.ipa \
+            candidate/sbom.cdx.json \
+            candidate/sbom.cdx.json.sigstore.json

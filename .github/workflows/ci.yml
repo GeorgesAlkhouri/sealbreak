@@ -196,6 +196,27 @@ jobs:
             echo '::error title=Third-party notices out of date::Commit the third-party-notices artifact as Sealbreak/Resources/THIRD_PARTY_NOTICES.md.'
             exit 1
           }
+      - name: Install CycloneDX CLI
+        uses: ./.github/actions/cyclonedx-cli
+      - name: Check the release SBOM against the resolved package sources
+        run: |
+          set -euo pipefail
+          # The TestFlight lane hashes the exported IPA. Any file stands in for it here.
+          mkdir -p build/sbom
+          printf 'placeholder' > build/sbom/placeholder.ipa
+          python3 scripts/ci/sbom.py \
+            --ipa build/sbom/placeholder.ipa \
+            --resolved Sealbreak.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved \
+            --config license_plist.yml \
+            --checkouts build/Simulator/SourcePackages/checkouts \
+            --gemfile-lock Gemfile.lock \
+            --version 0.0.0 \
+            --build-number 0 \
+            --commit "$(git rev-parse HEAD)" \
+            --repository "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY" \
+            --xcode-version "$(xcodebuild -version | awk 'NR == 1 { print $2 }')" \
+            --output build/sbom/sbom.cdx.json
+          cyclonedx validate --input-file build/sbom/sbom.cdx.json --input-version v1_6 --fail-on-errors
       - name: Install iOS 27.0 simulator runtime
         uses: ./.github/actions/ios-simulator-runtime
         with:
