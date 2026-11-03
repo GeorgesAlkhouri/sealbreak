@@ -17,10 +17,12 @@ concurrency:
 jobs:
   swift:
     name: CodeQL / swift
-    runs-on: xcode-27
+    # CodeQL cannot trace builds on macOS 27 or Xcode 27, so stay on Xcode 26.
+    # https://github.blog/changelog/2026-10-19-codeql-changes-for-macos-27-xcode-27-and-swift-6-4/
+    runs-on: macos-26
     timeout-minutes: 120
     env:
-      DEVELOPER_DIR: /Applications/Xcode_27.1.app/Contents/Developer
+      DEVELOPER_DIR: /Applications/Xcode_26.6.app/Contents/Developer
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
