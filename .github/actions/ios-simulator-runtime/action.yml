@@ -1,0 +1,31 @@
+name: iOS simulator runtime
+description: >-
+  Ensure an iOS simulator runtime is available for the active Xcode, downloading
+  it when the runner image does not preinstall it.
+
+inputs:
+  ios:
+    description: iOS build version to download, for example 27.0
+    required: true
+  runtime:
+    description: CoreSimulator runtime identifier, for example com.apple.CoreSimulator.SimRuntime.iOS-27-0
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Install iOS ${{ inputs.ios }} simulator runtime
+      shell: bash
+      env:
+        IOS_VERSION: ${{ inputs.ios }}
+        IOS_RUNTIME: ${{ inputs.runtime }}
+      run: |
+        set -euo pipefail
+        runtime_available() {
+          xcrun simctl list runtimes -j |
+            jq -e --arg id "$IOS_RUNTIME" '.runtimes | any(.identifier == $id and .isAvailable == true)' >/dev/null
+        }
+        if ! runtime_available; then
+          xcodebuild -downloadPlatform iOS -buildVersion "$IOS_VERSION" -architectureVariant arm64
+        fi
+        runtime_available
