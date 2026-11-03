@@ -1,0 +1,93 @@
+name: Integration
+
+on:
+  workflow_call:
+    inputs:
+      ios:
+        description: iOS simulator version, for example 27.0
+        required: true
+        type: string
+      runtime:
+        description: CoreSimulator runtime identifier
+        required: true
+        type: string
+      device:
+        description: CoreSimulator device type identifier
+        required: true
+        type: string
+      timeout-minutes:
+        description: Job timeout; runtimes that are not preinstalled need longer
+        required: false
+        type: number
+        default: 30
+
+permissions:
+  contents: read
+
+jobs:
+  integration:
+    name: integration / ${{ matrix.server.name }} / iOS ${{ inputs.ios }}
+    runs-on: xcode-27
+    timeout-minutes: ${{ inputs.timeout-minutes }}
+    permissions:
+      contents: read
+      id-token: write
+    strategy:
+      fail-fast: false
+      matrix:
+        server:
+          - name: openbao
+            # renovate: packageName=openbao/openbao
+            version: "2.7.2"
+          - name: vault
+            # renovate: packageName=hashicorp/vault
+            version: "2.2.1"
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_27.1.app/Contents/Developer
+      SEALBREAK_IOS_RUNTIME: ${{ inputs.runtime }}
+      SEALBREAK_SIMULATOR_DEVICE_TYPE: ${{ inputs.device }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - name: Verify Xcode 27.1 baseline
+        run: |
+          test -d "$DEVELOPER_DIR"
+          xcodebuild -version
+      - name: Install iOS ${{ inputs.ios }} simulator runtime
+        env:
+          IOS_VERSION: ${{ inputs.ios }}
+        run: |
+          set -euo pipefail
+          runtime_available() {
+            xcrun simctl list runtimes -j |
+              jq -e --arg id "$SEALBREAK_IOS_RUNTIME" '.runtimes | any(.identifier == $id and .isAvailable == true)' >/dev/null
+          }
+          if ! runtime_available; then
+            xcodebuild -downloadPlatform iOS -buildVersion "$IOS_VERSION" -architectureVariant arm64
+          fi
+          runtime_available
+      - name: Restore Swift package sources
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+        with:
+          path: ${{ runner.temp }}/sealbreak-source-packages
+          key: swiftpm-integration-${{ runner.os }}-${{ runner.arch }}-27.1-${{ hashFiles('Sealbreak.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved') }}
+          restore-keys: |
+            swiftpm-integration-${{ runner.os }}-${{ runner.arch }}-27.1-
+      - name: Install Xcode test report converter
+        run: brew install xcresultparser
+      - name: Run real ${{ matrix.server.name }} Shamir integration
+        env:
+          SEALBREAK_SOURCE_PACKAGES_DIR: ${{ runner.temp }}/sealbreak-source-packages
+        run: bash scripts/ci/integration.sh "${{ matrix.server.name }}" "${{ matrix.server.version }}"
+      - name: Upload integration test results to Codecov
+        if: ${{ !cancelled() && hashFiles(format('build/test-results/integration-{0}.junit.xml', matrix.server.name)) != '' }}
+        uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
+        with:
+          files: build/test-results/integration-${{ matrix.server.name }}.junit.xml
+          report_type: test_results
+          flags: integration-${{ matrix.server.name }}-ios-${{ inputs.ios }}
+          disable_search: true
+          fail_ci_if_error: true
+          use_oidc: true

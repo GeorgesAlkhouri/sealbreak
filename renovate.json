@@ -29,7 +29,7 @@
     {
       "customType": "regex",
       "managerFilePatterns": [
-        "/^\\.github\\/workflows\\/ci\\.yml$/"
+        "/^\\.github\\/workflows\\/integration\\.yml$/"
       ],
       "matchStrings": [
         "# renovate: packageName=(?<packageName>[^\\s]+)\\s+version:\\s*\"(?<currentValue>\\d+\\.\\d+\\.\\d+)\""
