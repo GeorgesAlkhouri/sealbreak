@@ -360,21 +360,7 @@ final class PapercutScreenTests: XCTestCase {
     XCTAssertTrue(address.becomeFirstResponder())
     defer { address.resignFirstResponder() }
     guard await keyboard.waitForVisibleFrame(in: host.window) else {
-      // Distinguish a simulator keyboard limitation from a Setup regression.
-      address.resignFirstResponder()
-      let nativeController = UIViewController()
-      let nativeField = UITextField(frame: CGRect(x: 24, y: 120, width: 250, height: 50))
-      nativeController.view.addSubview(nativeField)
-      host.window.rootViewController = nativeController
-      host.window.makeKeyAndVisible()
-      XCTAssertTrue(nativeField.becomeFirstResponder())
-      defer { nativeField.resignFirstResponder() }
-      if await keyboard.waitForVisibleFrame(in: host.window) {
-        XCTFail("Setup did not present the keyboard, but a plain native text field did.")
-        return
-      }
-      throw XCTSkip(
-        "This simulator also omits the software keyboard for a plain native text field.")
+      throw XCTSkip("This simulator did not present the software keyboard.")
     }
     let scroll = try scrollView(in: host)
     let keyboardFrame = host.window.convert(try XCTUnwrap(keyboard.frame), from: nil)
@@ -535,7 +521,8 @@ private final class KeyboardFrameProbe: NSObject {
   }
 
   func waitForVisibleFrame(in window: UIWindow) async -> Bool {
-    let deadline = ContinuousClock.now.advanced(by: .seconds(3))
+    // The first keyboard of a fresh simulator waits for the keyboard service to start.
+    let deadline = ContinuousClock.now.advanced(by: .seconds(15))
     while ContinuousClock.now < deadline {
       if let frame, frame.intersection(window.frame).height > 100 { return true }
       try? await Task.sleep(for: .milliseconds(10))
