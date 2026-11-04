@@ -23,13 +23,6 @@
         "mono0926/LicensePlist"
       ],
       "automerge": false
-    },
-    {
-      "description": "Review CycloneDX CLI updates by hand: the downloaded binary runs in the iOS CI job, which can request OIDC tokens",
-      "matchDepNames": [
-        "CycloneDX/cyclonedx-cli"
-      ],
-      "automerge": false
     }
   ],
   "customManagers": [
@@ -56,18 +49,6 @@
       ],
       "datasourceTemplate": "github-release-attachments",
       "versioningTemplate": "semver"
-    },
-    {
-      "customType": "regex",
-      "managerFilePatterns": [
-        "/^\\.github\\/actions\\/cyclonedx-cli\\/action\\.yml$/"
-      ],
-      "matchStrings": [
-        "# renovate: depName=(?<depName>CycloneDX/cyclonedx-cli)\\s+CYCLONEDX_CLI_VERSION:\\s*\"(?<currentValue>[^\"]+)\"\\s+CYCLONEDX_CLI_SHA256:\\s*(?<currentDigest>[a-f0-9]{64})"
-      ],
-      "datasourceTemplate": "github-release-attachments",
-      "versioningTemplate": "semver",
-      "extractVersionTemplate": "^v(?<version>.+)$"
     }
   ]
 }

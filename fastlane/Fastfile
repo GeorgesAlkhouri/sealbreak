@@ -124,8 +124,7 @@ platform :ios do
     UI.user_error!("IPA version mismatch: #{ipa_version}") unless ipa_version == version
     UI.user_error!("IPA build mismatch: #{ipa_build}") unless ipa_build == build_number
 
-    # Without an SBOM the build must not reach TestFlight. CI checks the generator against the
-    # CycloneDX schema, so no validator runs next to the signing secrets.
+    # Without an SBOM the build must not reach TestFlight.
     commit = sh("git", "-C", root, "rev-parse", "HEAD", log: false).strip
     sh(
       "python3", File.join(root, "scripts/ci/sbom.py"),
