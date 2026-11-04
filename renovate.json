@@ -25,7 +25,7 @@
       "automerge": false
     },
     {
-      "description": "Review CycloneDX CLI updates by hand: the downloaded binary runs in the iOS CI and TestFlight jobs, which can request OIDC tokens",
+      "description": "Review CycloneDX CLI updates by hand: the downloaded binary runs in the iOS CI job, which can request OIDC tokens",
       "matchDepNames": [
         "CycloneDX/cyclonedx-cli"
       ],

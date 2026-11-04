@@ -75,9 +75,6 @@ jobs:
       - name: Verify Xcode 27.1
         run: xcodebuild -version
 
-      - name: Install CycloneDX CLI
-        uses: ./.github/actions/cyclonedx-cli
-
       - name: Build and upload TestFlight release
         id: lane
         run: bundle exec fastlane ios testflight
