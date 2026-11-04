@@ -17,6 +17,8 @@ concurrency:
 jobs:
   swift:
     name: CodeQL / swift
+    # CodeQL cannot trace builds on macOS 27 or Xcode 27, so stay on Xcode 26.
+    # https://github.blog/changelog/2026-10-19-codeql-changes-for-macos-27-xcode-27-and-swift-6-4/
     runs-on: macos-26
     timeout-minutes: 120
     env:
@@ -25,6 +27,30 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           persist-credentials: false
+
+      # Swift 6.3 reads the Package@swift-6.x manifests of the Point-Free packages,
+      # which still depend on xctest-dynamic-overlay. The lockfile is resolved with
+      # Swift 6.4, whose manifests use swift-issue-reporting instead. Swap that one
+      # pin for the release main last analyzed with Xcode 26.6.
+      - name: Pin the Swift 6.3 package graph
+        env:
+          RESOLVED: Sealbreak.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved
+        run: |
+          set -euo pipefail
+          jq -e '
+            if any(.pins[]; .identity == "swift-issue-reporting") | not then
+              error("swift-issue-reporting is not pinned; remove this step")
+            elif any(.pins[]; .identity == "xctest-dynamic-overlay") then
+              error("xctest-dynamic-overlay is already pinned; remove this step")
+            else . end
+            | .pins |= (map(select(.identity != "swift-issue-reporting")) + [{
+                identity: "xctest-dynamic-overlay",
+                kind: "remoteSourceControl",
+                location: "https://github.com/pointfreeco/xctest-dynamic-overlay",
+                state: {revision: "d9308ad679143c26a30dec52daefe82f54af2b82", version: "1.13.1"}
+              }] | sort_by(.identity))
+          ' "$RESOLVED" > "$RUNNER_TEMP/Package.resolved"
+          mv "$RUNNER_TEMP/Package.resolved" "$RESOLVED"
 
       - name: Initialize CodeQL
         uses: github/codeql-action/init@9b3254085494b55a0f7c4c2b3d2d52cc712ce370 # v4.39.1

@@ -22,8 +22,10 @@ struct ServerDetailsView: View {
               store.send(.shareFragmentTapped)
             } label: {
               if store.isRevealingShare {
+                // The button's own label and value describe the pending state.
                 ProgressView()
                   .controlSize(.small)
+                  .accessibilityHidden(true)
               } else {
                 HStack(spacing: 8) {
                   if let fragment = store.shareFragment {

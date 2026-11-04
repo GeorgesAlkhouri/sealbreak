@@ -1,0 +1,30 @@
+name: Nightly
+
+# The deployment target stays iOS 26.0, but pull requests and releases only
+# test the current iOS. This run keeps the older runtime covered without
+# downloading it on every PR.
+on:
+  schedule:
+    - cron: '23 2 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: nightly-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  integration-ios-26:
+    name: Nightly
+    permissions:
+      contents: read
+      id-token: write
+    uses: ./.github/workflows/integration.yml
+    with:
+      ios: "26.5"
+      runtime: com.apple.CoreSimulator.SimRuntime.iOS-26-5
+      device: com.apple.CoreSimulator.SimDeviceType.iPhone-17
+      # Downloading the iOS 26.5 runtime adds roughly 15 minutes.
+      timeout-minutes: 60

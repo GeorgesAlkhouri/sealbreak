@@ -25,20 +25,26 @@ final class ButtonLayoutTests: XCTestCase {
 
     // A slow UIKit animation leaves time to sample even on a busy simulator.
     // The model immediately reaches x=250; the presentation moves from x=50.
-    UIView.animate(withDuration: 10, delay: 0, options: .curveLinear) {
+    let duration: TimeInterval = 10
+    let animationStart = CACurrentMediaTime()
+    UIView.animate(withDuration: duration, delay: 0, options: .curveLinear) {
       marker.center.x = 250
     }
     var sampledAnimation = false
     var capturedMovement = false
     for _ in 0..<20 {
       let image = try captureWindow(in: host)
+      let elapsed = CACurrentMediaTime() - animationStart
+      let latestPossibleX = CGFloat(50 + 200 * min(elapsed / duration, 1))
       let visibleX = try XCTUnwrap(marker.layer.presentation()).position.x
       let bounds = try renderedIconBounds(try XCTUnwrap(image.cgImage))
       XCTAssertFalse(bounds.isNull, "The visible marker must be captured.")
-      // Read presentation immediately after capture: its position is an
-      // upper bound for the earlier captured frame, with pixel rounding.
+      // The presentation layer can lag the render server on a busy simulator.
+      // Bound the captured frame by the linear animation's elapsed media time.
+      // Starting the clock before UIKit commits makes this a conservative bound;
+      // keep the same two-pixel allowance for rasterization.
       XCTAssertLessThanOrEqual(
-        bounds.midX, visibleX + 2, "The snapshot must not render a future animation frame.")
+        bounds.midX, latestPossibleX + 2, "The snapshot must not render a future animation frame.")
       sampledAnimation = sampledAnimation || (visibleX > 50 && visibleX < 250)
       capturedMovement = capturedMovement || bounds.midX > 52
       try await Task.sleep(for: .milliseconds(20))
