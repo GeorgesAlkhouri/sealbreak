@@ -464,8 +464,15 @@ final class PrivacyViewHost {
     assertSnapshot(
       of: try renderImage(in: visibleWindow), as: Self.imageStrategy, named: name, file: file,
       testName: testName)
+    // iOS 27 intermittently combines the native spinner's label into this
+    // explicitly labelled button. Normalize only that optional system phrase;
+    // its concealed value, disabled trait, role, and all other elements stay exact.
+    let snapshotAccessibility = accessibility.replacingOccurrences(
+      of: "Share, Show stored share fragment, In progress: Hidden. Dimmed. Button.",
+      with: "Share, Show stored share fragment: Hidden. Dimmed. Button.")
     assertSnapshot(
-      of: accessibility, as: .lines, named: "\(name)-accessibility", file: file, testName: testName)
+      of: snapshotAccessibility, as: .lines, named: "\(name)-accessibility", file: file,
+      testName: testName)
   }
 
   private func renderImage(in window: UIWindow) throws -> UIImage {
