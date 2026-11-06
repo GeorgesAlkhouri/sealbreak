@@ -282,6 +282,11 @@ if [[ -d "$work_dir/integration.xcresult" ]]; then
 fi
 
 if [[ "$test_status" -ne 0 ]]; then
+  # The server side of a failed request, for example a TLS handshake the
+  # server dropped, only shows up here. The log holds no unseal shares.
+  echo "::group::$server server log"
+  tail -n 200 "$server_log" || true
+  echo "::endgroup::"
   exit "$test_status"
 fi
 
