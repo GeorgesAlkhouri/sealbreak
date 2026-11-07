@@ -196,6 +196,18 @@ jobs:
             echo '::error title=Third-party notices out of date::Commit the third-party-notices artifact as Sealbreak/Resources/THIRD_PARTY_NOTICES.md.'
             exit 1
           }
+      - name: Check the release SBOM against the resolved package sources
+        run: |
+          set -euo pipefail
+          # The TestFlight lane hashes the exported IPA. Any file stands in for it here.
+          mkdir -p build/sbom
+          printf 'placeholder' > build/sbom/placeholder.ipa
+          python3 scripts/ci/sbom.py \
+            --ipa build/sbom/placeholder.ipa \
+            --checkouts build/Simulator/SourcePackages/checkouts \
+            --version 0.0.0 \
+            --build-number 0 \
+            --output build/sbom/sbom.cdx.json
       - name: Install iOS 27.0 simulator runtime
         uses: ./.github/actions/ios-simulator-runtime
         with:
