@@ -45,3 +45,9 @@ repos:
         entry: plutil -lint
         language: unsupported
         files: '\.(plist|xcprivacy|pbxproj)$'
+      - id: store-metadata
+        name: Check App Store metadata limits
+        entry: python3 scripts/ci/check_store_metadata.py
+        language: unsupported
+        files: '^(fastlane/metadata/|scripts/ci/check_store_metadata\.py$)'
+        pass_filenames: false

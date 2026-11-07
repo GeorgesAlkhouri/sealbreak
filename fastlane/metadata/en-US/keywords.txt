@@ -1,0 +1,1 @@
+shamir,secret,sharing,keyholder,ceremony,devops,sre,homelab,selfhosted,server,biometric,recovery,key

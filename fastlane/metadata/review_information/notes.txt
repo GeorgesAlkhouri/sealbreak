@@ -1,0 +1,13 @@
+Sealbreak needs no account and has no login.
+
+What the app does
+Sealbreak unseals the user's own self-hosted OpenBao or HashiCorp Vault server that uses a Shamir seal. The user enters the HTTPS address of their server and pastes one of their own unseal shares. Sealbreak stores the share in the iOS Keychain on this device only and releases it only after Face ID. The app requires Face ID. On a device without Face ID it shows that Face ID is not available.
+
+How to review
+The attached video shows the full flow against a real server: setup, Face ID approval, unseal and the status check afterwards. The same flow passed TestFlight Beta App Review.
+
+Network and privacy
+The app contacts only the server that the user configures. It has no backend, no analytics and collects no data. The local network permission is used only when the configured server is on the user's local network.
+
+Test server
+A live test server can be provided within 24 hours on request.

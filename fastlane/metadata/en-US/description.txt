@@ -1,0 +1,36 @@
+Sealbreak keeps one Shamir unseal share on your iPhone and submits it to your OpenBao or HashiCorp Vault server only after Face ID.
+
+When your server restarts sealed, you no longer have to dig your share out of a note or a password manager. Set up Sealbreak once. The next time the server is sealed, open the app, tap Unseal and approve with Face ID.
+
+SET UP ONCE
+Enter the HTTPS address of your server and paste your unseal share. Sealbreak stores the share in the iPhone Keychain, protected by Face ID and bound to that server.
+
+APPROVE WITH FACE ID
+Tap Unseal. Sealbreak first checks the configured server. Only then does it ask for Face ID, release the share and submit it.
+
+CHECK THE RESULT
+Sealbreak asks the server for its seal status again and shows the state the server reports. If the result cannot be confirmed, the app says so and does not retry on its own.
+
+SECURITY
+• Device-bound share: the share stays in the Keychain of this iPhone, with no iCloud sync and no export.
+• Direct connection: the app connects directly to your server over HTTPS. There is no relay and no Sealbreak backend.
+• Server check first: Sealbreak verifies the configured server before it asks for Face ID. A share is only ever sent to the server it was set up for.
+• Re-check afterwards: after submitting the share, Sealbreak checks the seal status again instead of trusting a single response.
+• No tracking: no account, no analytics and no data collection.
+
+After Face ID, you can briefly show the first and last three characters of the stored share to compare it with your own copy. You can replace the share or remove all local data at any time.
+
+REQUIREMENTS
+• OpenBao or HashiCorp Vault with a Shamir seal. Auto-unseal is not supported.
+• The direct HTTPS address of one server node, with a certificate your iPhone trusts.
+• Your own unseal share.
+• An iPhone with Face ID on iOS 26 or later.
+
+Sealbreak does not replace your recovery copy. Keep an independent copy of your share outside your iPhone.
+
+OPEN SOURCE
+Sealbreak is open source under the GNU General Public License version 3 (GPL-3.0). The threat model documents its security assumptions, design decisions and known risks:
+https://github.com/GeorgesAlkhouri/sealbreak/blob/main/THREAT_MODEL.md
+
+TRADEMARKS
+HashiCorp and Vault are trademarks of HashiCorp. OpenBao is a trademark of LF Projects, LLC. Sealbreak is an independent project and is not affiliated with, endorsed or sponsored by HashiCorp, the OpenBao project, LF Projects, LLC or The Linux Foundation.

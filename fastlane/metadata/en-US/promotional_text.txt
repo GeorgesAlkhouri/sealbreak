@@ -1,0 +1,1 @@
+Sealbreak 1.0 is here. Keep one unseal share on your iPhone and unseal OpenBao or HashiCorp Vault with Face ID. Open source, no cloud sync, no tracking.
