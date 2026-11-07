@@ -4,9 +4,12 @@ import SealbreakCore
 import SwiftUI
 
 struct HomeView: View {
+  static let privacyPolicyURL = URL(string: "https://sealbreak.app/privacy")
+
   @Bindable var store: StoreOf<HomeFeature>
   let privacyStore: StoreOf<PrivacyFeature>
 
+  @Environment(\.openURL) private var openURL
   @State private var statusInteractionTrigger = 0
   @State private var isShowingThirdPartyNotices: Bool
 
@@ -22,9 +25,15 @@ struct HomeView: View {
 
   var body: some View {
     PapercutScreen {
-      header(interactionTrigger: $statusInteractionTrigger) {
-        isShowingThirdPartyNotices = true
-      }
+      header(
+        interactionTrigger: $statusInteractionTrigger,
+        showThirdPartyNotices: { isShowingThirdPartyNotices = true },
+        openPrivacyPolicy: {
+          if let url = Self.privacyPolicyURL {
+            openURL(url)
+          }
+        }
+      )
     } content: {
       VStack(spacing: 0) {
         ServerStatusCard(
@@ -103,7 +112,9 @@ struct HomeView: View {
   }
 
   func header(
-    interactionTrigger: Binding<Int>, showThirdPartyNotices: @escaping () -> Void
+    interactionTrigger: Binding<Int>,
+    showThirdPartyNotices: @escaping () -> Void,
+    openPrivacyPolicy: @escaping () -> Void
   ) -> HomeHeader {
     HomeHeader(isBusy: viewState.isBusy) { action in
       switch action {
@@ -116,6 +127,8 @@ struct HomeView: View {
         store.send(.replaceShareTapped)
       case .removeLocalData:
         store.send(.removeLocalDataTapped)
+      case .privacyPolicy:
+        openPrivacyPolicy()
       case .thirdPartyNotices:
         showThirdPartyNotices()
       }
