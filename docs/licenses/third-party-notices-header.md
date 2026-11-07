@@ -19,8 +19,9 @@ Simple Icons notes that its CC0 project license does not necessarily apply to ev
 - Upstream artwork: [openbao/artwork](https://github.com/openbao/artwork)
 - Upstream artwork license: [Creative Commons Attribution 4.0 International (CC BY 4.0)](https://github.com/openbao/artwork/blob/main/LICENSE)
 - Attribution: OpenBao project
+- Trademark policy: [LF Projects Trademark Policy](https://lfprojects.org/policies/trademark-policy/)
 
-The OpenBao name and logo remain subject to the applicable project and Linux Foundation trademark rules.
+The OpenBao name and logo remain subject to the trademark policy of LF Projects, LLC, which hosts the OpenBao project.
 
 ### HashiCorp Vault icon
 
