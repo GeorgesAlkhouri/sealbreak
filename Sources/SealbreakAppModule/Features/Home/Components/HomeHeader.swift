@@ -5,6 +5,7 @@ enum HomeMenuAction {
   case serverDetails
   case replaceShare
   case removeLocalData
+  case privacyPolicy
   case thirdPartyNotices
 }
 

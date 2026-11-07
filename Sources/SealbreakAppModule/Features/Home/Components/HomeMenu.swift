@@ -28,6 +28,12 @@ struct HomeMenu: View {
       .disabled(isBusy)
 
       Button(
+        LocalizedStringResource("Privacy policy", bundle: .module), systemImage: "hand.raised"
+      ) {
+        onAction(.privacyPolicy)
+      }
+
+      Button(
         LocalizedStringResource("Third-party notices", bundle: .module), systemImage: "doc.text"
       ) {
         onAction(.thirdPartyNotices)
