@@ -22,6 +22,11 @@ jobs:
     runs-on: xcode-27
     timeout-minutes: 90
     environment: testflight
+    outputs:
+      version: ${{ steps.lane.outputs.version }}
+      build_number: ${{ steps.lane.outputs.build_number }}
+      commit: ${{ steps.lane.outputs.commit }}
+      candidate_artifact_id: ${{ steps.candidate.outputs.artifact-id }}
     env:
       DEVELOPER_DIR: /Applications/Xcode_27.1.app/Contents/Developer
       FASTLANE_SKIP_UPDATE_CHECK: "1"
@@ -67,4 +72,136 @@ jobs:
         run: xcodebuild -version
 
       - name: Build and upload TestFlight release
+        id: lane
         run: bundle exec fastlane ios testflight
+
+      - name: Collect release candidate files
+        env:
+          IPA_PATH: ${{ steps.lane.outputs.ipa_path }}
+          SBOM_PATH: ${{ steps.lane.outputs.sbom_path }}
+        run: |
+          set -euo pipefail
+          mkdir -p build/candidate
+          cp "$IPA_PATH" build/candidate/Sealbreak.ipa
+          cp "$SBOM_PATH" build/candidate/sbom.cdx.json
+
+      # Later jobs download by ID, so a re-run of a single job finds the files of the attempt
+      # that built them.
+      - name: Upload release candidate files
+        id: candidate
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: release-candidate-${{ github.run_attempt }}
+          path: build/candidate/
+          if-no-files-found: error
+          retention-days: 7
+
+  attest:
+    name: Release / attest
+    needs: testflight
+    runs-on: ubuntu-26.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      # Only this job, which runs no build tools, may sign attestations for this workflow.
+      id-token: write
+      attestations: write
+    outputs:
+      bundle_artifact_id: ${{ steps.bundle.outputs.artifact-id }}
+    steps:
+      - name: Download release candidate files
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          artifact-ids: ${{ needs.testflight.outputs.candidate_artifact_id }}
+          path: candidate
+
+      # A TestFlight build without this attestation must not be promoted to the App Store.
+      - name: Attest the SBOM of the uploaded IPA
+        id: attest
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
+        with:
+          subject-path: candidate/Sealbreak.ipa
+          sbom-path: candidate/sbom.cdx.json
+
+      - name: Collect the attestation bundle
+        env:
+          BUNDLE_PATH: ${{ steps.attest.outputs.bundle-path }}
+        run: |
+          set -euo pipefail
+          mkdir -p attestation
+          cp "$BUNDLE_PATH" attestation/sbom.cdx.json.sigstore.json
+
+      - name: Upload the attestation bundle
+        id: bundle
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: release-attestation-${{ github.run_attempt }}
+          path: attestation/sbom.cdx.json.sigstore.json
+          if-no-files-found: error
+          retention-days: 7
+
+  draft-release:
+    name: Release / draft
+    needs: [testflight, attest]
+    runs-on: ubuntu-26.04
+    timeout-minutes: 10
+    permissions:
+      # Only this job, which runs no build tools, may write releases.
+      contents: write
+      # Verify the attestation before the release exists.
+      attestations: read
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Download release candidate files and attestation bundle
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          artifact-ids: ${{ needs.testflight.outputs.candidate_artifact_id }},${{ needs.attest.outputs.bundle_artifact_id }}
+          path: candidate
+          merge-multiple: true
+
+      - name: Verify the signed SBOM of the IPA
+        run: |
+          set -euo pipefail
+          verify=(
+            gh attestation verify candidate/Sealbreak.ipa
+            --repo "$GITHUB_REPOSITORY"
+            --predicate-type https://cyclonedx.org/bom
+            --signer-workflow "$GITHUB_REPOSITORY/.github/workflows/release.yml"
+          )
+          # The command from the release notes, against the attestation stored on GitHub.
+          "${verify[@]}"
+          # The same check against the bundle file the release ships.
+          "${verify[@]}" --bundle candidate/sbom.cdx.json.sigstore.json
+
+      - name: Create draft release for the TestFlight build
+        env:
+          VERSION: ${{ needs.testflight.outputs.version }}
+          BUILD_NUMBER: ${{ needs.testflight.outputs.build_number }}
+          COMMIT: ${{ needs.testflight.outputs.commit }}
+        run: |
+          set -euo pipefail
+          ipa_sha256="$(sha256sum candidate/Sealbreak.ipa | cut -d ' ' -f 1)"
+          cat > notes.md <<EOF
+          TestFlight build $VERSION ($BUILD_NUMBER) from commit $COMMIT.
+
+          IPA SHA-256: \`$ipa_sha256\`
+
+          Verify the signed SBOM of the IPA:
+
+          \`\`\`bash
+          gh attestation verify Sealbreak.ipa \\
+            --repo $GITHUB_REPOSITORY \\
+            --predicate-type https://cyclonedx.org/bom \\
+            --signer-workflow $GITHUB_REPOSITORY/.github/workflows/release.yml
+          \`\`\`
+          EOF
+          gh release create "build/$VERSION-$BUILD_NUMBER" \
+            --repo "$GITHUB_REPOSITORY" \
+            --draft \
+            --target "$COMMIT" \
+            --title "Sealbreak $VERSION ($BUILD_NUMBER)" \
+            --notes-file notes.md \
+            candidate/Sealbreak.ipa \
+            candidate/sbom.cdx.json \
+            candidate/sbom.cdx.json.sigstore.json
