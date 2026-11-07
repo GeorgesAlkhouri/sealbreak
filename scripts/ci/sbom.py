@@ -4,17 +4,26 @@
 The script fails when a checkout is missing, is not at its resolved revision, or
 has a license it does not recognize, so an incomplete SBOM cannot reach a release.
 Packages excluded in license_plist.yml are not shipped in the app and get the
-scope "excluded".
+scope "excluded". Only source control packages are supported.
+
+The lockfiles, the commit, the repository, and the Xcode version default to those
+of this checkout and of the GitHub Actions run.
 """
 
 import argparse
 import hashlib
 import json
+import os
 import pathlib
 import re
+import shlex
 import subprocess
 import sys
 import uuid
+
+from swift_packages import excluded_names, package_name
+
+ROOT = pathlib.Path(__file__).resolve().parents[2]
 
 LICENSE_FILE = re.compile(r"(?i)^(license|licence|copying)(\.\w+)?$")
 
@@ -26,24 +35,47 @@ LICENSES = (
 )
 
 
+class CommandError(Exception):
+    """A command could not run or exited with an error."""
+
+
+def output_of(*command, env=None):
+    """Return the standard output of a command, or raise CommandError with its error output."""
+    try:
+        result = subprocess.run(command, capture_output=True, text=True, check=True, env=env)
+    except subprocess.CalledProcessError as error:
+        detail = error.stderr.strip() or f"exit status {error.returncode}"
+        raise CommandError(f"{shlex.join(command)}: {detail}") from error
+    except OSError as error:
+        raise CommandError(f"{shlex.join(command)}: {error}") from error
+    return result.stdout.strip()
+
+
 def license_expression(checkout):
     """Return the SPDX expression of a checkout, or None when it is not recognized."""
-    paths = [p for p in sorted(checkout.iterdir()) if LICENSE_FILE.match(p.name)]
-    text = "\n".join(path.read_text() for path in paths)
+    paths = [p for p in sorted(checkout.iterdir()) if p.is_file() and LICENSE_FILE.match(p.name)]
+    # Stray non-UTF-8 bytes, such as a Latin-1 copyright sign, must not hide the license text.
+    text = "\n".join(path.read_text(encoding="utf-8", errors="replace") for path in paths)
     return next((spdx for pattern, spdx in LICENSES if pattern.search(text)), None)
 
 
 def checkout_revision(checkout):
-    return subprocess.run(
-        ["git", "-C", str(checkout), "rev-parse", "HEAD"],
-        capture_output=True,
-        text=True,
-    ).stdout.strip()
+    """Return the revision checked out in a package checkout, or raise CommandError."""
+    # Without the ceiling, a checkout that lost its .git directory would report the
+    # revision of an enclosing repository instead of failing.
+    env = {**os.environ, "GIT_CEILING_DIRECTORIES": str(checkout.resolve().parent)}
+    return output_of("git", "-C", str(checkout), "rev-parse", "--verify", "HEAD", env=env)
 
 
 def component(pin, excluded, checkouts, errors):
+    if pin.get("kind") != "remoteSourceControl":
+        errors.append(
+            f"{pin['identity']} is a {pin.get('kind')} package. "
+            "The SBOM supports only remote source control packages."
+        )
+        return None
     location = pin["location"].rstrip("/").removesuffix(".git")
-    name = location.rsplit("/", 1)[-1]
+    name = package_name(location)
     state = pin["state"]
     version, revision = state.get("version"), state["revision"]
     checkout = checkouts / name
@@ -51,8 +83,13 @@ def component(pin, excluded, checkouts, errors):
     if not checkout.is_dir():
         errors.append(f"{name} has no checkout in {checkouts}.")
         return None
-    if checkout_revision(checkout) != revision:
-        errors.append(f"{name} is not checked out at its resolved revision {revision}.")
+    try:
+        head = checkout_revision(checkout)
+    except CommandError as error:
+        errors.append(f"The checked-out revision of {name} cannot be read. {error}")
+    else:
+        if head != revision:
+            errors.append(f"{name} is checked out at {head}, not at its resolved revision {revision}.")
     spdx = license_expression(checkout)
     if spdx is None:
         errors.append(f"{name} has no recognized license.")
@@ -72,14 +109,34 @@ def component(pin, excluded, checkouts, errors):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    for name in ("ipa", "resolved", "config", "checkouts", "gemfile-lock", "output"):
+    for name in ("ipa", "checkouts", "output"):
         parser.add_argument(f"--{name}", type=pathlib.Path, required=True)
-    for name in ("version", "build-number", "commit", "repository", "xcode-version"):
+    for name in ("version", "build-number"):
         parser.add_argument(f"--{name}", required=True)
+    parser.add_argument(
+        "--resolved",
+        type=pathlib.Path,
+        default=ROOT / "Sealbreak.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved",
+    )
+    parser.add_argument("--config", type=pathlib.Path, default=ROOT / "license_plist.yml")
+    parser.add_argument("--gemfile-lock", type=pathlib.Path, default=ROOT / "Gemfile.lock")
+    parser.add_argument("--commit", help="default: HEAD of this checkout")
+    parser.add_argument("--repository", help="default: the repository of the GitHub Actions run")
+    parser.add_argument("--xcode-version", help="default: the version of the selected Xcode")
     args = parser.parse_args()
-    errors = []
 
-    excluded = set(re.findall(r"(?m)^\s*-\s*name:\s*(\S+)\s*$", args.config.read_text()))
+    if args.repository is None:
+        server, repository = os.environ.get("GITHUB_SERVER_URL"), os.environ.get("GITHUB_REPOSITORY")
+        if not (server and repository):
+            parser.error("--repository is required outside GitHub Actions")
+        args.repository = f"{server}/{repository}"
+    if args.commit is None:
+        args.commit = output_of("git", "-C", str(ROOT), "rev-parse", "--verify", "HEAD")
+    if args.xcode_version is None:
+        args.xcode_version = output_of("xcodebuild", "-version").splitlines()[0].split()[-1]
+
+    errors = []
+    excluded = excluded_names(args.config)
     pins = json.loads(args.resolved.read_text())["pins"]
     components = [component(pin, excluded, args.checkouts, errors) for pin in pins]
 
@@ -130,4 +187,8 @@ def main():
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    try:
+        sys.exit(main())
+    except CommandError as error:
+        print(f"::error title=SBOM::{error}")
+        sys.exit(1)

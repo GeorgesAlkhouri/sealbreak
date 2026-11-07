@@ -204,15 +204,9 @@ jobs:
           printf 'placeholder' > build/sbom/placeholder.ipa
           python3 scripts/ci/sbom.py \
             --ipa build/sbom/placeholder.ipa \
-            --resolved Sealbreak.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved \
-            --config license_plist.yml \
             --checkouts build/Simulator/SourcePackages/checkouts \
-            --gemfile-lock Gemfile.lock \
             --version 0.0.0 \
             --build-number 0 \
-            --commit "$(git rev-parse HEAD)" \
-            --repository "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY" \
-            --xcode-version "$(xcodebuild -version | awk 'NR == 1 { print $2 }')" \
             --output build/sbom/sbom.cdx.json
       - name: Install iOS 27.0 simulator runtime
         uses: ./.github/actions/ios-simulator-runtime

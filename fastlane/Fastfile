@@ -41,6 +41,8 @@ platform :ios do
     app_identifier = ENV.fetch("APP_IDENTIFIER")
     team_id = ENV.fetch("APPLE_TEAM_ID")
     match_git_url = ENV.fetch("MATCH_GIT_URL")
+    # sbom.py names the repository from these. Check them before the build, not after it.
+    %w[GITHUB_SERVER_URL GITHUB_REPOSITORY].each { |name| ENV.fetch(name) }
 
     api_key = app_store_connect_api_key(
       key_id: ENV.fetch("APP_STORE_CONNECT_KEY_ID"),
@@ -129,15 +131,11 @@ platform :ios do
     sh(
       "python3", File.join(root, "scripts/ci/sbom.py"),
       "--ipa", ipa_path,
-      "--resolved", File.join(root, "Sealbreak.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved"),
-      "--config", File.join(root, "license_plist.yml"),
       "--checkouts", File.join(derived_data_path, "SourcePackages/checkouts"),
-      "--gemfile-lock", File.join(root, "Gemfile.lock"),
       "--version", version,
       "--build-number", build_number,
+      # The same commit goes to the job outputs below.
       "--commit", commit,
-      "--repository", "#{ENV.fetch('GITHUB_SERVER_URL')}/#{ENV.fetch('GITHUB_REPOSITORY')}",
-      "--xcode-version", sh("xcodebuild", "-version", log: false).lines.first.split.last,
       "--output", sbom_path
     )
 
