@@ -18,6 +18,8 @@ import pathlib
 import re
 import sys
 
+from swift_packages import excluded_names, package_name
+
 # LicensePlist writes "## [name (version)](source)" for each package. License texts may contain
 # their own "## " lines, such as the Runtime Library Exception in swift-collections.
 HEADING = re.compile(r"(?m)^## (?P<heading>\[.+\]\((?P<source>https://github\.com/[^)\s]+)\))$\n?")
@@ -43,11 +45,11 @@ def main():
     args = parser.parse_args()
     errors = []
 
-    excluded = set(re.findall(r"(?m)^\s*-\s*name:\s*(\S+)\s*$", args.config.read_text()))
+    excluded = excluded_names(args.config)
     expected = {}
     for pin in json.loads(args.resolved.read_text())["pins"]:
         location = pin["location"]
-        name = re.sub(r"\.git$", "", location.rstrip("/").rsplit("/", 1)[-1])
+        name = package_name(location)
         if name in excluded:
             continue
         repo = repository(location)

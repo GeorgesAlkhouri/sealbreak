@@ -126,11 +126,29 @@ final class PapercutScreenTests: XCTestCase {
     let privacy = Store(initialState: PrivacyFeature.State()) { PrivacyFeature() }
     var isShowing = false
     let header = HomeView(store: store, privacyStore: privacy).header(
-      interactionTrigger: .constant(0), showThirdPartyNotices: { isShowing = true })
+      interactionTrigger: .constant(0), showThirdPartyNotices: { isShowing = true },
+      openPrivacyPolicy: {})
 
     header.onAction(.thirdPartyNotices)
 
     XCTAssertTrue(isShowing)
+  }
+
+  func testHomeHeaderOpensPrivacyPolicy() throws {
+    let profile = try makeProfile()
+    let store = Store(initialState: HomeFeature.State(profile: profile, status: nil)) {
+      HomeFeature()
+    }
+    let privacy = Store(initialState: PrivacyFeature.State()) { PrivacyFeature() }
+    var isOpening = false
+    let header = HomeView(store: store, privacyStore: privacy).header(
+      interactionTrigger: .constant(0), showThirdPartyNotices: {},
+      openPrivacyPolicy: { isOpening = true })
+
+    header.onAction(.privacyPolicy)
+
+    XCTAssertTrue(isOpening)
+    XCTAssertEqual(HomeView.privacyPolicyURL?.absoluteString, "https://sealbreak.app/privacy")
   }
 
   func testHomeHeaderCallbacksSendTheirFeatureActions() throws {
@@ -161,7 +179,7 @@ final class PapercutScreenTests: XCTestCase {
       var trigger = 0
       let header = view.header(
         interactionTrigger: Binding(get: { trigger }, set: { trigger = $0 }),
-        showThirdPartyNotices: {})
+        showThirdPartyNotices: {}, openPrivacyPolicy: {})
 
       header.onAction(command)
 
