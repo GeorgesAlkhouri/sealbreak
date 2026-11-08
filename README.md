@@ -24,9 +24,13 @@
 </p>
 
 <p align="center">
-  <a href="https://sealbreak.app/beta">
-    <img src="design/readme/join-beta.svg" width="560" alt="Join the Sealbreak public beta on TestFlight">
+  <a href="https://apps.apple.com/app/id6817220294">
+    <img src="design/readme/download-on-the-app-store.svg" height="56" alt="Download Sealbreak on the App Store">
   </a>
+</p>
+
+<p align="center">
+  Want new features early? <a href="https://sealbreak.app/beta">Join the public beta on TestFlight</a>.
 </p>
 
 <table align="center">
@@ -76,3 +80,7 @@ Code for which the maintainer has sufficient rights may also be offered under se
 ### Contributing
 
 Sealbreak does not accept external code contributions yet. See [CONTRIBUTING.md](CONTRIBUTING.md) for details.
+
+## Trademarks
+
+Apple, the Apple logo, and Face ID are trademarks of Apple Inc., registered in the U.S. and other countries. App Store is a service mark of Apple Inc. HashiCorp and Vault are trademarks of HashiCorp. OpenBao is a trademark of LF Projects, LLC. Sealbreak is an independent project and is not affiliated with, endorsed or sponsored by Apple, HashiCorp, the OpenBao project, LF Projects, LLC or The Linux Foundation.
