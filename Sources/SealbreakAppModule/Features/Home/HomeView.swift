@@ -8,8 +8,12 @@ struct HomeView: View {
 
   // The app target owns the link; only HTTPS is opened.
   static func privacyPolicyURL(in bundle: Bundle = .main) -> URL? {
+    privacyPolicyURL(from: bundle.object(forInfoDictionaryKey: privacyPolicyURLInfoKey))
+  }
+
+  static func privacyPolicyURL(from value: Any?) -> URL? {
     guard
-      let value = bundle.object(forInfoDictionaryKey: privacyPolicyURLInfoKey) as? String,
+      let value = value as? String,
       let url = URL(string: value),
       url.scheme?.lowercased() == "https",
       url.host?.isEmpty == false
