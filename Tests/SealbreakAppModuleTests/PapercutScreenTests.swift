@@ -148,7 +148,7 @@ final class PapercutScreenTests: XCTestCase {
     header.onAction(.privacyPolicy)
 
     XCTAssertTrue(isOpening)
-    XCTAssertEqual(HomeView.privacyPolicyURL?.absoluteString, "https://sealbreak.app/privacy")
+    XCTAssertEqual(HomeView.privacyPolicyURL()?.absoluteString, "https://sealbreak.app/privacy")
   }
 
   func testHomeHeaderCallbacksSendTheirFeatureActions() throws {
