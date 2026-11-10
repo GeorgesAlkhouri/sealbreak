@@ -63,9 +63,8 @@ struct WelcomeView: View {
           } label: {
             primaryActionLabel(
               icon: "trash.fill",
-              title: store.isResetting
-                ? LocalizedStringResource("Resetting…", bundle: .module)
-                : LocalizedStringResource("Reset local Sealbreak data", bundle: .module)
+              title: store.isResetting ? resettingTitle : resetTitle,
+              reserving: [resetTitle, resettingTitle]
             )
           }
           .buttonStyle(.plain)
@@ -128,17 +127,24 @@ struct WelcomeView: View {
     }
   }
 
-  private func primaryActionLabel(icon: String, title: LocalizedStringResource) -> some View {
+  private var resetTitle: LocalizedStringResource {
+    LocalizedStringResource("Reset local Sealbreak data", bundle: .module)
+  }
+
+  private var resettingTitle: LocalizedStringResource {
+    LocalizedStringResource("Resetting…", bundle: .module)
+  }
+
+  private func primaryActionLabel(
+    icon: String, title: LocalizedStringResource, reserving titles: [LocalizedStringResource] = []
+  ) -> some View {
     HStack(spacing: 12) {
       Image(systemName: icon)
         .font(.system(size: 22, weight: .semibold))
         .frame(width: 30, height: 30)
 
-      Text(title)
+      PapercutActionTitle(title, reserving: titles)
         .font(.headline)
-        .multilineTextAlignment(.center)
-        .fixedSize(horizontal: false, vertical: true)
-        .frame(maxWidth: .infinity)
     }
     .foregroundStyle(PapercutPalette.cream)
     .padding(.horizontal, 16)

@@ -72,6 +72,14 @@ struct HomeViewState: Equatable {
       }
     }
 
+    /// Every title the action can show, so its label can reserve their layout.
+    static var titles: [LocalizedStringResource] {
+      [
+        PrimaryAction.checkStatus(enabled: true).title,
+        PrimaryAction.unseal(enabled: true).title,
+      ] + HomeFeature.State.Operation.allCases.map(\.activity)
+    }
+
     var systemImage: String {
       switch self {
       case .checkStatus:
