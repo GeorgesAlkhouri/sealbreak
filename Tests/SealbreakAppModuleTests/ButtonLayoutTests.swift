@@ -72,11 +72,17 @@ final class ButtonLayoutTests: XCTestCase {
     let expected = try renderedTitleBounds(in: host, region: region, afterScreenUpdates: true)
     XCTAssertFalse(expected.isNull, "The title must be rendered.")
 
+    let clock = ContinuousClock()
+    let started = clock.now
     withAnimation(.easeInOut(duration: 1)) { model.title = short }
     try await Task.sleep(for: .milliseconds(150))
     model.title = long
-    for _ in 0..<20 {
+    XCTAssertLessThan(
+      clock.now - started, .milliseconds(700), "The change must interrupt the running animation.")
+    let end = started + .milliseconds(1100)
+    while clock.now < end {
       let bounds = try renderedTitleBounds(in: host, region: region, afterScreenUpdates: false)
+      XCTAssertFalse(bounds.isNull, "The title must stay visible.")
       XCTAssertEqual(
         bounds.minX, expected.minX, accuracy: 2, "The title must not slide toward the icon.")
       XCTAssertEqual(bounds.maxX, expected.maxX, accuracy: 2)
@@ -162,7 +168,8 @@ final class ButtonLayoutTests: XCTestCase {
     // over the icon, so sample the visible frames instead of one snapshot.
     await reply.fail()
     try await host.waitUntil { !store.isResetting }
-    try await assertTransition(in: host, expected: before, identifier: identifier)
+    try await assertTransition(
+      in: host, expected: before, identifier: identifier, duration: .seconds(1))
     try await host.finish(operation)
     try await host.waitUntil {
       !store.isResetting && host.accessibility.contains("Connection failed")
@@ -321,11 +328,14 @@ final class ButtonLayoutTests: XCTestCase {
   }
 
   private func assertTransition(
-    in host: PrivacyViewHost, expected: CGRect, identifier: String = "home-primary-action"
+    in host: PrivacyViewHost, expected: CGRect, identifier: String = "home-primary-action",
+    duration: Duration = .milliseconds(300)
   ) async throws {
-    // Keep UIKit/SwiftUI animations enabled and sample during the 300 ms transaction,
+    // Keep UIKit/SwiftUI animations enabled and sample the whole transaction,
     // rather than only comparing layouts after animations have settled.
-    for _ in 0..<20 {
+    let clock = ContinuousClock()
+    let end = clock.now + duration + .milliseconds(100)
+    while clock.now < end {
       host.window.layoutIfNeeded()
       let frame = try buttonFrame(in: host, identifier: identifier)
       assertSameBounds(expected, frame)
