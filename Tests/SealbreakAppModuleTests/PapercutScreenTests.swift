@@ -148,7 +148,18 @@ final class PapercutScreenTests: XCTestCase {
     header.onAction(.privacyPolicy)
 
     XCTAssertTrue(isOpening)
-    XCTAssertEqual(HomeView.privacyPolicyURL?.absoluteString, "https://sealbreak.app/privacy")
+    XCTAssertEqual(HomeView.privacyPolicyURL()?.absoluteString, "https://sealbreak.app/privacy")
+  }
+
+  func testPrivacyPolicyURLAcceptsOnlyHTTPSWithHost() {
+    XCTAssertEqual(
+      HomeView.privacyPolicyURL(from: "https://example.com/privacy")?.absoluteString,
+      "https://example.com/privacy")
+    XCTAssertNil(HomeView.privacyPolicyURL(from: nil))
+    XCTAssertNil(HomeView.privacyPolicyURL(from: 42))
+    XCTAssertNil(HomeView.privacyPolicyURL(from: "http://example.com/privacy"))
+    XCTAssertNil(HomeView.privacyPolicyURL(from: "https:///privacy"))
+    XCTAssertNil(HomeView.privacyPolicyURL(from: "mailto:privacy@example.com"))
   }
 
   func testHomeHeaderCallbacksSendTheirFeatureActions() throws {

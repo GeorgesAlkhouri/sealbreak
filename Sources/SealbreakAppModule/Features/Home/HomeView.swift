@@ -4,7 +4,22 @@ import SealbreakCore
 import SwiftUI
 
 struct HomeView: View {
-  static let privacyPolicyURL = URL(string: "https://sealbreak.app/privacy")
+  static let privacyPolicyURLInfoKey = "SealbreakPrivacyPolicyURL"
+
+  // The app target owns the link; only HTTPS is opened.
+  static func privacyPolicyURL(in bundle: Bundle = .main) -> URL? {
+    privacyPolicyURL(from: bundle.object(forInfoDictionaryKey: privacyPolicyURLInfoKey))
+  }
+
+  static func privacyPolicyURL(from value: Any?) -> URL? {
+    guard
+      let value = value as? String,
+      let url = URL(string: value),
+      url.scheme?.lowercased() == "https",
+      url.host?.isEmpty == false
+    else { return nil }
+    return url
+  }
 
   @Bindable var store: StoreOf<HomeFeature>
   let privacyStore: StoreOf<PrivacyFeature>
@@ -29,7 +44,7 @@ struct HomeView: View {
         interactionTrigger: $statusInteractionTrigger,
         showThirdPartyNotices: { isShowingThirdPartyNotices = true },
         openPrivacyPolicy: {
-          if let url = Self.privacyPolicyURL {
+          if let url = Self.privacyPolicyURL() {
             openURL(url)
           }
         }

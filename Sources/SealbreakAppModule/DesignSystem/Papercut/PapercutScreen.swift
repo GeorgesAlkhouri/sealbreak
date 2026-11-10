@@ -39,8 +39,9 @@ struct PapercutScreen<Header: View, Content: View>: View {
               .fill(PapercutPalette.mountainNear)
               .shadow(color: .black.opacity(0.25), radius: 7, y: 6)
               .contentShape(HeaderWaveShape())
-              // Covered scroll controls must not receive taps through the paper.
-              .onTapGesture {}
+              .onTapGesture {
+                // Covered scroll controls must not receive taps through the paper.
+              }
               .accessibilityHidden(true)
               .ignoresSafeArea(edges: .top)
           }
