@@ -72,7 +72,7 @@ struct HomeViewState: Equatable {
       }
     }
 
-    /// Every title the action can show, so its label can reserve their layout.
+    // Every title the action can show, so its label can reserve their layout.
     static var titles: [LocalizedStringResource] {
       [
         PrimaryAction.checkStatus(enabled: true).title,
