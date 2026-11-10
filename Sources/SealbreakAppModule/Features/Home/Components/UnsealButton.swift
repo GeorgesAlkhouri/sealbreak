@@ -13,11 +13,8 @@ struct UnsealButton: View {
           .font(.system(size: 26, weight: .medium))
           .frame(width: 30, height: 30)
 
-        Text(state.title)
+        PapercutActionTitle(state.title, reserving: HomeViewState.PrimaryAction.titles)
           .font(.headline.weight(.bold))
-          .multilineTextAlignment(.center)
-          .fixedSize(horizontal: false, vertical: true)
-          .frame(maxWidth: .infinity)
       }
       .foregroundStyle(PapercutPalette.cream)
       .padding(.horizontal, 16)

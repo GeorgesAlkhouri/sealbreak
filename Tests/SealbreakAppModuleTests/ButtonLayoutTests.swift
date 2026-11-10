@@ -53,6 +53,43 @@ final class ButtonLayoutTests: XCTestCase {
     XCTAssertTrue(capturedMovement, "The snapshots must include the marker's visible movement.")
   }
 
+  func testActionTitleKeepsItsPositionWhenAnInterruptedChangeReturns() async throws {
+    // The primary actions on Welcome, Setup, and Home share this title. Their
+    // titles differ in width, so a re-centered title would slide during the
+    // fade; an interrupted change used to leave it far off its layout.
+    let long: LocalizedStringResource = "Reset local Sealbreak data"
+    let short: LocalizedStringResource = "Reset…"
+    let model = ActionTitleModel(title: long)
+    let host = try PrivacyViewHost(animationsEnabled: true) {
+      ActionTitleHarness(model: model, titles: [long, short])
+    }
+    defer { host.close() }
+    try await host.waitUntil { host.accessibility.contains("Reset local Sealbreak data") }
+    let title = try buttonFrame(in: host, identifier: "action-title")
+    // Leave room to see a sliding title, and background rows below it.
+    let region = CGRect(
+      x: title.minX - 40, y: title.minY - 4, width: title.width + 80, height: title.height + 24)
+    let expected = try renderedTitleBounds(in: host, region: region, afterScreenUpdates: true)
+    XCTAssertFalse(expected.isNull, "The title must be rendered.")
+
+    let clock = ContinuousClock()
+    let started = clock.now
+    withAnimation(.easeInOut(duration: 1)) { model.title = short }
+    try await Task.sleep(for: .milliseconds(150))
+    model.title = long
+    XCTAssertLessThan(
+      clock.now - started, .milliseconds(700), "The change must interrupt the running animation.")
+    let end = started + .milliseconds(1100)
+    while clock.now < end {
+      let bounds = try renderedTitleBounds(in: host, region: region, afterScreenUpdates: false)
+      XCTAssertFalse(bounds.isNull, "The title must stay visible.")
+      XCTAssertEqual(
+        bounds.minX, expected.minX, accuracy: 2, "The title must not slide toward the icon.")
+      XCTAssertEqual(bounds.maxX, expected.maxX, accuracy: 2)
+      try await Task.sleep(for: .milliseconds(20))
+    }
+  }
+
   func testDetailsControlsKeepTheirBoundsDuringAuthorization() async throws {
     let fixture = try PrivacyRootFixture()
     defer { fixture.close() }
@@ -118,13 +155,21 @@ final class ButtonLayoutTests: XCTestCase {
     let before = try buttonFrame(in: host, identifier: identifier)
     try assertRenderedIcon(in: host, button: before, attachment: "reset-before")
 
-    let operation = store.send(.confirmResetLocalDataTapped, animation: .easeInOut(duration: 0.3))
+    // Use a long transaction so the failure below always interrupts it, even on a
+    // fast simulator; CI only hit this race occasionally with 300 ms.
+    let operation = store.send(.confirmResetLocalDataTapped, animation: .easeInOut(duration: 1))
     try await host.waitUntil { host.accessibility.contains("Resetting") }
     let pending = try buttonFrame(in: host, identifier: identifier)
     assertSameBounds(before, pending)
     try assertRenderedIcon(in: host, button: pending, attachment: "reset-pending")
 
+    // Fail while the animated pending transition is still running. A title that
+    // re-centers on every state change keeps the in-flight offset and slides
+    // over the icon, so sample the visible frames instead of one snapshot.
     await reply.fail()
+    try await host.waitUntil { !store.isResetting }
+    try await assertTransition(
+      in: host, expected: before, identifier: identifier, duration: .seconds(1))
     try await host.finish(operation)
     try await host.waitUntil {
       !store.isResetting && host.accessibility.contains("Connection failed")
@@ -282,12 +327,17 @@ final class ButtonLayoutTests: XCTestCase {
     assertSameBounds(before, after)
   }
 
-  private func assertTransition(in host: PrivacyViewHost, expected: CGRect) async throws {
-    // Keep UIKit/SwiftUI animations enabled and sample during the 300 ms transaction,
+  private func assertTransition(
+    in host: PrivacyViewHost, expected: CGRect, identifier: String = "home-primary-action",
+    duration: Duration = .milliseconds(300)
+  ) async throws {
+    // Keep UIKit/SwiftUI animations enabled and sample the whole transaction,
     // rather than only comparing layouts after animations have settled.
-    for _ in 0..<20 {
+    let clock = ContinuousClock()
+    let end = clock.now + duration + .milliseconds(100)
+    while clock.now < end {
       host.window.layoutIfNeeded()
-      let frame = try buttonFrame(in: host)
+      let frame = try buttonFrame(in: host, identifier: identifier)
       assertSameBounds(expected, frame)
       // Observe the visible frame without flushing and retiming the animation.
       try assertRenderedIcon(in: host, button: expected, afterScreenUpdates: false)
@@ -342,6 +392,15 @@ final class ButtonLayoutTests: XCTestCase {
     XCTAssertEqual(bounds.midX, CGFloat(width) / 2, accuracy: 3)
     XCTAssertEqual(
       bounds.midY, CGFloat(height) / 2, accuracy: 2, "The rendered icon must not jump vertically.")
+  }
+
+  private func renderedTitleBounds(
+    in host: PrivacyViewHost, region: CGRect, afterScreenUpdates: Bool
+  ) throws -> CGRect {
+    let image = try captureWindow(in: host, afterScreenUpdates: afterScreenUpdates)
+    let source = try XCTUnwrap(image.cgImage)
+    let crop = try XCTUnwrap(source.cropping(to: region.integral))
+    return try renderedIconBounds(crop)
   }
 
   private func captureWindow(in host: PrivacyViewHost, afterScreenUpdates: Bool = false) throws
@@ -409,6 +468,31 @@ final class ButtonLayoutTests: XCTestCase {
     let resolved = button.shape.bezierPath.bounds
     XCTAssertFalse(resolved.isEmpty)
     return resolved
+  }
+}
+
+@Observable
+@MainActor
+private final class ActionTitleModel {
+  var title: LocalizedStringResource
+
+  init(title: LocalizedStringResource) {
+    self.title = title
+  }
+}
+
+private struct ActionTitleHarness: View {
+  let model: ActionTitleModel
+  let titles: [LocalizedStringResource]
+
+  var body: some View {
+    PapercutActionTitle(model.title, reserving: titles)
+      .font(.headline)
+      .foregroundStyle(PapercutPalette.cream)
+      .accessibilityIdentifier("action-title")
+      .frame(width: 260)
+      .frame(maxWidth: .infinity, maxHeight: .infinity)
+      .background(PapercutPalette.button)
   }
 }
 

@@ -7,7 +7,7 @@ package struct HomeFeature {
 
   @ObservableState
   package struct State: Equatable {
-    package enum Operation: Equatable {
+    package enum Operation: CaseIterable, Equatable {
       case checkingStatus
       case checkingTarget
       case waitingForFaceID

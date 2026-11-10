@@ -192,10 +192,15 @@ struct InstanceSetupView: View {
   }
 
   private var primaryButtonTitle: LocalizedStringResource {
-    if store.canContinue {
-      return LocalizedStringResource("Continue", bundle: .module)
-    }
-    return LocalizedStringResource("Check connection", bundle: .module)
+    store.canContinue ? continueTitle : checkConnectionTitle
+  }
+
+  private var continueTitle: LocalizedStringResource {
+    LocalizedStringResource("Continue", bundle: .module)
+  }
+
+  private var checkConnectionTitle: LocalizedStringResource {
+    LocalizedStringResource("Check connection", bundle: .module)
   }
 
   private var primaryButton: some View {
@@ -215,11 +220,10 @@ struct InstanceSetupView: View {
         .font(.system(size: 20, weight: .semibold))
         .frame(width: 30, height: 30)
 
-        Text(primaryButtonTitle)
-          .font(.headline)
-          .multilineTextAlignment(.center)
-          .fixedSize(horizontal: false, vertical: true)
-          .frame(maxWidth: .infinity)
+        PapercutActionTitle(
+          primaryButtonTitle, reserving: [checkConnectionTitle, continueTitle]
+        )
+        .font(.headline)
       }
       .papercutPrimaryButtonAppearance()
     }
