@@ -247,6 +247,43 @@ xcrun simctl boot "$simulator_udid"
 xcrun simctl bootstatus "$simulator_udid" -b
 xcrun simctl keychain "$simulator_udid" add-root-cert "$tls_dir/ca.crt"
 
+# A runtime installed during the job can be usable by simctl before Xcode's
+# device discovery reports its OS version. xcodebuild then sees the simulator
+# as "iOS Simulator (null)" and refuses to test on it, so wait until it lists
+# the simulator with the runtime's version.
+simulator_os_version="$(xcrun simctl list runtimes -j |
+  jq -er --arg runtime "$simulator_runtime" '.runtimes[] | select(.identifier == $runtime) | .version')"
+destination_timeout_seconds="${SEALBREAK_DESTINATION_TIMEOUT_SECONDS:-300}"
+destination_deadline=$((SECONDS + destination_timeout_seconds))
+destination_ready=false
+
+while ((SECONDS < destination_deadline)); do
+  if xcodebuild \
+    -project Sealbreak.xcodeproj \
+    -scheme SealbreakIntegration \
+    -disableAutomaticPackageResolution \
+    -clonedSourcePackagesDirPath "$source_packages_dir" \
+    -skipMacroValidation \
+    -showdestinations 2>/dev/null |
+    grep -F "id:$simulator_udid, OS:$simulator_os_version," >/dev/null; then
+    destination_ready=true
+    break
+  fi
+  sleep 10
+done
+
+if [[ "$destination_ready" != "true" ]]; then
+  echo "xcodebuild did not report simulator $simulator_udid with iOS $simulator_os_version within ${destination_timeout_seconds}s" >&2
+  xcodebuild \
+    -project Sealbreak.xcodeproj \
+    -scheme SealbreakIntegration \
+    -disableAutomaticPackageResolution \
+    -clonedSourcePackagesDirPath "$source_packages_dir" \
+    -skipMacroValidation \
+    -showdestinations >&2 || true
+  exit 1
+fi
+
 test_status=0
 TEST_RUNNER_SEALBREAK_INTEGRATION_SERVER_URL="https://127.0.0.1:8200" \
 TEST_RUNNER_SEALBREAK_INTEGRATION_SERVER_PRODUCT="$server" \
