@@ -33,5 +33,9 @@ runs:
           cache_started="$SECONDS"
           xcrun simctl runtime dyld_shared_cache update "$IOS_RUNTIME"
           echo "dyld shared cache ready after $((SECONDS - cache_started)) s"
+          # Xcode's device discovery can lag behind a runtime installed during
+          # the job. scripts/ci/integration.sh waits for its simulator only
+          # when this is set, so preinstalled runtimes skip that wait.
+          echo "SEALBREAK_IOS_RUNTIME_DOWNLOADED=true" >>"$GITHUB_ENV"
         fi
         runtime_available

@@ -247,41 +247,126 @@ xcrun simctl boot "$simulator_udid"
 xcrun simctl bootstatus "$simulator_udid" -b
 xcrun simctl keychain "$simulator_udid" add-root-cert "$tls_dir/ca.crt"
 
-# A runtime installed during the job can be usable by simctl before Xcode's
+xcodebuild_project_args=(
+  -project Sealbreak.xcodeproj
+  -scheme SealbreakIntegration
+  -disableAutomaticPackageResolution
+  -clonedSourcePackagesDirPath "$source_packages_dir"
+  -skipMacroValidation
+)
+
+destination_timeout_seconds="${SEALBREAK_DESTINATION_TIMEOUT_SECONDS:-300}"
+if [[ ! "$destination_timeout_seconds" =~ ^[1-9][0-9]*$ ]]; then
+  echo "SEALBREAK_DESTINATION_TIMEOUT_SECONDS must be a positive whole number of seconds: $destination_timeout_seconds" >&2
+  exit 64
+fi
+
+# Runs a command and stops it after the given number of seconds. macOS has no
+# timeout(1), and a hung xcodebuild would otherwise hold the job until the
+# workflow timeout. Returns 124 like timeout(1) when the limit is reached.
+run_with_time_limit() {
+  local limit_seconds="$1"
+  local pid
+  local waited=0
+  shift
+
+  "$@" &
+  pid="$!"
+  while kill -0 "$pid" >/dev/null 2>&1; do
+    if ((waited >= limit_seconds)); then
+      pkill -TERM -P "$pid" >/dev/null 2>&1 || true
+      kill "$pid" >/dev/null 2>&1 || true
+      wait "$pid" >/dev/null 2>&1 || true
+      return 124
+    fi
+    sleep 1
+    waited=$((waited + 1))
+  done
+  wait "$pid"
+}
+
+# Succeeds when the -showdestinations output in $2 lists simulator $1 as a
+# compatible destination with a known OS. Xcode 27.1 titles the two sections
+# "Destinations compatible with" and "Destinations incompatible with"; older
+# releases used "Available destinations" and "Ineligible destinations", so
+# both spellings are accepted. Incompatible destinations and the
+# "OS:(null)" entry of a runtime Xcode has not finished discovering do not
+# count. The OS value is not compared with simctl's runtime version, because
+# the two tools format it differently for some releases.
+destination_listed() {
+  awk -v id="id:$1" '
+    /^[[:space:]]*(Destinations compatible with|Available destinations)/ { available = 1; next }
+    /^[[:space:]]*(Destinations incompatible with|Ineligible destinations)/ { available = 0; next }
+    available && /\{.*\}/ {
+      line = $0
+      sub(/^[^{]*\{[[:space:]]*/, "", line)
+      sub(/[[:space:]]*\}[^}]*$/, "", line)
+      field_count = split(line, fields, /, /)
+      has_id = 0
+      os = ""
+      for (i = 1; i <= field_count; i++) {
+        if (fields[i] == id) {
+          has_id = 1
+        } else if (fields[i] ~ /^OS:/) {
+          os = substr(fields[i], 4)
+        }
+      }
+      if (has_id && os != "" && os != "(null)") {
+        found = 1
+      }
+    }
+    END { exit !found }
+  ' "$2"
+}
+
+# A runtime downloaded during the job can be usable by simctl before Xcode's
 # device discovery reports its OS version. xcodebuild then sees the simulator
 # as "iOS Simulator (null)" and refuses to test on it, so wait until it lists
-# the simulator with the runtime's version.
-simulator_os_version="$(xcrun simctl list runtimes -j |
-  jq -er --arg runtime "$simulator_runtime" '.runtimes[] | select(.identifier == $runtime) | .version')"
-destination_timeout_seconds="${SEALBREAK_DESTINATION_TIMEOUT_SECONDS:-300}"
-destination_deadline=$((SECONDS + destination_timeout_seconds))
-destination_ready=false
+# the simulator as an available destination. The ios-simulator-runtime action
+# sets SEALBREAK_IOS_RUNTIME_DOWNLOADED only when it downloaded the runtime;
+# a preinstalled runtime is already discovered and skips this extra project load.
+if [[ "${SEALBREAK_IOS_RUNTIME_DOWNLOADED:-}" == "true" ]]; then
+  destinations_out="$work_dir/showdestinations.out"
+  destinations_err="$work_dir/showdestinations.err"
+  # The first listing also loads the project and its packages, so the wait
+  # budget starts once that listing has finished.
+  destination_deadline=""
+  destination_ready=false
 
-while ((SECONDS < destination_deadline)); do
-  if xcodebuild \
-    -project Sealbreak.xcodeproj \
-    -scheme SealbreakIntegration \
-    -disableAutomaticPackageResolution \
-    -clonedSourcePackagesDirPath "$source_packages_dir" \
-    -skipMacroValidation \
-    -showdestinations 2>/dev/null |
-    grep -F "id:$simulator_udid, OS:$simulator_os_version," >/dev/null; then
-    destination_ready=true
-    break
+  while true; do
+    destinations_status=0
+    run_with_time_limit "$destination_timeout_seconds" \
+      xcodebuild "${xcodebuild_project_args[@]}" -showdestinations \
+      >"$destinations_out" 2>"$destinations_err" || destinations_status=$?
+
+    if [[ "$destinations_status" -ne 0 ]]; then
+      if [[ "$destinations_status" -eq 124 ]]; then
+        echo "xcodebuild -showdestinations did not finish within ${destination_timeout_seconds}s" >&2
+      else
+        echo "xcodebuild -showdestinations failed with exit status $destinations_status" >&2
+      fi
+      cat "$destinations_out" "$destinations_err" >&2
+      exit 1
+    fi
+
+    if destination_listed "$simulator_udid" "$destinations_out"; then
+      destination_ready=true
+      break
+    fi
+
+    if [[ -z "$destination_deadline" ]]; then
+      destination_deadline=$((SECONDS + destination_timeout_seconds))
+    elif ((SECONDS >= destination_deadline)); then
+      break
+    fi
+    sleep 10
+  done
+
+  if [[ "$destination_ready" != "true" ]]; then
+    echo "xcodebuild did not list simulator $simulator_udid as an available destination with a known OS within ${destination_timeout_seconds}s after the first listing; last listing:" >&2
+    cat "$destinations_out" "$destinations_err" >&2
+    exit 1
   fi
-  sleep 10
-done
-
-if [[ "$destination_ready" != "true" ]]; then
-  echo "xcodebuild did not report simulator $simulator_udid with iOS $simulator_os_version within ${destination_timeout_seconds}s" >&2
-  xcodebuild \
-    -project Sealbreak.xcodeproj \
-    -scheme SealbreakIntegration \
-    -disableAutomaticPackageResolution \
-    -clonedSourcePackagesDirPath "$source_packages_dir" \
-    -skipMacroValidation \
-    -showdestinations >&2 || true
-  exit 1
 fi
 
 test_status=0
@@ -289,20 +374,15 @@ TEST_RUNNER_SEALBREAK_INTEGRATION_SERVER_URL="https://127.0.0.1:8200" \
 TEST_RUNNER_SEALBREAK_INTEGRATION_SERVER_PRODUCT="$server" \
 TEST_RUNNER_SEALBREAK_INTEGRATION_SHARE_1="$first_share" \
 TEST_RUNNER_SEALBREAK_INTEGRATION_SHARE_2="$second_share" \
-xcodebuild \
-  -project Sealbreak.xcodeproj \
-  -scheme SealbreakIntegration \
-  -disableAutomaticPackageResolution \
+xcodebuild "${xcodebuild_project_args[@]}" \
   -configuration Debug \
   -destination "platform=iOS Simulator,id=$simulator_udid" \
   -derivedDataPath "$work_dir/DerivedData" \
   -resultBundlePath "$work_dir/integration.xcresult" \
-  -clonedSourcePackagesDirPath "$source_packages_dir" \
   CODE_SIGNING_ALLOWED=NO \
   CODE_SIGNING_REQUIRED=NO \
   DEVELOPMENT_TEAM= \
   COMPILER_INDEX_STORE_ENABLE=NO \
-  -skipMacroValidation \
   -only-testing:SealbreakIntegrationTests \
   test || test_status=$?
 
