@@ -369,28 +369,69 @@ if [[ "${SEALBREAK_IOS_RUNTIME_DOWNLOADED:-}" == "true" ]]; then
   fi
 fi
 
+# Runs one xcodebuild test action ($1: test or test-without-building) with the
+# result bundle at $2, and keeps a copy of the output in $3 so a failure can be
+# classified afterwards.
+run_integration_tests() {
+  TEST_RUNNER_SEALBREAK_INTEGRATION_SERVER_URL="https://127.0.0.1:8200" \
+  TEST_RUNNER_SEALBREAK_INTEGRATION_SERVER_PRODUCT="$server" \
+  TEST_RUNNER_SEALBREAK_INTEGRATION_SHARE_1="$first_share" \
+  TEST_RUNNER_SEALBREAK_INTEGRATION_SHARE_2="$second_share" \
+  xcodebuild "${xcodebuild_project_args[@]}" \
+    -configuration Debug \
+    -destination "platform=iOS Simulator,id=$simulator_udid" \
+    -derivedDataPath "$work_dir/DerivedData" \
+    -resultBundlePath "$2" \
+    CODE_SIGNING_ALLOWED=NO \
+    CODE_SIGNING_REQUIRED=NO \
+    DEVELOPMENT_TEAM= \
+    COMPILER_INDEX_STORE_ENABLE=NO \
+    -only-testing:SealbreakIntegrationTests \
+    "$1" 2>&1 | tee "$3"
+}
+
+# Succeeds when the xcodebuild output in $1 shows that the test runner never
+# started in the simulator, so no test ran. A failing test does not match.
+test_runner_failed_to_start() {
+  grep -E -q \
+    -e 'The test runner hung before establishing connection' \
+    -e 'Early unexpected exit, operation never finished bootstrapping' \
+    "$1"
+}
+
+result_bundle="$work_dir/integration.xcresult"
+test_log="$work_dir/xcodebuild-test.log"
 test_status=0
-TEST_RUNNER_SEALBREAK_INTEGRATION_SERVER_URL="https://127.0.0.1:8200" \
-TEST_RUNNER_SEALBREAK_INTEGRATION_SERVER_PRODUCT="$server" \
-TEST_RUNNER_SEALBREAK_INTEGRATION_SHARE_1="$first_share" \
-TEST_RUNNER_SEALBREAK_INTEGRATION_SHARE_2="$second_share" \
-xcodebuild "${xcodebuild_project_args[@]}" \
-  -configuration Debug \
-  -destination "platform=iOS Simulator,id=$simulator_udid" \
-  -derivedDataPath "$work_dir/DerivedData" \
-  -resultBundlePath "$work_dir/integration.xcresult" \
-  CODE_SIGNING_ALLOWED=NO \
-  CODE_SIGNING_REQUIRED=NO \
-  DEVELOPMENT_TEAM= \
-  COMPILER_INDEX_STORE_ENABLE=NO \
-  -only-testing:SealbreakIntegrationTests \
-  test || test_status=$?
+run_integration_tests test "$result_bundle" "$test_log" || test_status=$?
+
+# On hosted runners the test runner sometimes never connects to xcodebuild in
+# a simulator, mostly on a runtime downloaded during the job. Apple has no fix
+# for it and a second launch usually works, so retry once on a rebooted
+# simulator. The build products are reused. Any other failure is final.
+if [[ "$test_status" -ne 0 ]] && test_runner_failed_to_start "$test_log"; then
+  echo "::warning::The test runner did not start in the simulator; retrying once after a simulator reboot."
+  # Shows whether the host was starved while the runner hung. Command names
+  # only, so no process arguments reach the log.
+  echo "::group::Host load after the failed test runner start"
+  uptime || true
+  ps -Ao %cpu,%mem,etime,comm -r | head -n 15 || true
+  echo "::endgroup::"
+
+  xcrun simctl shutdown "$simulator_udid" || true
+  xcrun simctl boot "$simulator_udid"
+  xcrun simctl bootstatus "$simulator_udid" -b
+
+  result_bundle="$work_dir/integration-retry.xcresult"
+  test_log="$work_dir/xcodebuild-test-retry.log"
+  test_status=0
+  run_integration_tests test-without-building "$result_bundle" "$test_log" || test_status=$?
+fi
 
 # Export before cleanup removes the result bundle. GitHub log masking does not
 # redact uploaded files, so remove the two temporary shares from JUnit as well.
 report_status=0
-if [[ -d "$work_dir/integration.xcresult" ]]; then
-  xcresultparser -o junit "$work_dir/integration.xcresult" \
+if [[ -d "$result_bundle" ]]; then
+  xcresultparser -o junit "$result_bundle" \
     | sed -e "s|$first_share|[REDACTED]|g" -e "s|$second_share|[REDACTED]|g" \
     > "$work_dir/integration.junit.xml" \
     && xmllint --noout "$work_dir/integration.junit.xml" \
@@ -414,7 +455,7 @@ fi
 test -s "$test_results_path"
 
 if ! xcrun xcresulttool get test-results summary \
-  --path "$work_dir/integration.xcresult" |
+  --path "$result_bundle" |
   jq -e '
     .totalTestCount == 1 and
     .passedTests == 1 and
