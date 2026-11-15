@@ -15,11 +15,6 @@ on:
         description: CoreSimulator device type identifier
         required: true
         type: string
-      timeout-minutes:
-        description: Job timeout; runtimes that are not preinstalled need longer
-        required: false
-        type: number
-        default: 30
 
 permissions:
   contents: read
@@ -28,7 +23,7 @@ jobs:
   integration:
     name: integration / ${{ matrix.server.name }} / iOS ${{ inputs.ios }}
     runs-on: xcode-27
-    timeout-minutes: ${{ inputs.timeout-minutes }}
+    timeout-minutes: 30
     permissions:
       contents: read
       id-token: write
