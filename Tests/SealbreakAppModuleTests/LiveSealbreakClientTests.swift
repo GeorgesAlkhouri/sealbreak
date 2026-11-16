@@ -210,6 +210,27 @@ extension SerialExecutorTests {
     }
 
     @Test
+    func liveClientRoutesOperationsThroughOneController() async throws {
+      let fixture = try ControllerFixture()
+      defer { fixture.cleanUp() }
+      let client = SealbreakClient.live(controller: fixture.controller)
+      let context = fixture.factory.next
+      let profileID = fixture.profile.id
+      let task = fixture.start {
+        try await client.readShare(profileID, ControllerFixture.reason)
+      }
+      try await context.waitForEvaluation()
+
+      await client.cancelSensitiveOperation()
+      #expect(
+        context.invalidationCount == 1,
+        "Cancellation must reach the controller that started the read.")
+      context.complete(success: true)
+      await #expect(throws: CancellationError.self) { try await task.value }
+      #expect(fixture.access.calls.isEmpty)
+    }
+
+    @Test
     func replacedLateSuccessCannotAccessStorageOrClearTheNewerContext() async throws {
       let fixture = try ControllerFixture()
       defer { fixture.cleanUp() }

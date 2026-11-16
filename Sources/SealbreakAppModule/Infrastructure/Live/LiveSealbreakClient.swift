@@ -5,24 +5,37 @@ import SealbreakInfrastructure
 import UIKit
 
 extension SealbreakClient {
-  package static var live: Self {
+  /// Creates a live client backed by a new controller.
+  ///
+  /// Clients from separate calls don't share state, so one client can't cancel
+  /// a sensitive operation that another client started.
+  @MainActor
+  static func live() -> Self {
+    live(controller: LiveSealbreakClientController())
+  }
+
+  /// Creates a live client backed by the given controller.
+  ///
+  /// - Parameter controller: The controller that performs every operation of
+  ///   the returned client.
+  static func live(controller: LiveSealbreakClientController) -> Self {
     Self(
       localData: .init(
         loadLocalSetupState: {
-          try await LiveSealbreakClientController.shared.loadLocalSetupState()
+          try await controller.loadLocalSetupState()
         },
         protectNewProfile: { profile, record, reason in
-          try await LiveSealbreakClientController.shared.protectNewProfile(
+          try await controller.protectNewProfile(
             profile: profile,
             record: record,
             reason: reason
           )
         },
         resetLocalData: {
-          try await LiveSealbreakClientController.shared.resetLocalData()
+          try await controller.resetLocalData()
         },
         removeLocalProfile: { profileID, reason in
-          try await LiveSealbreakClientController.shared.removeLocalProfile(
+          try await controller.removeLocalProfile(
             profileID: profileID,
             reason: reason
           )
@@ -30,33 +43,33 @@ extension SealbreakClient {
       ),
       server: .init(
         detectProduct: { profile in
-          try await LiveSealbreakClientController.shared.detectProduct(profile)
+          try await controller.detectProduct(profile)
         },
         dnssecStatus: { host in
-          await LiveSealbreakClientController.shared.dnssecStatus(host)
+          await controller.dnssecStatus(host)
         },
         status: { profile in
-          try await LiveSealbreakClientController.shared.status(profile)
+          try await controller.status(profile)
         },
         submit: { record in
-          try await LiveSealbreakClientController.shared.submit(record)
+          try await controller.submit(record)
         }
       ),
       shareAccess: .init(
         readShareFragment: { profileID, reason in
-          try await LiveSealbreakClientController.shared.readShareFragment(
+          try await controller.readShareFragment(
             profileID: profileID,
             reason: reason
           )
         },
         readShare: { profileID, reason in
-          try await LiveSealbreakClientController.shared.readShare(
+          try await controller.readShare(
             profileID: profileID,
             reason: reason
           )
         },
         replaceShare: { expectedProfile, replacement, reason in
-          try await LiveSealbreakClientController.shared.replaceShare(
+          try await controller.replaceShare(
             expectedProfile: expectedProfile,
             replacement: replacement,
             reason: reason
@@ -65,13 +78,13 @@ extension SealbreakClient {
       ),
       lifecycle: .init(
         requireForeground: {
-          try await LiveSealbreakClientController.shared.requireForeground()
+          try await controller.requireForeground()
         },
         waitForForeground: {
-          try await LiveSealbreakClientController.shared.waitForForeground()
+          try await controller.waitForForeground()
         },
         cancelSensitiveOperation: {
-          await LiveSealbreakClientController.shared.cancelSensitiveOperation()
+          await controller.cancelSensitiveOperation()
         }
       )
     )
@@ -80,8 +93,6 @@ extension SealbreakClient {
 
 @MainActor
 final class LiveSealbreakClientController {
-  static let shared = LiveSealbreakClientController()
-
   private let keychain: KeychainStore
   private let profiles: ProfileStore
   private let client: SealServerClient
