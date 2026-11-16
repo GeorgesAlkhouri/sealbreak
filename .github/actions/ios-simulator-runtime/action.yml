@@ -1,7 +1,8 @@
 name: iOS simulator runtime
 description: >-
-  Ensure an iOS simulator runtime is available for the active Xcode, downloading
-  it when the runner image does not preinstall it.
+  Ensure a usable iOS simulator runtime is available for the active Xcode,
+  removing duplicate runtime registrations and downloading the runtime when the
+  runner image does not provide a usable copy.
 
 inputs:
   ios:
@@ -21,12 +22,79 @@ runs:
         IOS_RUNTIME: ${{ inputs.runtime }}
       run: |
         set -euo pipefail
-        runtime_available() {
-          xcrun simctl list runtimes -j |
-            jq -e --arg id "$IOS_RUNTIME" '.runtimes | any(.identifier == $id and .isAvailable == true)' >/dev/null
+        echo "Runner image: ${ImageOS:-unknown} ${ImageVersion:-unknown}"
+
+        # Waits until simdiskimaged has finished mounting the registered
+        # runtimes: every registration is either Ready or Unusable.
+        wait_for_runtime_mounts() {
+          local deadline=$((SECONDS + 120))
+          until xcrun simctl runtime list -j |
+            jq -e 'all(.[]; .state == "Ready" or .state == "Unusable")' >/dev/null; do
+            if ((SECONDS >= deadline)); then
+              echo "::warning::Simulator runtimes were still mounting after 120 s"
+              return 0
+            fi
+            sleep 2
+          done
         }
-        if ! runtime_available; then
+
+        # Prints the registrations that are not Ready but have a Ready twin
+        # with the same runtime and build.
+        duplicate_registrations() {
+          xcrun simctl runtime list -j | jq -r '
+            [.[]] as $all
+            | $all[]
+            | select(.state != "Ready")
+            | . as $copy
+            | select($all | any(.state == "Ready"
+                and .runtimeIdentifier == $copy.runtimeIdentifier
+                and .build == $copy.build))
+            | .identifier'
+        }
+
+        # isAvailable alone is not enough: a runtime whose volume was unmounted
+        # stays available in simctl's list, but its runtime root is gone and
+        # simctl boot then fails to find launchd_sim.
+        runtime_usable() {
+          local root
+          root="$(xcrun simctl list runtimes -j |
+            jq -r --arg id "$IOS_RUNTIME" \
+              'first(.runtimes[] | select(.identifier == $id and .isAvailable == true) | .runtimeRoot) // empty')"
+          [[ -n "$root" && ( -x "$root/sbin/launchd_sim" || -x "$root/usr/libexec/launchd_sim" ) ]]
+        }
+
+        # Listing the runtimes starts CoreSimulatorService.
+        xcrun simctl runtime list
+        wait_for_runtime_mounts
+
+        # xcode-27-arm64 20261112.0361.1 registers runtimes twice: a Ready
+        # cryptex copy and an "Unusable - Cryptex Mount Preferred" copy. About
+        # 40 s after CoreSimulatorService starts, simdiskimaged removes the
+        # Unusable copy and force-unmounts the Ready cryptex with it, so a
+        # simulator booted in that window loses its runtime
+        # (actions/runner-images#15334, #14946). Removing the duplicates
+        # before any simulator boots leaves nothing for that clean-up to do.
+        duplicates="$(duplicate_registrations)"
+        if [[ -n "$duplicates" ]]; then
+          while read -r id; do
+            echo "Deleting duplicate simulator runtime registration $id"
+            xcrun simctl runtime delete "$id"
+          done <<<"$duplicates"
+          wait_for_runtime_mounts
+          xcrun simctl runtime list
+        fi
+
+        if ! runtime_usable; then
+          # Remove any registration left for this runtime, so the download
+          # below installs a fresh copy instead of reusing a broken one.
+          xcrun simctl runtime list -j |
+            jq -r --arg id "$IOS_RUNTIME" '.[] | select(.runtimeIdentifier == $id) | .identifier' |
+            while read -r id; do
+              echo "Deleting unusable simulator runtime registration $id"
+              xcrun simctl runtime delete "$id" || true
+            done
           xcodebuild -downloadPlatform iOS -buildVersion "$IOS_VERSION" -architectureVariant arm64
+          wait_for_runtime_mounts
           # A downloaded runtime has no dyld shared cache yet. Build it here so
           # the simulator does not build it in the background while the tests
           # run; that has slowed localhost TLS requests past the app's timeouts.
@@ -38,4 +106,9 @@ runs:
           # when this is set, so preinstalled runtimes skip that wait.
           echo "SEALBREAK_IOS_RUNTIME_DOWNLOADED=true" >>"$GITHUB_ENV"
         fi
-        runtime_available
+
+        if ! runtime_usable; then
+          echo "::error::iOS simulator runtime $IOS_RUNTIME is not usable"
+          xcrun simctl runtime list
+          exit 1
+        fi

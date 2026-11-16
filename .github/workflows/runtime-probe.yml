@@ -1,0 +1,52 @@
+name: Runtime probe (temporary)
+
+on:
+  push:
+    branches: [claude/intelligent-wilson-3ec09f]
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    name: probe / ${{ matrix.variant }} / ${{ matrix.n }}
+    runs-on: xcode-27
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        variant: [fix, control]
+        n: [1, 2, 3, 4]
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_27.1.app/Contents/Developer
+      IOS_RUNTIME: com.apple.CoreSimulator.SimRuntime.iOS-27-0
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - name: Image
+        run: |
+          echo "Runner image: ${ImageOS:-unknown} ${ImageVersion:-unknown}"
+          xcrun simctl runtime list
+      - if: matrix.variant == 'fix'
+        uses: ./.github/actions/ios-simulator-runtime
+        with:
+          ios: "27.0"
+          runtime: com.apple.CoreSimulator.SimRuntime.iOS-27-0
+      - name: Boot and keep the simulator alive for 3 minutes
+        run: |
+          set -euo pipefail
+          udid="$(xcrun simctl create probe com.apple.CoreSimulator.SimDeviceType.iPhone-18-Pro "$IOS_RUNTIME")"
+          xcrun simctl boot "$udid"
+          xcrun simctl bootstatus "$udid" -b
+          for i in $(seq 1 18); do
+            xcrun simctl spawn "$udid" launchctl print system >/dev/null
+            root="$(xcrun simctl list runtimes -j | jq -r --arg id "$IOS_RUNTIME" 'first(.runtimes[] | select(.identifier == $id) | .runtimeRoot) // empty')"
+            test -x "$root/sbin/launchd_sim" -o -x "$root/usr/libexec/launchd_sim"
+            echo "check $i ok"
+            sleep 10
+          done
+          xcrun simctl runtime list
+      - name: simdiskimaged log
+        if: always()
+        run: log show --last 15m --style compact --predicate 'process == "simdiskimaged"' | tail -80 || true
