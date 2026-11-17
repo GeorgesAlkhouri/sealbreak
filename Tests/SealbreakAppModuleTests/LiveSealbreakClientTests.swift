@@ -209,25 +209,43 @@ extension SerialExecutorTests {
       #expect(fixture.access.calls.isEmpty)
     }
 
-    @Test
-    func liveClientRoutesOperationsThroughOneController() async throws {
-      let fixture = try ControllerFixture()
+    @Test(arguments: ProtectedAction.allCases)
+    func liveClientRoutesProtectedActionsAndCancellationToItsController(
+      action: ProtectedAction
+    ) async throws {
+      let fixture = try ControllerFixture(ready: action.requiresReadyProfile)
       defer { fixture.cleanUp() }
       let client = SealbreakClient.live(controller: fixture.controller)
       let context = fixture.factory.next
-      let profileID = fixture.profile.id
-      let task = fixture.start {
-        try await client.readShare(profileID, ControllerFixture.reason)
-      }
+      let task = fixture.start { try await fixture.perform(action, through: client) }
       try await context.waitForEvaluation()
 
       await client.cancelSensitiveOperation()
       #expect(
         context.invalidationCount == 1,
-        "Cancellation must reach the controller that started the read.")
+        "Cancellation must reach the controller that started the action.")
       context.complete(success: true)
       await #expect(throws: CancellationError.self) { try await task.value }
       #expect(fixture.access.calls.isEmpty)
+    }
+
+    @Test
+    func liveClientRoutesLocalStateAndForegroundChecksToItsController() async throws {
+      let fixture = try ControllerFixture(ready: true, sleep: { _ in throw CancellationError() })
+      defer { fixture.cleanUp() }
+      let client = SealbreakClient.live(controller: fixture.controller)
+
+      #expect(try await client.loadLocalSetupState() == .ready(fixture.profile))
+
+      fixture.platform.block(.background)
+      await #expect(throws: AppFailure.self) { try await client.requireForeground() }
+      await #expect(throws: CancellationError.self) { try await client.waitForForeground() }
+      #expect(fixture.platform.sleepCount == 1)
+
+      fixture.platform.state = .active
+      try await client.resetLocalData()
+      #expect(fixture.access.calls.map(\.operation) == ["delete"])
+      #expect(try fixture.profiles.loadAll().isEmpty)
     }
 
     @Test
@@ -500,6 +518,17 @@ final class ControllerFixture {
     case .remove:
       lastOutcome = try await controller.removeLocalProfile(
         profileID: profile.id, reason: Self.reason)
+    }
+  }
+
+  func perform(_ action: ProtectedAction, through client: SealbreakClient) async throws {
+    switch action {
+    case .read: _ = try await client.readShare(profile.id, Self.reason)
+    case .fragment: _ = try await client.readShareFragment(profile.id, Self.reason)
+    case .create:
+      lastOutcome = try await client.protectNewProfile(profile, record, Self.reason)
+    case .replace: try await client.replaceShare(profile, record, Self.reason)
+    case .remove: lastOutcome = try await client.removeLocalProfile(profile.id, Self.reason)
     }
   }
 

@@ -5,14 +5,12 @@ import SealbreakInfrastructure
 import UIKit
 
 extension SealbreakClient {
-  /// Creates a live client backed by a new controller.
+  /// The live client used by the app.
   ///
-  /// Clients from separate calls don't share state, so one client can't cancel
-  /// a sensitive operation that another client started.
+  /// It uses the shared controller, so the app has at most one pending
+  /// authorization at a time.
   @MainActor
-  static func live() -> Self {
-    live(controller: LiveSealbreakClientController())
-  }
+  static var live: Self { live(controller: .shared) }
 
   /// Creates a live client backed by the given controller.
   ///
@@ -93,6 +91,13 @@ extension SealbreakClient {
 
 @MainActor
 final class LiveSealbreakClientController {
+  /// The app-wide controller.
+  ///
+  /// The share and the profile catalog exist once per app, so protected
+  /// operations must share one controller: a newer authorization supersedes an
+  /// older one, and cancellation reaches every pending authorization.
+  static let shared = LiveSealbreakClientController()
+
   private let keychain: KeychainStore
   private let profiles: ProfileStore
   private let client: SealServerClient

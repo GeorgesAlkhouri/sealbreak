@@ -9,7 +9,7 @@ public struct SealbreakRootView: View {
     store = Store(initialState: AppFeature.State()) {
       AppFeature()
     } withDependencies: {
-      $0.sealbreakClient = .live()
+      $0.sealbreakClient = .live
     }
   }
 
