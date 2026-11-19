@@ -192,16 +192,20 @@ package struct SealServerClient: Sendable {
     )
   }
 
+  func makeSession() -> URLSession {
+    URLSession(
+      configuration: configuration,
+      delegate: TransportPolicy(),
+      delegateQueue: nil
+    )
+  }
+
   private func request(
     _ url: URL,
     queryItems: [URLQueryItem] = [],
     body: Data?
   ) async throws -> Data {
-    let session = URLSession(
-      configuration: configuration,
-      delegate: TransportPolicy(),
-      delegateQueue: nil
-    )
+    let session = makeSession()
     defer {
       session.invalidateAndCancel()
     }

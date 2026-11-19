@@ -40,6 +40,52 @@ struct SealServerClientTests {
   }
 
   @Test
+  func requestSessionKeepsTLS12Minimum() {
+    let session = SealServerClient().makeSession()
+    defer { session.invalidateAndCancel() }
+
+    #expect(session.configuration.tlsMinimumSupportedProtocolVersion == .TLSv12)
+  }
+
+  @Test
+  func requestSessionUsesTransportPolicyAsDelegate() {
+    let session = SealServerClient().makeSession()
+    defer { session.invalidateAndCancel() }
+
+    #expect(session.delegate is TransportPolicy)
+  }
+
+  @Test
+  func transportPolicyLeavesServerTrustToSystemValidation() throws {
+    let decisions = try Self.transportPolicyDecisions(for: NSURLAuthenticationMethodServerTrust)
+
+    #expect(decisions.count == 2)
+    for (disposition, credential) in decisions {
+      #expect(disposition == .performDefaultHandling)
+      #expect(credential == nil)
+    }
+  }
+
+  @Test(arguments: [
+    NSURLAuthenticationMethodDefault,
+    NSURLAuthenticationMethodHTTPBasic,
+    NSURLAuthenticationMethodHTTPDigest,
+    NSURLAuthenticationMethodHTMLForm,
+    NSURLAuthenticationMethodNTLM,
+    NSURLAuthenticationMethodNegotiate,
+    NSURLAuthenticationMethodClientCertificate,
+  ])
+  func transportPolicyCancelsEveryOtherChallenge(method: String) throws {
+    let decisions = try Self.transportPolicyDecisions(for: method)
+
+    #expect(decisions.count == 2)
+    for (disposition, credential) in decisions {
+      #expect(disposition == .cancelAuthenticationChallenge)
+      #expect(credential == nil)
+    }
+  }
+
+  @Test
   func requestBuilderSetsTransportPolicyAndUnsealBody() throws {
     let profile = try profile()
     let get = try SealServerClient.makeRequest(profile, path: "seal-status", body: nil)
@@ -208,6 +254,36 @@ struct SealServerClientTests {
     }
   }
 
+  @Test(arguments: [301, 302, 303, 307, 308])
+  func submitDoesNotFollowRedirectsOrResendTheShare(statusCode: Int) async throws {
+    let recorder = RequestRecorder()
+    let client = makeClient { request in
+      recorder.record(request)
+      let url = try #require(request.url)
+      return (
+        try #require(
+          HTTPURLResponse(
+            url: url,
+            statusCode: statusCode,
+            httpVersion: "HTTP/1.1",
+            headerFields: [
+              "Content-Type": "application/json",
+              "Location": "https://other.example.com/v1/sys/unseal",
+            ]
+          )),
+        Data("{}".utf8)
+      )
+    }
+    let record = try ShareRecord(profile: profile(), input: syntheticShare)
+
+    let message = await failureMessage {
+      try await client.submit(record)
+    }
+
+    #expect(recorder.requests.compactMap(\.url?.absoluteString) == ["\(origin)/v1/sys/unseal"])
+    #expect(message?.hasPrefix("Redirect blocked.") == true)
+  }
+
   @Test(arguments: [65_536, 65_537])
   func requestEnforcesResponseSizeLimitWithoutContentLength(byteCount: Int) async throws {
     let statusData = Self.statusData()
@@ -304,6 +380,33 @@ struct SealServerClientTests {
     }
   }
 
+  private static func transportPolicyDecisions(
+    for authenticationMethod: String
+  ) throws -> [(URLSession.AuthChallengeDisposition, URLCredential?)] {
+    let session = URLSession(configuration: .ephemeral)
+    defer { session.invalidateAndCancel() }
+    let task = session.dataTask(with: try #require(URL(string: "https://server.example.com")))
+    let challenge = URLAuthenticationChallenge(
+      protectionSpace: URLProtectionSpace(
+        host: "server.example.com",
+        port: 443,
+        protocol: NSURLProtectionSpaceHTTPS,
+        realm: nil,
+        authenticationMethod: authenticationMethod
+      ),
+      proposedCredential: nil,
+      previousFailureCount: 0,
+      failureResponse: nil,
+      error: nil,
+      sender: ChallengeSender()
+    )
+    let policy = TransportPolicy()
+    var decisions: [(URLSession.AuthChallengeDisposition, URLCredential?)] = []
+    policy.urlSession(session, didReceive: challenge) { decisions.append(($0, $1)) }
+    policy.urlSession(session, task: task, didReceive: challenge) { decisions.append(($0, $1)) }
+    return decisions
+  }
+
   private static func response(for request: URLRequest) throws -> HTTPURLResponse {
     let url = try #require(request.url)
     return try #require(
@@ -344,6 +447,16 @@ private final class MockURLProtocol: URLProtocol {
     }
     do {
       let (response, data) = try handler(request)
+      // A 3xx with a Location header goes through the session's redirect decision,
+      // carrying the method and body along as a 307/308 does.
+      if (300...399).contains(response.statusCode),
+        let location = response.value(forHTTPHeaderField: "Location"),
+        let target = URL(string: location, relativeTo: request.url)
+      {
+        var redirect = request
+        redirect.url = target.absoluteURL
+        client?.urlProtocol(self, wasRedirectedTo: redirect, redirectResponse: response)
+      }
       client?.urlProtocol(self, didReceive: response, cacheStoragePolicy: .notAllowed)
       client?.urlProtocol(self, didLoad: data)
       client?.urlProtocolDidFinishLoading(self)
@@ -374,19 +487,29 @@ private final class HandlerStorage: @unchecked Sendable {
   }
 }
 
+private final class ChallengeSender: NSObject, URLAuthenticationChallengeSender {
+  func use(_: URLCredential, for _: URLAuthenticationChallenge) {}
+  func continueWithoutCredential(for _: URLAuthenticationChallenge) {}
+  func cancel(_: URLAuthenticationChallenge) {}
+}
+
 private final class RequestRecorder: @unchecked Sendable {
   private let lock = NSLock()
-  private var storedRequest: URLRequest?
+  private var storedRequests: [URLRequest] = []
 
   var request: URLRequest? {
+    requests.last
+  }
+
+  var requests: [URLRequest] {
     lock.lock()
     defer { lock.unlock() }
-    return storedRequest
+    return storedRequests
   }
 
   func record(_ request: URLRequest) {
     lock.lock()
-    storedRequest = request
+    storedRequests.append(request)
     lock.unlock()
   }
 }
