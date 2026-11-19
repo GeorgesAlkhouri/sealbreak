@@ -20,6 +20,7 @@ private actor ClientSpy {
   var statusQueue: [Result<SealStatus, AppFailure>] = []
   var readRecord: ShareRecord?
   var readError: AppFailure?
+  var readEnforcesProfileBinding = true
   var insertError: AppFailure?
   var replaceError: AppFailure?
   var deleteShareError: AppFailure?
@@ -128,7 +129,7 @@ private actor ClientSpy {
     readShareCalls += 1
     if let readError { throw readError }
     guard let readRecord else { throw AppFailure("No protected share configured.") }
-    guard readRecord.profileID == profileID else {
+    guard !readEnforcesProfileBinding || readRecord.profileID == profileID else {
       throw AppFailure("Protected share belongs to a different profile.")
     }
     return readRecord
@@ -604,6 +605,29 @@ struct FeatureTests {
     await store.skipReceivedActions()
 
     #expect(localizedContains(store.state.feedback, "Target binding mismatch"))
+    let submittedCount = await spy.submittedCount
+    #expect(submittedCount == 0)
+  }
+
+  @Test
+  func unsealProfileIdentityMismatchWithSameOriginNeverSubmits() async throws {
+    let target = try profile()
+    let sameOriginRecord = try record(profile("Other profile"))
+    #expect(sameOriginRecord.profileID != target.id)
+    #expect(sameOriginRecord.boundOrigin == target.origin)
+
+    let spy = ClientSpy()
+    await spy.setReadRecord(sameOriginRecord)
+    await spy.setReadEnforcesProfileBinding(false)
+    await spy.setStatusQueue([.success(status())])
+    let store = homeStore(profile: target, status: status(), spy: spy)
+
+    await store.send(.unsealTapped)
+    await store.send(.confirmUnsealTapped).finish()
+    await store.skipReceivedActions()
+
+    #expect(localizedContains(store.state.feedback, "Target binding mismatch"))
+    #expect(await spy.readShareCallCount == 1)
     let submittedCount = await spy.submittedCount
     #expect(submittedCount == 0)
   }
@@ -1778,6 +1802,9 @@ extension ClientSpy {
   fileprivate func setStatusQueue(_ value: [Result<SealStatus, AppFailure>]) { statusQueue = value }
   fileprivate func setReadRecord(_ value: ShareRecord?) { readRecord = value }
   fileprivate func setReadError(_ value: AppFailure?) { readError = value }
+  fileprivate func setReadEnforcesProfileBinding(_ value: Bool) {
+    readEnforcesProfileBinding = value
+  }
   fileprivate func setReplaceError(_ value: AppFailure?) { replaceError = value }
   fileprivate func setSubmitError(_ value: AppFailure?) { submitError = value }
   fileprivate func setWaitCancellation(_ value: Bool) { waitCancellation = value }

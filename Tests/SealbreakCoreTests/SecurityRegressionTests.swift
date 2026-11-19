@@ -97,6 +97,84 @@ struct SecurityRegressionTests {
   }
 
   @Test
+  func replacementRejectsStoredRecordWithSameProfileIdentityButDifferentOrigin() throws {
+    let expected = try ServerProfile(
+      id: UUID(), name: "Expected", address: "https://bao.example.com")
+    let sameProfileDifferentOrigin = try ServerProfile(
+      id: expected.id, name: "Expected", address: "https://other.example.com")
+    let replacement = try ShareRecord(profile: expected, input: share)
+    let existing = try ShareRecord(profile: sameProfileDifferentOrigin, input: share)
+    var checkedForeground = false
+    var replaced = false
+
+    #expect(existing.profileID == expected.id)
+    #expect(existing.boundOrigin != expected.origin)
+    #expect(throws: AppFailure.self) {
+      try replaceShareIfBound(
+        expectedProfile: expected,
+        replacement: replacement,
+        readExisting: { existing },
+        beforeReplace: { checkedForeground = true },
+        replace: { _ in replaced = true }
+      )
+    }
+    #expect(!checkedForeground)
+    #expect(!replaced)
+  }
+
+  @Test
+  func replacementRejectsReplacementWithSameOriginButDifferentProfileIdentity() throws {
+    let expected = try ServerProfile(
+      id: UUID(), name: "Expected", address: "https://bao.example.com")
+    let sameOriginDifferentProfile = try ServerProfile(
+      id: UUID(), name: "Other profile", address: "https://bao.example.com")
+    let existing = try ShareRecord(profile: expected, input: share)
+    let replacement = try ShareRecord(profile: sameOriginDifferentProfile, input: share)
+    var checkedForeground = false
+    var replaced = false
+
+    #expect(replacement.profileID != expected.id)
+    #expect(replacement.boundOrigin == expected.origin)
+    #expect(throws: AppFailure.self) {
+      try replaceShareIfBound(
+        expectedProfile: expected,
+        replacement: replacement,
+        readExisting: { existing },
+        beforeReplace: { checkedForeground = true },
+        replace: { _ in replaced = true }
+      )
+    }
+    #expect(!checkedForeground)
+    #expect(!replaced)
+  }
+
+  @Test
+  func replacementRejectsReplacementWithSameProfileIdentityButDifferentOrigin() throws {
+    let expected = try ServerProfile(
+      id: UUID(), name: "Expected", address: "https://bao.example.com")
+    let sameProfileDifferentOrigin = try ServerProfile(
+      id: expected.id, name: "Expected", address: "https://other.example.com")
+    let existing = try ShareRecord(profile: expected, input: share)
+    let replacement = try ShareRecord(profile: sameProfileDifferentOrigin, input: share)
+    var checkedForeground = false
+    var replaced = false
+
+    #expect(replacement.profileID == expected.id)
+    #expect(replacement.boundOrigin != expected.origin)
+    #expect(throws: AppFailure.self) {
+      try replaceShareIfBound(
+        expectedProfile: expected,
+        replacement: replacement,
+        readExisting: { existing },
+        beforeReplace: { checkedForeground = true },
+        replace: { _ in replaced = true }
+      )
+    }
+    #expect(!checkedForeground)
+    #expect(!replaced)
+  }
+
+  @Test
   func replacementRejectsMismatchedReplacementAndWritesOnlyWhenBothBindingsMatch() throws {
     let expected = try ServerProfile(
       id: UUID(), name: "Expected", address: "https://bao.example.com")
