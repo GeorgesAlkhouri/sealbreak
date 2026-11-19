@@ -77,6 +77,27 @@ struct KeychainStoreTests {
   }
 
   @Test
+  func readRejectsDecodableRecordBeyondSizeLimit() throws {
+    let stub = KeychainStub()
+    let record = try makeRecord()
+    var data = try JSONEncoder().encode(record)
+    data.append(
+      Data(repeating: UInt8(ascii: " "), count: StorageLimits.maxRecordBytes + 1 - data.count))
+    #expect(try JSONDecoder().decode(ShareRecord.self, from: data) == record)
+    stub.copyStatus = errSecSuccess
+    stub.copyData = data
+
+    do {
+      _ = try KeychainStore(access: stub).read(profileID: record.profileID, context: LAContext())
+      #expect(Bool(false))
+    } catch let error as AppFailure {
+      #expect(error.message.hasPrefix("The protected record is larger than expected."))
+    } catch {
+      #expect(Bool(false))
+    }
+  }
+
+  @Test
   func readMapsKeychainFailures() {
     let cases: [(OSStatus, String)] = [
       (errSecDuplicateItem, "A protected share already exists"),
@@ -614,6 +635,33 @@ struct KeychainStoreTests {
   }
 
   @Test
+  func profileStoreRejectsDecodableCatalogBeyondByteLimit() throws {
+    let profile = try ServerProfile(id: UUID(), name: "Test", address: origin)
+    let catalog = try JSONEncoder().encode(
+      TestProfileCatalog(version: 3, profiles: [StoredProfile(profile: profile, state: .ready)])
+    )
+    func padded(to size: Int) -> Data {
+      catalog + Data(repeating: UInt8(ascii: " "), count: size - catalog.count)
+    }
+
+    let atLimitRoot = temporaryRoot()
+    defer { try? FileManager.default.removeItem(at: atLimitRoot) }
+    try writeCatalogData(padded(to: StorageLimits.maxProfileCatalogBytes), to: atLimitRoot)
+    #expect(
+      try ProfileStore(baseDirectory: atLimitRoot).loadAll() == [
+        StoredProfile(profile: profile, state: .ready)
+      ]
+    )
+
+    let oversizedRoot = temporaryRoot()
+    defer { try? FileManager.default.removeItem(at: oversizedRoot) }
+    try writeCatalogData(padded(to: StorageLimits.maxProfileCatalogBytes + 1), to: oversizedRoot)
+    #expect(throws: AppFailure.self) {
+      try ProfileStore(baseDirectory: oversizedRoot).loadAll()
+    }
+  }
+
+  @Test
   func profileStoreRejectsMalformedUnsupportedAndLegacyCatalogs() throws {
     let malformedRoot = temporaryRoot()
     defer { try? FileManager.default.removeItem(at: malformedRoot) }
@@ -765,6 +813,60 @@ struct KeychainStoreTests {
         StoredProfile(profile: second, state: .ready)
       ]
     )
+  }
+
+  @Test
+  func profileStoreDeleteRefusesRewriteBeyondCatalogByteLimit() throws {
+    // Foundation escapes "/" when encoding, so a catalog stored with unescaped
+    // slashes fits the reader limit but grows past it when the writer re-encodes it.
+    let profiles = try (0..<1_400).map { index in
+      try ServerProfile(
+        id: UUID(),
+        name: String(repeating: "/", count: 40),
+        address: "https://p\(index).example"
+      )
+    }
+    let entries = profiles.map { StoredProfile(profile: $0, state: .ready) }
+    let escaped = try JSONEncoder().encode(TestProfileCatalog(version: 3, profiles: entries))
+    let stored = escaped.replacing(Data("\\/".utf8), with: Data("/".utf8))
+    let rewritten = try JSONEncoder().encode(
+      TestProfileCatalog(version: 3, profiles: Array(entries.dropFirst()))
+    )
+    #expect(stored.count <= StorageLimits.maxProfileCatalogBytes)
+    #expect(rewritten.count > StorageLimits.maxProfileCatalogBytes)
+
+    let root = temporaryRoot()
+    defer { try? FileManager.default.removeItem(at: root) }
+    try writeCatalogData(stored, to: root)
+    let store = ProfileStore(baseDirectory: root)
+    #expect(try store.loadAll().count == profiles.count)
+
+    #expect(throws: AppFailure.self) {
+      try store.delete(id: profiles[0].id)
+    }
+    #expect(try store.loadAll().count == profiles.count)
+  }
+
+  @Test
+  func profileStoreBeginRejectsOversizedProfileWithoutWritingCatalog() throws {
+    let name = "é" + String(repeating: "\u{0301}", count: 2_047)
+    let profile = try ServerProfile(
+      id: UUID(),
+      name: name,
+      address: origin
+    )
+    #expect(try JSONEncoder().encode(profile).count > StorageLimits.maxRecordBytes)
+
+    let root = temporaryRoot()
+    defer { try? FileManager.default.removeItem(at: root) }
+    let store = ProfileStore(baseDirectory: root)
+
+    #expect(throws: AppFailure.self) {
+      try store.begin(profile)
+    }
+    #expect(
+      !FileManager.default.fileExists(
+        atPath: root.appendingPathComponent("Sealbreak/profiles.json").path))
   }
 
   @Test
