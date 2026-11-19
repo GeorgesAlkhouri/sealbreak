@@ -157,6 +157,11 @@ package struct SealServerClient: Sendable {
   package func submit(_ record: ShareRecord) async throws {
     let record = try record.validated()
     var body = try Self.encodeUnsealBody(record.share)
+    // Best effort only: `resetBytes` zeroes this buffer in place only while nothing else
+    // references it, for example when the request fails before it reaches URLSession. After a
+    // URLSession round trip, URLSession's objects can still reference the buffer here, so the reset
+    // zeroes a copy-on-write copy. The buffer handed to `URLRequest.httpBody`, and any copies made by
+    // Foundation or the network stack, are then released without being cleared.
     defer {
       body.resetBytes(in: body.startIndex..<body.endIndex)
     }

@@ -126,6 +126,23 @@ struct KeychainStoreTests {
   }
 
   @Test
+  func readZeroesTheReturnedRecordBufferBeforeReleasingIt() throws {
+    let stub = KeychainStub()
+    let record = try makeRecord()
+    let observation = ReleasedBufferObservation()
+    stub.copyStatus = errSecSuccess
+    stub.handedOverCopyData = observation.track(try JSONEncoder().encode(record))
+
+    let result = try KeychainStore(access: stub).read(
+      profileID: record.profileID,
+      context: LAContext()
+    )
+
+    #expect(result.share == record.share)
+    #expect(observation.wasZeroed == true)
+  }
+
+  @Test
   func insertProtectsEncodedRecordInProfileScopedAccountAndMapsFailures() throws {
     let stub = KeychainStub()
     let store = KeychainStore(access: stub)
@@ -220,6 +237,22 @@ struct KeychainStoreTests {
     #expect(addStatus != errSecSuccess)
     #expect(updateStatus != errSecSuccess)
     #expect(deleteStatus != errSecSuccess)
+  }
+
+  @Test
+  func systemKeychainAdapterReturnsDataThatCanBeZeroedInPlace() throws {
+    let bytes = Array(try JSONEncoder().encode(try makeRecord()))
+    // `SecItemCopyMatching` returns the stored data as an immutable `CFData` like this one.
+    let object = try #require(CFDataCreate(nil, bytes, bytes.count))
+    var data = try #require(SystemKeychainAccess.ownedCopy(of: object))
+    #expect(Array(data) == bytes)
+
+    let address = data.withUnsafeBytes { $0.baseAddress }
+    data.resetBytes(in: data.startIndex..<data.endIndex)
+    #expect(data.withUnsafeBytes { $0.baseAddress } == address)
+
+    #expect(SystemKeychainAccess.ownedCopy(of: nil) == nil)
+    #expect(SystemKeychainAccess.ownedCopy(of: [String: String]() as CFDictionary) == nil)
   }
 
   @Test
@@ -955,6 +988,8 @@ private final class KeychainStub: KeychainAccessing {
   )
   var copyStatus = errSecItemNotFound
   var copyData: Data?
+  /// Returned instead of `copyData` by the next `copyMatching`, which keeps no reference to it.
+  var handedOverCopyData: Data?
   var addStatus = errSecSuccess
   var updateStatus = errSecSuccess
   var deleteStatus = errSecSuccess
@@ -971,6 +1006,9 @@ private final class KeychainStub: KeychainAccessing {
 
   func copyMatching(_ request: [String: Any]) -> (OSStatus, Data?) {
     lastCopyRequest = request
+    if let data = handedOverCopyData.take() {
+      return (copyStatus, data)
+    }
     return (copyStatus, copyData)
   }
 
@@ -988,5 +1026,22 @@ private final class KeychainStub: KeychainAccessing {
   func delete(_ request: [String: Any]) -> OSStatus {
     lastDeleteRequest = request
     return deleteStatus
+  }
+}
+
+/// Hands out bytes in a buffer that records, when it is released, whether it was zeroed first.
+private final class ReleasedBufferObservation: @unchecked Sendable {
+  private(set) var wasZeroed: Bool?
+
+  func track(_ bytes: Data) -> Data {
+    let pointer = UnsafeMutableRawPointer.allocate(byteCount: bytes.count, alignment: 1)
+    UnsafeMutableRawBufferPointer(start: pointer, count: bytes.count).copyBytes(from: bytes)
+    return Data(
+      bytesNoCopy: pointer,
+      count: bytes.count,
+      deallocator: .custom { pointer, count in
+        self.wasZeroed = UnsafeRawBufferPointer(start: pointer, count: count).allSatisfy { $0 == 0 }
+        pointer.deallocate()
+      })
   }
 }
