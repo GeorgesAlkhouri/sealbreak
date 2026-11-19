@@ -24,7 +24,22 @@ struct SystemKeychainAccess: KeychainAccessing {
   func copyMatching(_ request: [String: Any]) -> (OSStatus, Data?) {
     var result: CFTypeRef?
     let status = SecItemCopyMatching(request as CFDictionary, &result)
-    return (status, result as? Data)
+    return (status, Self.ownedCopy(of: result))
+  }
+
+  /// Copies a returned `CFData` into a buffer that Swift owns, so `KeychainStore.read` can zero
+  /// it in place. Bridging with `as? Data` also copies, but into a buffer that `resetBytes` does
+  /// not modify in place: it zeroes a fresh copy instead. The `CFData` itself is immutable and is
+  /// released without being cleared.
+  static func ownedCopy(of result: CFTypeRef?) -> Data? {
+    guard let result, CFGetTypeID(result) == CFDataGetTypeID() else {
+      return nil
+    }
+    let data = unsafeDowncast(result, to: CFData.self)
+    // Keep the `CFData` alive until its bytes are copied.
+    return withExtendedLifetime(data) {
+      Data(UnsafeBufferPointer(start: CFDataGetBytePtr(data), count: CFDataGetLength(data)))
+    }
   }
 
   func add(_ request: [String: Any]) -> OSStatus {
@@ -71,9 +86,11 @@ package struct KeychainStore {
     request[kSecUseAuthenticationContext as String] = context
 
     let (status, storedData) = access.copyMatching(request)
-    guard status == errSecSuccess, var data = storedData else {
+    guard status == errSecSuccess, var data = consume storedData else {
       throw failure(status)
     }
+    // `data` must be the only reference to the returned buffer; otherwise `resetBytes` zeroes a
+    // copy-on-write copy and the returned buffer is released with the record still in it.
     defer {
       data.resetBytes(in: data.startIndex..<data.endIndex)
     }
