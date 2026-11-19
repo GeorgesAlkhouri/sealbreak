@@ -33,6 +33,7 @@ private actor ClientSpy {
   var replacedRecords: [ShareRecord] = []
   var submittedRecords: [ShareRecord] = []
   var statusCalls = 0
+  var protectNewProfileCalls = 0
   var readShareCalls = 0
   var detectProductCalls = 0
   var dnssecCalls = 0
@@ -55,6 +56,7 @@ private actor ClientSpy {
     _ profile: ServerProfile,
     record: ShareRecord
   ) throws -> LocalPersistenceOutcome {
+    protectNewProfileCalls += 1
     if waitCancellation {
       throw CancellationError()
     }
@@ -773,11 +775,42 @@ struct FeatureTests {
     await store.send(
       .saveTapped(share: share)
     ).finish()
-    await store.skipReceivedActions()
+    let recovery = AppFeedback.warning(
+      "Local setup did not finish safely. Reset local Sealbreak data before continuing.")
+    await store.receive(.localResetRequired(recovery))
+    await store.receive(.delegate(.localResetRequired(feedback: recovery)))
 
     #expect(await spy.insertedCount == 0)
     #expect(localizedContains(store.state.feedback, "Reset local Sealbreak data"))
   }
+
+  @Test
+  func setupImportRejectsUnstorableProfileBeforeProtectionWithoutReset() async throws {
+    let target = try profile("é" + String(repeating: "\u{0301}", count: 2_047))
+    let storageFailure = #expect(throws: AppFailure.self) {
+      try StorageLimits.validateEncodedSize(JSONEncoder().encode(target))
+    }
+    let spy = ClientSpy()
+    // The live transaction requests recovery when the profile store rejects the profile.
+    await spy.setInsertProfileError(AppFailure("profile exceeds the storage limit"))
+    let store = TestStore(
+      initialState: ShareSetupFeature.State(profile: target)
+    ) {
+      ShareSetupFeature()
+    } withDependencies: {
+      $0.sealbreakClient = client(spy)
+      $0.uuid = .incrementing
+    }
+
+    await store.send(.saveTapped(share: share)) {
+      $0.feedback = storageFailure?.feedback
+    }
+
+    #expect(await spy.protectNewProfileCalls == 0)
+    #expect(await spy.savedProfilesCount == 0)
+    #expect(await spy.insertedCount == 0)
+  }
+
   @Test
   func pasteFailuresUseFeatureFeedback() async throws {
     let target = try profile()

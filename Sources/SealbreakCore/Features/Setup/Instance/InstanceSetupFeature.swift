@@ -91,6 +91,7 @@ package struct InstanceSetupFeature {
         let profile: ServerProfile
         do {
           profile = try ServerProfile(id: uuid(), name: state.name, address: state.address)
+            .validatedForStorage()
         } catch {
           state.invalidateConnectionCheck()
           state.nameValidationError = normalizedAppFailure(error).feedback.text
