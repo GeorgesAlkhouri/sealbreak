@@ -7,8 +7,9 @@ import UIKit
 extension SealbreakClient {
   /// The live client used by the app.
   ///
-  /// It uses the shared controller, so the app has at most one pending
-  /// authorization at a time.
+  /// It uses the shared controller, so all protected operations share one
+  /// current authorization, and only the most recent one can reach protected
+  /// storage.
   @MainActor
   static var live: Self { live(controller: .shared) }
 
@@ -95,7 +96,8 @@ final class LiveSealbreakClientController {
   ///
   /// The share and the profile catalog exist once per app, so protected
   /// operations must share one controller: a newer authorization supersedes an
-  /// older one, and cancellation reaches every pending authorization.
+  /// older one, and cancellation invalidates the current one, so a superseded or
+  /// cancelled authorization cannot reach protected storage.
   static let shared = LiveSealbreakClientController()
 
   private let keychain: KeychainStore

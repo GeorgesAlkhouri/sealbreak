@@ -26,6 +26,7 @@ only_rules:
   - contains_over_first_not_nil
   - contains_over_range_nil_comparison
   - convenience_type
+  - custom_rules
   - cyclomatic_complexity
   - deployment_target
   - discarded_notification_center_observer
@@ -166,6 +167,18 @@ no_empty_block:
     - initializer_bodies
     - function_bodies
     - closure_blocks
+
+# Protected operations share one authorization state, held by the one live controller.
+# App code must not create a second controller or build a live client on another one.
+# Tests are excluded: they build controllers around test doubles.
+custom_rules:
+  single_live_controller:
+    name: "Single live controller"
+    included: ".*/(Sources|Sealbreak)/.*\\.swift$"
+    excluded: ".*/Tests/.*"
+    regex: "(?<!static let shared = )LiveSealbreakClientController\\(|live\\(controller: (?!\\.shared\\)|LiveSealbreakClientController\\))"
+    message: "Protected operations must share one controller. Use SealbreakClient.live."
+    severity: error
 
 # These rules require a full build and `swiftlint analyze`; normal lint skips them.
 # TCA intentionally exposes its dependency modules through its public facade.
