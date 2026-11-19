@@ -5,24 +5,35 @@ import SealbreakInfrastructure
 import UIKit
 
 extension SealbreakClient {
-  package static var live: Self {
+  /// The live client used by the app.
+  ///
+  /// It uses the shared controller, so the app has at most one pending
+  /// authorization at a time.
+  @MainActor
+  static var live: Self { live(controller: .shared) }
+
+  /// Creates a live client backed by the given controller.
+  ///
+  /// - Parameter controller: The controller that performs every operation of
+  ///   the returned client.
+  static func live(controller: LiveSealbreakClientController) -> Self {
     Self(
       localData: .init(
         loadLocalSetupState: {
-          try await LiveSealbreakClientController.shared.loadLocalSetupState()
+          try await controller.loadLocalSetupState()
         },
         protectNewProfile: { profile, record, reason in
-          try await LiveSealbreakClientController.shared.protectNewProfile(
+          try await controller.protectNewProfile(
             profile: profile,
             record: record,
             reason: reason
           )
         },
         resetLocalData: {
-          try await LiveSealbreakClientController.shared.resetLocalData()
+          try await controller.resetLocalData()
         },
         removeLocalProfile: { profileID, reason in
-          try await LiveSealbreakClientController.shared.removeLocalProfile(
+          try await controller.removeLocalProfile(
             profileID: profileID,
             reason: reason
           )
@@ -30,33 +41,33 @@ extension SealbreakClient {
       ),
       server: .init(
         detectProduct: { profile in
-          try await LiveSealbreakClientController.shared.detectProduct(profile)
+          try await controller.detectProduct(profile)
         },
         dnssecStatus: { host in
-          await LiveSealbreakClientController.shared.dnssecStatus(host)
+          await controller.dnssecStatus(host)
         },
         status: { profile in
-          try await LiveSealbreakClientController.shared.status(profile)
+          try await controller.status(profile)
         },
         submit: { record in
-          try await LiveSealbreakClientController.shared.submit(record)
+          try await controller.submit(record)
         }
       ),
       shareAccess: .init(
         readShareFragment: { profileID, reason in
-          try await LiveSealbreakClientController.shared.readShareFragment(
+          try await controller.readShareFragment(
             profileID: profileID,
             reason: reason
           )
         },
         readShare: { profileID, reason in
-          try await LiveSealbreakClientController.shared.readShare(
+          try await controller.readShare(
             profileID: profileID,
             reason: reason
           )
         },
         replaceShare: { expectedProfile, replacement, reason in
-          try await LiveSealbreakClientController.shared.replaceShare(
+          try await controller.replaceShare(
             expectedProfile: expectedProfile,
             replacement: replacement,
             reason: reason
@@ -65,13 +76,13 @@ extension SealbreakClient {
       ),
       lifecycle: .init(
         requireForeground: {
-          try await LiveSealbreakClientController.shared.requireForeground()
+          try await controller.requireForeground()
         },
         waitForForeground: {
-          try await LiveSealbreakClientController.shared.waitForForeground()
+          try await controller.waitForForeground()
         },
         cancelSensitiveOperation: {
-          await LiveSealbreakClientController.shared.cancelSensitiveOperation()
+          await controller.cancelSensitiveOperation()
         }
       )
     )
@@ -80,6 +91,11 @@ extension SealbreakClient {
 
 @MainActor
 final class LiveSealbreakClientController {
+  /// The app-wide controller.
+  ///
+  /// The share and the profile catalog exist once per app, so protected
+  /// operations must share one controller: a newer authorization supersedes an
+  /// older one, and cancellation reaches every pending authorization.
   static let shared = LiveSealbreakClientController()
 
   private let keychain: KeychainStore
