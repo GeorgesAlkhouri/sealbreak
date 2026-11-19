@@ -624,6 +624,8 @@ struct FeatureTests {
     #expect(store.state.status == nil)
     #expect(localizedContains(store.state.feedback, "submit failed"))
     #expect(localizedContains(store.state.feedback, "final outcome is unknown"))
+    let submittedCount = await spy.submittedCount
+    #expect(submittedCount == 1)
   }
 
   @Test

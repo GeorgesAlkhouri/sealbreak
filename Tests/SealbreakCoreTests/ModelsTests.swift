@@ -194,11 +194,36 @@ struct ModelsTests {
   }
 
   @Test
+  func offersUnsealForInitializedShamirSealWithoutMigrationOrRecoverySeal() throws {
+    #expect(try Self.shamirStatus().validated().supportsUnseal)
+  }
+
+  @Test(arguments: [
+    shamirStatus(type: "transit"),
+    shamirStatus(initialized: false),
+    shamirStatus(migration: true),
+    shamirStatus(recoverySeal: true),
+  ])
+  func doesNotOfferUnsealWhenAnySingleShamirConditionFails(status: SealStatus) throws {
+    #expect(try !status.validated().supportsUnseal)
+  }
+
+  @Test
   func rejectsInconsistentStatus() {
     let status = SealStatus(
       type: "shamir", initialized: true, sealed: true,
       quorum: .init(threshold: 3, totalShares: 2, progress: 0), migration: false,
       recoverySeal: false)
     #expect(throws: AppFailure.self) { try status.validated() }
+  }
+
+  private static func shamirStatus(
+    type: String = "shamir", initialized: Bool = true, migration: Bool = false,
+    recoverySeal: Bool = false
+  ) -> SealStatus {
+    SealStatus(
+      type: type, initialized: initialized, sealed: true,
+      quorum: .init(threshold: 3, totalShares: 5, progress: 0), migration: migration,
+      recoverySeal: recoverySeal)
   }
 }

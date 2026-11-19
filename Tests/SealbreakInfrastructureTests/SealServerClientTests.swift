@@ -174,6 +174,19 @@ struct SealServerClientTests {
   }
 
   @Test
+  func statusRejectsDecodableButInconsistentPayload() async {
+    let payload = #"{"type":"shamir","initialized":true,"sealed":true,"t":3,"n":2,"progress":0}"#
+    let client = makeClient { request in
+      (try Self.response(for: request), Data(payload.utf8))
+    }
+
+    let message = await failureMessage {
+      _ = try await client.status(try profile())
+    }
+    #expect(message == "Invalid seal-status response. Check the actual server state again.")
+  }
+
+  @Test
   func requestRejectsUnexpectedResponses() async {
     let cases: [(Int, [String: String], String, String)] = [
       (302, ["Content-Type": "application/json"], origin, "Redirect blocked."),
