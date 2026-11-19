@@ -435,6 +435,58 @@ struct KeychainStoreTests {
     }
   }
 
+  @Test(arguments: ProfileBeginFailure.allCases)
+  func createLocalProfileTransactionRequiresRecoveryWhenBeginFails(
+    _ failure: ProfileBeginFailure
+  ) throws {
+    let root = temporaryRoot()
+    defer { try? FileManager.default.removeItem(at: root) }
+    var profile = try ServerProfile(id: UUID(), name: "Test", address: origin)
+    switch failure {
+    case .existingProfile:
+      let existing = try ServerProfile(
+        id: UUID(), name: "Existing", address: "https://other.example.com")
+      try writeCatalog(
+        TestProfileCatalog(version: 3, profiles: [StoredProfile(profile: existing, state: .ready)]),
+        to: root
+      )
+    case .malformedCatalog:
+      try writeCatalogData(Data("{}".utf8), to: root)
+    case .unsupportedCatalogVersion:
+      try writeCatalog(TestProfileCatalog(version: 99, profiles: []), to: root)
+    case .unfinishedReset:
+      try writeCatalog(TestProfileCatalog(version: 3, state: .resetting, profiles: []), to: root)
+    case .unstorableProfile:
+      // Setup rejects this profile before the transaction; the transaction stays fail-closed.
+      profile = try ServerProfile(
+        id: UUID(), name: "é" + String(repeating: "\u{0301}", count: 2_047), address: origin)
+    }
+    let file = root.appendingPathComponent("Sealbreak/profiles.json")
+    let catalogBefore = try? Data(contentsOf: file)
+    let store = ProfileStore(baseDirectory: root)
+    var laterSteps = 0
+
+    let outcome = createLocalProfileTransaction(
+      beginProfile: {
+        try store.begin(profile)
+      },
+      insertShare: {
+        laterSteps += 1
+      },
+      commitProfile: {
+        laterSteps += 1
+      }
+    )
+
+    guard case .recoveryRequired = outcome else {
+      Issue.record("A failed profile begin must require recovery.")
+      return
+    }
+    let catalogAfter = try? Data(contentsOf: file)
+    #expect(laterSteps == 0)
+    #expect(catalogAfter == catalogBefore)
+  }
+
   @Test
   func removeLocalProfileTransactionMarksRemovingBeforeDelete() throws {
     let root = temporaryRoot()
@@ -944,6 +996,11 @@ struct KeychainStoreTests {
     FileManager.default.temporaryDirectory
       .appendingPathComponent("SealbreakTests-\(UUID().uuidString)", isDirectory: true)
   }
+}
+
+enum ProfileBeginFailure: CaseIterable, Sendable {
+  case existingProfile, malformedCatalog, unsupportedCatalogVersion, unfinishedReset
+  case unstorableProfile
 }
 
 private final class KeychainStub: KeychainAccessing {

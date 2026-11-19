@@ -62,6 +62,31 @@ struct SetupCoverageTests {
   }
 
   @Test
+  func instanceRejectsUnstorableNameBeforeConnectionCheck() async throws {
+    let name = "é" + String(repeating: "\u{0301}", count: 2_047)
+    let storageFailure = #expect(throws: AppFailure.self) {
+      try StorageLimits.validateEncodedSize(
+        JSONEncoder().encode(ServerProfile(id: UUID(), name: name, address: origin)))
+    }
+    let store = TestStore(initialState: InstanceSetupFeature.State()) {
+      InstanceSetupFeature()
+    } withDependencies: {
+      $0.sealbreakClient = .testValue
+      $0.uuid = .incrementing
+    }
+
+    await store.send(.nameChanged(name)) {
+      $0.name = name
+    }
+    await store.send(.addressChanged(origin)) {
+      $0.address = origin
+    }
+    await store.send(.checkConnectionTapped) {
+      $0.nameValidationError = storageFailure?.feedback.text
+    }
+  }
+
+  @Test
   func instanceSkipsFailingDNSSECWhileDisabled() async {
     let dnssecCalls = CallCounter()
     var dependency = SealbreakClient.testValue

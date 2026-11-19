@@ -68,6 +68,14 @@ package struct ServerProfile: Codable, Equatable, Identifiable, Sendable {
     return self
   }
 
+  // Applies the checks the profile store makes before its first write, so a profile
+  // that can never be stored is rejected before a local transaction starts.
+  package func validatedForStorage() throws -> Self {
+    let profile = try validated()
+    try StorageLimits.validateEncodedSize(JSONEncoder().encode(profile))
+    return profile
+  }
+
   package func endpoint(_ path: String) throws -> URL {
     _ = try validated()
     return try Self.url(fromCanonicalOrigin: origin)

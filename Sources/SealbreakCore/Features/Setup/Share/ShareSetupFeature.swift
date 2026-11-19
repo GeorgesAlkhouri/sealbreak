@@ -59,6 +59,7 @@ package struct ShareSetupFeature {
 
         let record: ShareRecord
         do {
+          _ = try state.profile.validatedForStorage()
           record = try ShareRecord(profile: state.profile, input: input)
         } catch {
           state.feedback = normalizedAppFailure(error).feedback
