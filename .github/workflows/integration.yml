@@ -36,7 +36,7 @@ jobs:
             version: "2.7.2"
           - name: vault
             # renovate: packageName=hashicorp/vault
-            version: "2.2.1"
+            version: "2.2.2"
     env:
       DEVELOPER_DIR: /Applications/Xcode_27.1.app/Contents/Developer
       SEALBREAK_IOS_RUNTIME: ${{ inputs.runtime }}
