@@ -33,7 +33,7 @@ jobs:
         server:
           - name: openbao
             # renovate: packageName=openbao/openbao
-            version: "2.7.2"
+            version: "2.7.3"
           - name: vault
             # renovate: packageName=hashicorp/vault
             version: "2.2.2"
